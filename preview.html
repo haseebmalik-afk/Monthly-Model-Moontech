@@ -42,7 +42,8 @@
 html,body{margin:0;padding:0}
 body{background:var(--paper);color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1,"cv11" 1}
 a{color:inherit}
-.wrap{max-width:1320px;margin:0 auto;padding:0 20px}
+.wrap{max-width:1680px;margin:0 auto;padding:0 clamp(20px,2.4vw,56px)}
+@media (min-width:1900px){.wrap{max-width:1840px}}
 @media (max-width:640px){.wrap{padding:0 16px}}
 
 /* ---- header */
@@ -95,7 +96,9 @@ section[data-view="co"] table.t tr.sub,section[data-view="co"] table.t tr.sub2{d
 .grid{display:grid;gap:16px}
 .g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
 .g32{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}.g23{grid-template-columns:minmax(0,2fr) minmax(0,3fr)}
-@media (max-width:1000px){.g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g32,.g23{grid-template-columns:1fr}}
+@media (max-width:1240px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:1000px){.g3{grid-template-columns:repeat(2,minmax(0,1fr))}.g32,.g23{grid-template-columns:1fr}}
+@media (max-width:1100px){.hero{font-size:38px}.card{padding:16px 18px}}
 @media (max-width:640px){.g2,.g3,.g4{grid-template-columns:1fr}}
 .card{background:var(--card);border:1px solid var(--rule);border-radius:var(--radius);padding:18px 20px;min-width:0}
 .card.block{background:var(--block);color:var(--block-text);border-color:var(--block);position:relative;overflow:hidden}.card.block::after{content:'';position:absolute;right:-28px;bottom:-30px;width:170px;height:170px;background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><path fill='rgba(255,255,255,0.12)' d='M150 20c-8 22-30 28-44 44-12 14-14 34-6 50 2 4 0 8-4 8-18 2-36-6-46-22-12-20-8-48 10-64 16-14 56-22 90-16zM96 108c10-14 28-20 44-20 4 0 6 4 4 8-8 16-24 28-42 30-6 0-10-12-6-18z'/></svg>") no-repeat center/contain;pointer-events:none}.card.block>*{position:relative;z-index:1}
@@ -153,6 +156,7 @@ table.t.fit th:first-child,table.t.fit td:first-child{min-width:0}
 .neg{color:var(--bad)}
 .pos{color:var(--good)}
 .defs{font-size:12px;color:var(--ink-2);line-height:1.55;columns:2;column-gap:28px}
+@media (min-width:1500px){.defs{columns:3}}
 @media (max-width:800px){.defs{columns:1}}
 .defs p{margin:0 0 8px;break-inside:avoid}
 .defs b{color:var(--ink)}

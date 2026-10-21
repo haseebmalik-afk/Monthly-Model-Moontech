@@ -1,0 +1,109 @@
+merchant,extract_aliases,source,roas_ladder_name,roas_since,ladder_level,pricing_model,identified_as,company_size_class (Growth/SME; Enterprise is computed),segment_confidence,parent_group,segment_note,status
+Admitad,,Datos,,,,Legacy,Admitad,Growth,High,,"Affiliate network, not an advertiser - Partner bucket",Confirmed
+Allsaints,,Datos,,,,Legacy,AllSaints,Growth,High,,Global brand,Confirmed
+Amazon,,Datos,,,,Legacy,Amazon,Growth,High,,Global/major regional brand,Confirmed
+American Eagle,,Datos,,,,Legacy,American Eagle,Growth,High,,Global/major regional brand,Confirmed
+Bath & Body Works,,Datos,,,,Legacy,Bath & Body Works,Growth,High,,Global/major regional brand,Confirmed
+Bloomingdales,,Datos,,,,Legacy,Bloomingdale's,Growth,High,,Global department store; watchlist for Enterprise (2026 run-rate ~AED 0.8M),Confirmed
+Blue Age,,Datos,,,,Legacy,Blue Age,SME,Low,,Unidentified - defaulted to SME. Confirm with sales.,Confirmed
+Caret & Barrel,,Datos,,,,Legacy,Crate & Barrel,Growth,High,,Global brand,Confirmed
+CB2,,Datos,,,,Legacy,CB2,Growth,High,,Global/major regional brand,Confirmed
+DCM,,Datos,,,,Legacy,DCM,SME,Low,,Unidentified - defaulted to SME. Confirm with sales.,Confirmed
+Ferns & Petals,,Datos,,,,Legacy,Ferns N Petals,Growth,High,,~USD 113M revenue FY2026,Confirmed
+Firstcry,,Datos,,,,Legacy,FirstCry,Growth,High,,Large e-commerce group; not individually verified,Confirmed
+Fordeal,,Datos,,,,Legacy,Fordeal,Growth,High,,Large cross-border e-com; not individually verified,Confirmed
+GAP,,Datos,,,,Legacy,GAP,Growth,High,,Global/major regional brand,Confirmed
+H&M,,Datos,,,,Legacy,H&M,Growth,High,,Global/major regional brand,Confirmed
+Izil,,Datos,Izil,2026-07,L1,ROAS-linked,izil Beauty,SME,High,,Founder-led; small store footprint,Confirmed
+LEGO,,Datos,,,,Legacy,LEGO,Growth,High,,Global/major regional brand,Confirmed
+Level shoes,,Datos,,,,Legacy,Level Shoes,Growth,High,,Enterprise on 2024 MoonTech revenue (USD 321.7K),Confirmed
+Loccitane,,Datos,,,,Legacy,L'Occitane,Growth,High,,Global brand,Confirmed
+LULU,,Datos,,,,Legacy,Lulu Hypermarket,Growth,Medium,LuLu Group,Identity assumed,Confirmed
+Mamas & Papas,,Datos,,,,Legacy,Mamas & Papas,Growth,High,,Global/major regional brand,Confirmed
+Mumzworld,,Datos,,,,Legacy,Mumzworld,Growth,Medium,Tamer Group (~USD 2.5B turnover),Standalone revenue not public; Growth via group,Confirmed
+My protein,,Datos,,,,Legacy,Myprotein,Growth,High,THG,Global brand,Confirmed
+Namshi,Namshi GZ,Datos,,,,Legacy,Namshi,Growth,High,,Global/major regional brand,Confirmed
+Nayomi,,Datos,,,,Legacy,Nayomi,Growth,Medium,,No revenue disclosed; ~185 stores across GCC,Confirmed
+Networks,,Datos,,,,Legacy,Networks,SME,Low,,Unidentified - defaulted to SME. Confirm with sales.,Confirmed
+New Balance,,Datos,,,,Legacy,New Balance,Growth,High,,Global/major regional brand,Confirmed
+Niceone,,Datos,,,,Legacy,Nice One,Growth,High,Listed (Tadawul),SAR 782.4M revenue 2023 (~USD 209M),Confirmed
+Noon,Noon GZ,Datos,,,,Legacy,Noon,Growth,High,,Global/major regional brand,Confirmed
+Ontime,,Datos,,,,Legacy,ONTIME (watch retailer),Growth,Medium,Alyasra Fashion,Identity assumed; 100+ Gulf stores,Confirmed
+Ounass,,Datos,,,,Legacy,Ounass,Growth,High,,Enterprise on MoonTech revenue (every year > AED 1M),Confirmed
+Pottery Barns,,Datos,,,,Legacy,Pottery Barn,Growth,High,,Global brand,Confirmed
+Pottery Barns Kids,,Datos,,,,Legacy,Pottery Barn Kids,Growth,High,,Global brand,Confirmed
+Rina,,Datos,,,,Legacy,Rina,SME,Low,,Unidentified - defaulted to SME. Confirm with sales.,Confirmed
+Riva,,Datos,,,,Legacy,Riva Fashion,Growth,Medium,Armada Retail Concepts,No revenue disclosed; 46-100+ GCC stores (sources conflict),Confirmed
+Saramart,,Datos,,,,Legacy,Saramart,SME,Low,,Unidentified - defaulted to SME. Confirm with sales.,Confirmed
+Sephora,,Datos,,,,Legacy,Sephora,Growth,High,,Enterprise on MoonTech revenue (every year > AED 1M),Confirmed
+Sivvi,,Datos,,,,Legacy,Sivvi,Growth,Medium,noon,Growth via noon group,Confirmed
+Styli,,Datos,,,,Legacy,Styli,Growth,Medium,Landmark Group,Growth via group; standalone not verified,Confirmed
+Sun & Sports,,Datos,,,,Legacy,Sun & Sand Sports,Growth,Medium,Gulf Marketing Group,Identity assumed; GMG runs ~200 regional stores,Confirmed
+Swarovski,,Datos,,,,Legacy,Swarovski,Growth,High,,Global/major regional brand,Confirmed
+THAT,,Datos,,,,Legacy,THAT Concept Store,Growth,Medium,Majid Al Futtaim,Growth via MAF; store closing 2026 - treat as inactive,Confirmed
+The Body Shop,,Datos,,,,Legacy,The Body Shop,Growth,High,,Global/major regional brand,Confirmed
+The Giving Moment,,Datos,,,,Legacy,The Giving Movement (assumed),SME,Medium,,Estimated USD 15-35M from USD 4/item donations; not disclosed,Confirmed
+To you,,Datos,,,,Legacy,To you,SME,Low,,Unidentified - defaulted to SME. Confirm with sales.,Confirmed
+Under Armour,,Datos,,,,Legacy,Under Armour,Growth,High,,Global/major regional brand,Confirmed
+Vogacloset,,Datos,,,,Legacy,VogaCloset,Growth,Medium,Alhokair / Arabian Centres (51%),SAR 266.3M revenue in 2020 (~USD 71M); data dated,Confirmed
+West Elms,,Datos,,,,Legacy,West Elm,Growth,High,,Global brand,Confirmed
+6th Street,,Datos,,,,Legacy,6thStreet,Growth,Medium,Apparel Group,Growth via group; standalone not verified,Confirmed
+Adidas Rakuten,,Datos,,,,Legacy,Adidas,Growth,High,Routed via Rakuten network,Classified on end brand (Adidas),Confirmed
+DKNY,,Datos,DKNY,2026-05,L4,ROAS-linked,DKNY,Growth,High,,Global/major regional brand,Confirmed
+Eyewa,,Datos,,,,Legacy,Eyewa,Growth,High,,Well-funded regional e-com; not individually verified,Confirmed
+Farfetch,,Datos,,,,Legacy,Farfetch,Growth,High,,Global/major regional brand,Confirmed
+Mothercare,,Datos,,,,Legacy,Mothercare,Growth,High,,Global/major regional brand,Confirmed
+Shiseido,,Datos,,,,Legacy,Shiseido,Growth,High,,Global/major regional brand,Confirmed
+Trendyol,,Datos,,,,Legacy,Trendyol,Growth,High,,Global/major regional brand,Confirmed
+Victorias Secret,,Datos,,,,Legacy,Victorias Secret,Growth,High,,Global/major regional brand,Confirmed
+Airalo,Airalo PLT,Datos,,,,Legacy,Airalo,Growth,High,,"Large, well-funded; not individually verified",Confirmed
+Faces arabylinks,,Datos,,,,Legacy,Faces,Growth,High,Routed via Arabylinks network,Classified on end brand (Faces),Confirmed
+Feel,,Datos,,,,Legacy,Feel,SME,Low,,Unidentified - defaulted to SME. Confirm with sales.,Confirmed
+Brand for less,,Datos,,,,Legacy,Brands For Less,Growth,High,,Large regional off-price retailer; not individually verified,Confirmed
+Cole haan,,Datos,,,,Legacy,Cole haan,Growth,High,,Global/major regional brand,Confirmed
+Metrobrazil,,Datos,Metro Brazil,2026-08,L1,ROAS-linked,Metro Brazil,SME,High,,~36 employees; shapewear e-tailer,Confirmed
+Smallable,Smallable (MT),Datos,,,,Legacy,Smallable,Growth,Medium,,~EUR 75M revenue (2023); just above threshold,Confirmed
+Charlotte Tilbury,,Datos,,,,Legacy,Charlotte Tilbury,Growth,High,,Global beauty brand,Confirmed
+Go Sports,,Datos,,,,Legacy,Go Sport,Growth,Medium,Al Mana Group,Growth via Al Mana (brand owner since 2023),Confirmed
+Banana Republic,,Datos,,,,Legacy,Banana Republic,Growth,High,,Global/major regional brand,Confirmed
+Basharacare,,Datos,,,,Legacy,BasharaCare,SME,High,,Small regional e-com,Confirmed
+Touche prive,Touche prive (MT),Datos,Touche Prive,2025-11,L1,ROAS-linked,Touché Privé,SME,High,,Small local brand,Confirmed
+Squatwolf,,Datos,,,,Legacy,SQUATWOLF,SME,Medium,,No revenue disclosed (raised USD 30M PE); SME until data surfaces. Revisit.,Confirmed
+COS,,Datos,,,,Legacy,COS,Growth,High,,Global/major regional brand,Confirmed
+Footlocker,,Datos,,,,Legacy,Footlocker,Growth,High,,Global/major regional brand,Confirmed
+Goldenscent MT,,Datos,Golden Scent,2026-01,L4,ROAS-linked,Golden Scent,Growth,Medium,,SAR 300M+ revenue from KSA (~USD 80M); unclear if annual or cumulative,Confirmed
+Ulta Beauty,,Datos,,,,Legacy,Ulta Beauty,Growth,High,,Global/major regional brand,Confirmed
+Allbirds,,Datos,All Birds,2026-05,L1,ROAS-linked,Allbirds,Growth,High,,Global/major regional brand,Confirmed
+Anafasic MT,,Datos,Anfasik Dokhoon,2026-02,L1,ROAS-linked,Anafasic,SME,High,,New MoonTech-acquired SME client,Confirmed
+Kitopi - Rightbite MT,,Datos,Right Bite,2026-01,L5,ROAS-linked,Rightbite,Growth,Medium,Kitopi,Growth via Kitopi group; Rightbite standalone may be below threshold,Confirmed
+Aiza - MT,,Datos,Aiza,2026-05,L2,ROAS-linked,Aiza,SME,High,,New MoonTech-acquired SME client,Confirmed
+Maison Safqa - MT,,Datos,Maison Safka,2026-06,L4,ROAS-linked,Maison Safqa,SME,High,,New MoonTech-acquired SME client,Confirmed
+Studio Earth - MT,,Datos,Studio Earth,2026-04,L1,ROAS-linked,Studio Earth,SME,High,,New MoonTech-acquired SME client,Confirmed
+Just hype - MT,,Datos,JustHype,2026-07,L1,ROAS-linked,Just hype,SME,High,,New MoonTech-acquired SME client,Confirmed
+Blanco,,Ladder only,Blanco,2026-09,L3,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Nysaa Beauty,,Ladder only,Nysaa Beauty,2026-07,L2,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Joli,,Ladder only,Joli,2026-07,L2,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Bond,,Ladder only,Bond,2026-09,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Sahseh,,Ladder only,Sahseh,2026-03,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Lawni,,Ladder only,Lawni,2026-03,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Oneshot,,Ladder only,Oneshot,2026-05,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Kizik,,Ladder only,Kizik,2026-05,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Jetour,,Ladder only,Jetour,2026-06,CPL,Other pricing,,Unassigned,,,,Proposed (segment at review)
+Arte Madrid,,Ladder only,Arte Madrid,2026-06,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Reefi,,Ladder only,Reefi,2026-07,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Avantcha,,Ladder only,Avantcha,2026-07,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Alma Home,,Ladder only,Alma Home,2026-07,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Under 500,,Ladder only,Under 500,2026-08,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Ejalo Beauty,,Ladder only,Ejalo Beauty,2026-07,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Transformative,,Ladder only,Transformative,2026-08,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Laurus Aroma,,Ladder only,Laurus Aroma,2026-08,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Skinora,,Ladder only,Skinora,2026-09,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+HQtelecom,,Ladder only,HQtelecom,2026-09,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+SuLinda,,Ladder only,SuLinda,2026-09,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+SHAYA,,Ladder only,SHAYA,2026-09,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Wheels Bikes,,Ladder only,Wheels Bikes,2026-09,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Breth,,Ladder only,Breth,2026-09,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Rite,,Ladder only,Rite,2026-09,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Book My Pet,,Ladder only,Book My Pet,2026-03,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Numero,,Ladder only,Numero,2026-04,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)
+Pure N Bio,,Ladder only,Pure N Bio,2026-04,L1,ROAS-only,,Unassigned,,,,Proposed (segment at review)

@@ -1,0 +1,70 @@
+# MoonTech dashboard: settings. Every threshold lives here; never hardcode these in the logic.
+# Spec references in brackets. Currency: AED unless stated; USD = AED / fx.aed_per_usd.
+
+fx:
+  aed_per_usd: 3.6725                    # [§1] single FX setting
+
+reporting:
+  currency: USD
+  default_period: TTM
+
+merchant_status:                         # [§7] legacy (Datos) merchants
+  active_min_annualised_usd: 950         # annualised revenue test (TTM, or since-first-revenue x12/months in year 1)
+  quiet_month_threshold_usd: 100         # a month below this counts as "quiet"
+  quiet_months_to_churn: 6               # 6 consecutive quiet months -> churned
+  new_cohort_window_months: 12           # "New"/"Reactivated" revenue window [§7 splits]
+
+roas_status:                             # [§7] ladder brands
+  months_without_payment_to_churn: 6     # rule R2 (when ladder Churn month is blank)
+  other_pricing_levels_not_matching: "^L[0-9]+$"   # any Level not matching this regex = Other pricing (e.g. CPL / Jetour)
+  launch_month: 2025-11                  # first ROAS signing; "since launch" periods start here [§10.5]
+
+creator_status:                          # [§8]
+  active_min_avg_net_orders_per_month: 5 # averaged over TTM, or since first order if < 12 months
+  activity_window_months: 6              # >= 1 order in last 6 months
+  min_rounded_net_orders_to_add: 1       # [S4]
+
+segmentation:                            # [§6] annualised basis for entry AND exit
+  enterprise_enter_annualised_aed: 1000000
+  enterprise_exit_annualised_aed: 500000 # exit -> Growth
+  growth_vs_sme_company_revenue_usd: 50000000
+  major_creator_enter_annualised_orders: 5000
+  major_creator_exit_annualised_orders: 2500
+
+name_matching:                           # [§5]
+  strip_suffixes: ["MT", "(MT)", "GZ", "PLT", "LLC", "FZ", "FZE", "FZC", "Ltd"]
+  contains_min_length: 5
+  fuzzy_min_similarity: 0.80             # auto-confirm exact/contains; fuzzy/no-match/new ROAS link -> Proposed
+
+creator_id_checks:                       # [S4 rule 6]
+  valid_lengths: [5, 6, 10, 11, 12]
+  rounding_match_sig_figs: [4, 5, 6, 7, 8, 9]
+
+arr:                                     # [§10.1]
+  window_months: 3
+  roas_multiplier: 4                     # ROAS ARR = last 3 months x 4 (no seasonality)
+  seasonality_weights_rule: "average monthly share of legacy revenue over the last 2 full calendar years; recalc each January"
+  provisional_months_handling: OPEN      # D1: "estimate" or "lag" (decision pending)
+
+churn:                                   # [§10.3]
+  stored_base_rate: monthly
+  small_sample_flag_below_events: 5
+  at_risk_quiet_months: [3, 5]
+
+ltv:                                     # [§10.6]
+  lifetime_cap_months: 60
+  roas_margin: 0.50                      # assumption until ROAS creator payouts can be separated (F6)
+  legacy_margin: actual_contribution_margin_TTM
+  legacy_churn_basis: gross_revenue_churn   # 1 - GRR (rolling 12m)
+  roas_churn_basis: logo_churn
+
+reconciliation:
+  multi_grain_tie_out_tolerance: 0.01    # [§3 generic recipe]
+
+small_cells_flag_below_accounts: 5       # [§10.8]
+
+development_treatment_by_month:          # [§9] Expensed | Capitalised
+  2024-01..2024-06: Capitalised
+  2024-07..2024-12: Expensed
+  2025-01..2025-12: Capitalised
+  2026-01..: Expensed                    # may switch to Capitalised at YE

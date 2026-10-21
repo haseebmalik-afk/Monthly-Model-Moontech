@@ -1,0 +1,44 @@
+id,spec_ref,metric,period,group,expected_spec_ingestion,expected_model_dataset,unit,tolerance,note
+CF01,§4,P&L Sales (total revenue),Jan-26,Total,323.7,323.7,USD k,0.1,Revenue split
+CF02,§4,Named legacy revenue,Jan-26,Legacy,325.8,325.8,USD k,0.1,
+CF03,§4,ROAS revenue,Jan-26,ROAS,4.0,4.0,USD k,0.1,
+CF04,§4,Plug,Jan-26,Unallocated,-6.1,-6.1,USD k,0.1,Can be negative (cash vs invoice timing)
+CF05,§4,Plug,Apr-26,Unallocated,-8.8,-8.8,USD k,0.1,
+CF06,§4,Plug,Jul-26,Unallocated,133.5,-2.6,USD k,0.5,"Spec ingestion uses the system Ounass figure (AED 302,530); the Model tab includes the manual AED 802,530, so its plug is about zero"
+CF07,§4,Plug,Aug-26,Unallocated,14.4,14.4,USD k,0.1,
+CF08,§9,Revenue,Jan-Aug 26,Total,2896.3,2896.3,USD k,0.5,
+CF09,§9,Creator payouts,Jan-Aug 26,Total,1313.4,1313.4,USD k,0.5,Cost of Sales sub-lines Moon+Infpact+Cost plus
+CF10,§9,Contribution margin,Jan-Aug 26,Total,54.7,54.7,%,0.1,
+CF11,§9,Gross margin,Jan-Aug 26,Total,51.9,51.9,%,0.1,
+CF12,§9,EBITDA,Jan-Aug 26,Total,-53.8,-53.8,USD k,0.5,After mapping Sales Commission + Shipping
+CF13,§7,Active merchants (legacy rule only),Aug-26,Datos merchants,32,32,count,0,Before ROAS split; old rule gave 26
+CF14,§7 counting,Active legacy merchants,Aug-26,Legacy,23,23,count,0,
+CF15,§7 counting,Active ROAS brands (incl. Jetour),Aug-26,ROAS,23,23,count,0,Jetour moves to Other pricing from Jun-26
+CF16,§7 counting,Total active merchants,Aug-26,Total,46,46,count,0,
+CF17,§7,ROAS brands signed (excl. Jetour),Nov-25 to Sep-26,ROAS,38,38,count,0,Pack shows 37 (excludes Touche Prive)
+CF18,§7,Active ROAS brands (excl. Jetour),Sep-26,ROAS,28,28,count,0,
+CF19,§8,Active creators,Aug-26,Creators,254,254,count,0,Re-run when net history arrives
+CF20,§8,Emerging creators,Aug-26,Creators,803,803,count,0,Recently churned creators who ordered in the last 6 months count as Emerging (spec §8). Corrected from 773
+CF21,§6,Major creators (annualised rule),Aug-26,Creators,20,20,count,0,
+CF22,§S4,Total net orders incl. Unattributed,Aug-26,Total,17245.0,17245.0,count,0,17149 + 96 unattributed
+CF23,§10.1,ROAS ARR,Sep-26,ROAS,230875,230875,USD,1,Matches VC pack
+CF24,§10.1,Legacy run-rate (3m seasonality-adj),Jul-26,Legacy,5.05,5.05,USD M,0.02,
+CF25,§10.1,Legacy run-rate (3m seasonality-adj),Aug-26,Legacy,3.7,3.7,USD M,0.02,Provisional Ounass
+CF26,§10.2,ARPA,Jul-26,Enterprise,1.14,1.35,USD M,0.01,Depends on Ounass Jul-26: system value applies until the updated extract is loaded
+CF27,§10.2,ARPA,Jul-26,Growth,49.5,49.5,USD k,0.5,
+CF28,§10.2,ARPA (avg active),Q3-26,ROAS,9895,9895,USD,10,Pack uses end-of-period: 7961
+CF29,§10.3,Legacy unique churned,TTM Aug-26,Legacy,15,15,count,0,
+CF30,§10.3,Legacy average active,TTM Aug-26,Legacy,26.8,26.8,count,0.1,
+CF31,§10.3,ROAS churned (incl. Lawni),Nov-25 to Sep-26,ROAS,10,10,count,0,9 L1 + 1 L2+ (Golden Scent)
+CF32,§10.4,NRR rolling 12m,Aug-26,Legacy,137,142,%,1,Depends on Ounass Jul-26: system value applies until the updated extract is loaded
+CF33,§10.4,GRR rolling 12m,Aug-26,Legacy,96,96,%,1,
+CF34,§10.4,NRR QoQ,Q2-26 vs Q1-26,ROAS,44,44,%,1,Matches pack
+CF35,§10.4,NRR QoQ,Q3-26 vs Q2-26,ROAS,146,146,%,1,Matches pack
+CF36,§10.5,CAC (pack basis: 37 brands; Sep spend assumed 8500),Nov-25 to Sep-26,ROAS,1984,1984,USD,1,Dashboard must NOT assume Sep spend; this check only validates the formula
+CF37,§10.5,CAC,Q2-26,ROAS,2250,2250,USD,1,
+CF38,§10.6,LTV (blended),Q3-26,ROAS,4824,4824,USD,25,ARPA 9895; monthly churn 8.5%; margin 50%
+CF39,§10.6,LTV (revenue churn basis),Jul-26,Legacy Growth & SME,94,94,USD k,1,"Legacy margin = TTM contribution margin (54.4%), spec §10.6"
+CF40,§10.9,Concentration top 1,TTM Aug-26,Total,53,56,%,1,Ounass; Depends on Ounass Jul-26: system value applies until the updated extract is loaded
+CF41,§10.9,Concentration top 5,TTM Aug-26,Total,88,91,%,1,Depends on Ounass Jul-26: system value applies until the updated extract is loaded
+CF42,§10.9,Revenue growth YoY,YTD Jan-Aug 26,Total,45.7,45.7,%,0.2,
+CF43,§10.19,2026 annualised revenue,FY2026 (annualised),Total,5.02,5.02,USD M,0.02,"Legacy 4.89 + ROAS 0.13 (YTD + ARR x remaining/12, spec §10.19). Corrected from 4.99 (which used ROAS x12/8)"

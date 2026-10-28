@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MoonTech Monthly Model</title>
-<meta name="description" content="MoonTech monthly model dashboard: revenue, ARR, retention and unit economics for Legacy and ROAS clients, rebuilt each month from the raw extracts.">
+<meta name="description" content="MoonTech monthly model dashboard: revenue, ARR, retention and unit economics for Commission and ROAS clients, rebuilt each month from the raw extracts.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@500;600;700&display=swap" rel="stylesheet">
@@ -215,7 +215,7 @@ footer{border-top:1px solid var(--rule);padding:18px 0 40px;font-size:11.5px;col
         <img class="logo-ink" alt="MoonTech" src="data:image/png;base64,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">
         <img class="logo-paper" alt="MoonTech" src="data:image/png;base64,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">
         <span class="sep"></span>
-        <div class="title">Monthly Model<small>Unit economics · Legacy &amp; ROAS</small></div>
+        <div class="title">Monthly Model<small>Unit economics · Commission &amp; ROAS</small></div>
       </div>
       <div class="spacer"></div>
       <span class="pill" id="pill-latest"><span class="dot"></span>Latest month <b>—</b></span>
@@ -225,10 +225,10 @@ footer{border-top:1px solid var(--rule);padding:18px 0 40px;font-size:11.5px;col
       </button>
     </div>
     <nav class="tabs" id="tabs">
-      <button data-page="investor" class="active"><span class="n">01</span>Investor dashboard</button>
-      <button data-page="annual"><span class="n">02</span>Annual summary</button>
-      <button data-page="monthly"><span class="n">03</span>Monthly summary</button>
-      <button data-page="actuals"><span class="n">04</span>Monthly actuals</button>
+      <button data-page="kpis" class="active"><span class="n">01</span>KPIs</button>
+      <button data-page="financials"><span class="n">02</span>Financials</button>
+      <button data-page="segmentation"><span class="n">03</span>Client Segmentation</button>
+      <button data-page="investor"><span class="n">04</span>Investor Dashboard</button>
       <button data-page="control"><span class="n">05</span>Control &amp; data quality</button>
     </nav>
   </div>
@@ -238,14 +238,19 @@ footer{border-top:1px solid var(--rule);padding:18px 0 40px;font-size:11.5px;col
   <div class="controls" id="controls">
     <div class="ctl"><label>View</label><div class="seg" id="ctl-view"><button data-v="seg" class="on">Segmented</button><button data-v="co">Company-wide</button></div></div>
     <div class="ctl"><label>Period</label><select class="sel" id="ctl-period"></select></div>
+    <div class="ctl" id="ctl-finwrap"><label>Detail</label><div class="seg" id="ctl-finview"><button data-v="annual" class="on">Annual</button><button data-v="monthly">Monthly</button><button data-v="actuals">Full grid</button></div></div>
     <div class="ctl"><label>Ounass buffer</label><div class="seg" id="ctl-buffer"><button data-v="on" class="on">On · held</button><button data-v="off">Off · added back</button></div></div>
     <div class="ctl"><label>Year</label><select class="sel" id="ctl-year"></select></div>
   </div>
   <div class="loading" id="loading">Loading data…</div>
-  <section class="page active" id="page-investor"></section>
-  <section class="page" id="page-annual"></section>
-  <section class="page" id="page-monthly"></section>
-  <section class="page" id="page-actuals"></section>
+  <section class="page active" id="page-kpis"></section>
+  <section class="page" id="page-financials">
+    <div id="fin-annual" class="finview"></div>
+    <div id="fin-monthly" class="finview"></div>
+    <div id="fin-actuals" class="finview"></div>
+  </section>
+  <section class="page" id="page-segmentation"></section>
+  <section class="page" id="page-investor"></section>
   <section class="page" id="page-control"></section>
   <div class="flagbar" id="flagbar" style="margin-top:28px;padding-top:14px;border-top:1px solid var(--rule)"></div>
   <footer>
@@ -258,7 +263,8 @@ footer{border-top:1px solid var(--rule);padding:18px 0 40px;font-size:11.5px;col
 /* ============================================================ state + data */
 const LS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
 const state = {
-  page: LS('mm.page') || 'investor', view: LS('mm.view') || 'seg', buffer: LS('mm.buffer') || 'on',
+  page: LS('mm.page') || 'kpis', view: LS('mm.view') || 'seg', buffer: LS('mm.buffer') || 'on',
+  finView: LS('mm.finview') || 'annual',
   period: null, year: null, confirmed: null, cap: null, theme: LS('mm.theme')
 };
 if (state.theme) document.documentElement.setAttribute('data-theme', state.theme);
@@ -355,6 +361,7 @@ function buildControls() {
   ys.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join(''); ys.value = state.year;
   document.querySelectorAll('#ctl-view button').forEach(b => b.classList.toggle('on', b.dataset.v === state.view));
   document.querySelectorAll('#ctl-buffer button').forEach(b => b.classList.toggle('on', b.dataset.v === state.buffer));
+  document.querySelectorAll('#ctl-finview button').forEach(b => b.classList.toggle('on', b.dataset.v === state.finView));
   document.getElementById('pill-latest').querySelector('b').textContent = fmt.month(L_);
   document.getElementById('pill-checks').querySelector('b').textContent = M.checks_pass + '/' + M.checks.length;
   document.getElementById('pill-checks').querySelector('b').className = M.checks_pass === M.checks.length ? 'ok' : 'neg';
@@ -364,17 +371,23 @@ function bindUI() {
   document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', () => { state.page = b.dataset.page; LS('mm.page', state.page); showPage(); }));
   document.querySelectorAll('#ctl-view button').forEach(b => b.addEventListener('click', () => { state.view = b.dataset.v; LS('mm.view', state.view); document.querySelectorAll('#ctl-view button').forEach(x => x.classList.toggle('on', x === b)); renderAll(); }));
   document.querySelectorAll('#ctl-buffer button').forEach(b => b.addEventListener('click', () => { state.buffer = b.dataset.v; LS('mm.buffer', state.buffer); document.querySelectorAll('#ctl-buffer button').forEach(x => x.classList.toggle('on', x === b)); mergeData(); renderAll(); }));
+  document.querySelectorAll('#ctl-finview button').forEach(b => b.addEventListener('click', () => { state.finView = b.dataset.v; LS('mm.finview', state.finView); document.querySelectorAll('#ctl-finview button').forEach(x => x.classList.toggle('on', x === b)); showPage(); }));
   document.getElementById('ctl-period').addEventListener('change', e => { state.period = e.target.value; LS('mm.period', state.period); renderAll(); });
   document.getElementById('ctl-year').addEventListener('change', e => { state.year = e.target.value; LS('mm.year', state.year); renderAll(); });
   document.getElementById('theme').addEventListener('click', () => { const cur = document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); const nx = cur === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', nx); LS('mm.theme', nx); renderAll(); });
   showPage();
 }
+const PAGES = ['kpis', 'financials', 'segmentation', 'investor', 'control'];
 function showPage() {
+  if (!PAGES.includes(state.page)) state.page = 'kpis';
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.page === state.page));
   document.querySelectorAll('section.page').forEach(s => s.classList.toggle('active', s.id === 'page-' + state.page));
   const ctl = document.getElementById('controls');
-  ctl.querySelector('#ctl-year').parentElement.style.display = state.page === 'monthly' ? '' : 'none';
-  ctl.querySelector('#ctl-period').parentElement.style.display = (state.page === 'investor') ? '' : 'none';
+  const onFin = state.page === 'financials';
+  ctl.querySelector('#ctl-finwrap').style.display = onFin ? '' : 'none';
+  ctl.querySelector('#ctl-year').parentElement.style.display = (onFin && state.finView === 'monthly') ? '' : 'none';
+  ctl.querySelector('#ctl-period').parentElement.style.display = (state.page === 'investor' || state.page === 'kpis' || state.page === 'segmentation') ? '' : 'none';
+  if (onFin) ['annual', 'monthly', 'actuals'].forEach(v => { const el = document.getElementById('fin-' + v); if (el) el.style.display = v === state.finView ? '' : 'none'; });
   window.scrollTo({ top: 0 });
 }
 function renderFlags() {
@@ -385,7 +398,7 @@ function renderFlags() {
   f.push(`<span class="flag teal"><i>C</i> Development: ${Object.entries(state.cap).map(([y, v]) => y + ' ' + v).join(' · ')}</span>`);
   document.getElementById('flagbar').innerHTML = f.join('');
 }
-function renderAll() { document.querySelectorAll("section.page").forEach(x => x.dataset.view = state.view); renderFlags(); renderInvestor(); renderAnnual(); renderMonthly(); renderActuals(); renderControl(); }
+function renderAll() { document.querySelectorAll("section.page").forEach(x => x.dataset.view = state.view); renderFlags(); renderKpis(); renderInvestor(); renderAnnual(); renderMonthly(); renderActuals(); renderSegmentation(); renderControl(); }
 
 /* ============================================================ charts (inline SVG) */
 const tipEl = document.getElementById('tip');
@@ -462,8 +475,8 @@ function renderInvestor() {
   const roasQ = (() => { const qs = Object.keys(P).filter(k => k.startsWith('Q:') && P[k].retention.roas_qoq); const k = qs[qs.length - 1]; return k ? { k, v: P[k].retention.roas_qoq, lab: P[k].label } : null; })();
   const econ = sl.ltv.ROAS, cac = sl.cac;
   const selNrr = sel.retention.legacy_12m || ttm.retention.legacy_12m;
-  const hdr = h`<div class="pagehead"><div><p class="eyebrow">01 · Investor dashboard</p><h1 class="h2">${co ? 'Company-wide' : 'Legacy and ROAS'} headline metrics</h1>
-    <p>${co ? 'Blended company figures; use Segmented to see the Legacy and ROAS split.' : 'Legacy and ROAS shown separately.'} ARR is a 3-month run-rate (legacy seasonality-adjusted, ROAS × 4).</p></div>
+  const hdr = h`<div class="pagehead"><div><p class="eyebrow">04 · Investor dashboard</p><h1 class="h2">${co ? 'Company-wide' : 'Commission and ROAS'} headline metrics</h1>
+    <p>${co ? 'Blended company figures; use Segmented to see the Commission and ROAS split.' : 'Commission and ROAS shown separately.'} ARR is a 3-month run-rate (commission seasonality-adjusted, ROAS × 4).</p></div>
     <div class="muted small">Period: <b>${esc(sel.label)}</b></div></div>`;
 
   // hero row — driven by the selected period and the view toggle
@@ -471,14 +484,14 @@ function renderInvestor() {
     <div class="card block"><p class="eyebrow">Revenue · ${esc(sel.label)}${sel.ounass_flag ? ' · provisional' : ''}</p><div class="hero">${fmt.money(sel.rev.total)}</div>
       <div class="delta ${sel.yoy ? (sel.yoy.total >= 0 ? 'up' : 'down') : 'flat'}">${sel.yoy ? fmt.pctS(sel.yoy.total) + ' vs prior year' : 'period total'}</div>
       ${co ? `<div class="split"><div class="it"><span class="k">Blended</span><b>${fmt.money(sel.rev.total)}</b></div></div>`
-           : `<div class="split seg-only"><div class="it"><span class="sw legacy"></span><span class="k">Legacy</span><b>${fmt.money(sel.rev.legacy)}</b></div><div class="it"><span class="sw roas"></span><span class="k">ROAS</span><b>${fmt.money(sel.rev.roas)}</b></div><div class="it"><span class="k">Mix</span><b>${fmt.pct(sel.rev.roas / sel.rev.total, 1)} ROAS</b></div></div>`}</div>
+           : `<div class="split seg-only"><div class="it"><span class="sw legacy"></span><span class="k">Commission</span><b>${fmt.money(sel.rev.legacy)}</b></div><div class="it"><span class="sw roas"></span><span class="k">ROAS</span><b>${fmt.money(sel.rev.roas)}</b></div><div class="it"><span class="k">Mix</span><b>${fmt.pct(sel.rev.roas / sel.rev.total, 1)} ROAS</b></div></div>`}</div>
     <div class="card"><p class="eyebrow">ARR · end of ${fmt.month(sel.end)}</p><div class="hero">${fmt.money(sel.arr.blended)}</div>
-      <div class="delta flat">${co ? 'company run-rate' : 'legacy run-rate + ROAS ARR'}</div>
-      ${co ? '' : `<div class="split seg-only"><div class="it"><span class="sw legacy"></span><span class="k">Legacy run-rate</span><b>${fmt.money(sel.arr.legacy)}</b></div><div class="it"><span class="sw roas"></span><span class="k">ROAS ARR</span><b>${fmt.money(sel.arr.roas)}</b></div></div>`}</div>
+      <div class="delta flat">${co ? 'company run-rate' : 'commission run-rate + ROAS ARR'}</div>
+      ${co ? '' : `<div class="split seg-only"><div class="it"><span class="sw legacy"></span><span class="k">Commission run-rate</span><b>${fmt.money(sel.arr.legacy)}</b></div><div class="it"><span class="sw roas"></span><span class="k">ROAS ARR</span><b>${fmt.money(sel.arr.roas)}</b></div></div>`}</div>
     <div class="card"><p class="eyebrow">Active clients · end of ${fmt.month(sel.end)}</p><div class="hero">${sel.active_end.total}</div>
       <div class="delta flat">${sel.events.roas_signed} ROAS signed · ${sel.events.leg_churn + sel.events.roas_churn} churned in period</div>
-      ${co ? '' : `<div class="split seg-only"><div class="it"><span class="sw legacy"></span><span class="k">Legacy</span><b>${sel.active_end.legacy}</b></div><div class="it"><span class="sw roas"></span><span class="k">ROAS</span><b>${sel.active_end.roas}</b></div><div class="it"><span class="sw other"></span><span class="k">Other</span><b>${sel.active_end.other}</b></div></div>`}</div>
-    <div class="card"><p class="eyebrow">Legacy NRR · ${selNrr === sel.retention.legacy_12m && sel.retention.legacy_12m ? esc(sel.label) : 'rolling 12m'}</p><div class="hero">${fmt.pct(selNrr && selNrr.nrr, 0)}</div>
+      ${co ? '' : `<div class="split seg-only"><div class="it"><span class="sw legacy"></span><span class="k">Commission</span><b>${sel.active_end.legacy}</b></div><div class="it"><span class="sw roas"></span><span class="k">ROAS</span><b>${sel.active_end.roas}</b></div><div class="it"><span class="sw other"></span><span class="k">Other</span><b>${sel.active_end.other}</b></div></div>`}</div>
+    <div class="card"><p class="eyebrow">Commission NRR · ${selNrr === sel.retention.legacy_12m && sel.retention.legacy_12m ? esc(sel.label) : 'rolling 12m'}</p><div class="hero">${fmt.pct(selNrr && selNrr.nrr, 0)}</div>
       <div class="delta flat">GRR ${fmt.pct(selNrr && selNrr.grr, 0)}</div>
       ${co ? '' : `<div class="split seg-only"><div class="it"><span class="sw roas"></span><span class="k">ROAS NRR ${roasQ ? roasQ.lab : ''}</span><b>${roasQ ? fmt.pct(roasQ.v.nrr, 0) : '—'}</b>${roasQ && roasQ.v.cohort < 5 ? '<span class="tag warn">n&lt;5</span>' : ''}</div></div>`}</div>
   </div>`;
@@ -486,8 +499,8 @@ function renderInvestor() {
   // revenue chart + mix
   const months = S.months, lab = months.map(m => fmt.month(m));
   const chartCard = h`<div class="grid g32" style="margin-top:16px">
-    <div class="card"><p class="eyebrow">Monthly revenue · P&amp;L sales split</p><h3 class="h3">Legacy, ROAS and unallocated</h3><div class="chart" id="inv-rev"></div>
-      <div class="legend"><span><span class="sw legacy"></span>Named legacy</span><span><span class="sw roas"></span>ROAS (ladder)</span><span><span class="sw other"></span>Other pricing</span><span><span class="sw plug"></span>Unallocated plug</span><span style="margin-left:auto"><span class="sw" style="background:var(--ink)"></span>Blended ARR ÷ 12</span></div>
+    <div class="card"><p class="eyebrow">Monthly revenue · P&amp;L sales split</p><h3 class="h3">Commission, ROAS and unallocated</h3><div class="chart" id="inv-rev"></div>
+      <div class="legend"><span><span class="sw legacy"></span>Named commission</span><span><span class="sw roas"></span>ROAS (ladder)</span><span><span class="sw other"></span>Other pricing</span><span><span class="sw plug"></span>Unallocated plug</span><span style="margin-left:auto"><span class="sw" style="background:var(--ink)"></span>Blended ARR ÷ 12</span></div>
       <div class="note">Total always equals P&amp;L Sales. The plug is cash-vs-invoice timing plus any provisional Ounass gap${addbackActive() ? ' (AED 150k buffer added back to unconfirmed months)' : ''}.</div></div>
     <div class="card"><p class="eyebrow">Revenue mix</p><h3 class="h3">ROAS share of revenue and of active clients</h3><div class="chart" id="inv-mix"></div>
       <div class="legend"><span><span class="sw roas"></span>ROAS % of revenue</span><span><span class="sw" style="background:var(--ink)"></span>ROAS % of active clients</span></div>
@@ -502,18 +515,18 @@ function renderInvestor() {
   let T = `<table class="t"><thead><tr><th>Metric</th>${colh.map(c => `<th>${c}</th>`).join('')}<th>YoY (YTD)</th></tr></thead><tbody>`;
   T += sec('Revenue', 5);
   T += rrow('Total revenue (P&amp;L)', p => p.rev.total, money, yoy(y => y.total), 'tot');
-  T += rrow('Legacy', p => p.rev.legacy, money, yoy(y => y.legacy), 'sub');
+  T += rrow('Commission', p => p.rev.legacy, money, yoy(y => y.legacy), 'sub');
   T += rrow('ROAS', p => p.rev.roas, money, yoy(y => y.roas), 'sub');
   T += rrow('Other pricing', p => p.rev.other, money, null, 'sub');
   T += rrow('Revenue growth excl. top account (' + esc(ttm.concentration.top1_name) + ')', p => p.yoy ? p.yoy.total_ex_top : null, fmt.pctS, null);
   T += rrow('ROAS share of revenue', p => p.rev.roas / p.rev.total, pct1, null);
   T += sec('Run-rate at period end', 5);
   T += rrow('Blended ARR', p => p.arr.blended, money, null, 'tot');
-  T += rrow('Legacy run-rate (3m, seasonality-adjusted)', p => p.arr.legacy, money, null, 'sub');
+  T += rrow('Commission run-rate (3m, seasonality-adjusted)', p => p.arr.legacy, money, null, 'sub');
   T += rrow('ROAS ARR (3m × 4)', p => p.arr.roas, money, null, 'sub');
   T += sec('Clients at period end', 5);
   T += rrow('Active clients', p => p.active_end.total, fmt.int, null, 'tot');
-  T += rrow('Legacy · Enterprise / Growth / SME', p => p.active_end.legacy, (v) => v, null, 'sub');
+  T += rrow('Commission · Enterprise / Growth / SME', p => p.active_end.legacy, (v) => v, null, 'sub');
   T += row('', cols.map(p => `<td class="muted">${LEG_SEGS.map(s => p.active_end.leg_seg[s]).join(' / ')}</td>`).concat(['<td></td>']), 'sub2');
   T += rrow('ROAS · Small / Medium / Large', p => p.active_end.roas, fmt.int, null, 'sub');
   T += row('', cols.map(p => `<td class="muted">${TIERS.map(s => p.active_end.roas_tier[s]).join(' / ')}</td>`).concat(['<td></td>']), 'sub2');
@@ -526,11 +539,11 @@ function renderInvestor() {
   T += rrow('SME', p => p.arpa.SME, money, null, 'sub');
   T += rrow('ROAS', p => p.arpa.ROAS, money, null, 'sub');
   T += sec('Retention', 5);
-  T += row('Legacy NRR · rolling 12 months', cols.map(p => td(p.retention.legacy_12m && p.retention.legacy_12m.nrr, pct0)).concat(['<td></td>']));
-  T += row('Legacy GRR · rolling 12 months', cols.map(p => td(p.retention.legacy_12m && p.retention.legacy_12m.grr, pct0)).concat(['<td></td>']));
+  T += row('Commission NRR · rolling 12 months', cols.map(p => td(p.retention.legacy_12m && p.retention.legacy_12m.nrr, pct0)).concat(['<td></td>']));
+  T += row('Commission GRR · rolling 12 months', cols.map(p => td(p.retention.legacy_12m && p.retention.legacy_12m.grr, pct0)).concat(['<td></td>']));
   T += row('ROAS NRR · quarter on quarter', cols.map((p, i) => { const q = roasQ && i === 3 ? roasQ.v : null; return td(q && q.nrr, pct0); }).concat(['<td></td>']));
   T += row('Logo churn · 12-month / lifetime', cols.map(() => '<td></td>').concat(['<td></td>']), 'sub');
-  T += row('Legacy', cols.map(p => `<td>${churnTxt(p.churn.legacy)}</td>`).concat(['<td></td>']), 'sub2');
+  T += row('Commission', cols.map(p => `<td>${churnTxt(p.churn.legacy)}</td>`).concat(['<td></td>']), 'sub2');
   T += row('ROAS (all) · L1 · L2+', cols.map(p => `<td>${p.churn.ROAS ? churnTxt(p.churn.ROAS) + ' <span class="muted small">· L1 ' + fmt.pct(p.churn.L1 && p.churn.L1.twelve_month, 0) + ' · L2+ ' + fmt.pct(p.churn['L2+'] && p.churn['L2+'].twelve_month, 0) + '</span>' : '—'}</td>`).concat(['<td></td>']), 'sub2');
   T += sec('Concentration · share of revenue', 5);
   T += row('Top 1 account', cols.map(p => `<td>${fmt.pct(p.concentration.top1, 0)} <span class="muted small">${esc(p.concentration.top1_name)}</span></td>`).concat(['<td></td>']));
@@ -545,8 +558,8 @@ function renderInvestor() {
   T += rrow('Orders per active creator', p => p.creators.orders_per_active, v => fmt.num(v, 0), null);
   T += rrow('Net orders (incl. unattributed)', p => p.creators.orders_total, fmt.int, yoy(y => y.orders));
   T += sec('Volume', 5);
-  T += rrow('GMV (legacy, net)', p => p.gmv, money, yoy(y => y.gmv));
-  T += rrow('Take rate (legacy revenue ÷ GMV)', p => p.gmv ? p.rev.legacy / p.gmv : null, pct1, null);
+  T += rrow('GMV (commission, net)', p => p.gmv, money, yoy(y => y.gmv));
+  T += rrow('Take rate (commission revenue ÷ GMV)', p => p.gmv ? p.rev.legacy / p.gmv : null, pct1, null);
   T += sec('Cash', 5);
   T += row('Cash, net burn, runway', cols.map(() => '<td class="na">n/a until cash report (S10) is linked</td>').concat(['<td></td>']));
   T += '</tbody></table>';
@@ -571,7 +584,7 @@ function renderInvestor() {
       <div class="tblwrap"><table class="t dense fit"><thead><tr><th>Group</th><th>ARPA</th><th>Monthly churn</th><th>Lifetime</th><th>LTV</th><th>LTV/CAC</th><th>Payback</th></tr></thead><tbody>
       ${grp('All ROAS', sp.ltv.ROAS)}${grp('L1', sp.ltv.L1)}${grp('L2+', sp.ltv['L2+'])}
       ${grp('Small', sp.ltv.Small)}${grp('Medium', sp.ltv.Medium)}${grp('Large', sp.ltv.Large)}
-      ${co ? grp('Legacy Enterprise <span class="muted small">(revenue churn)</span>', sp.ltv.Enterprise && Object.assign({}, sp.ltv.Enterprise, { ltv_cac: null, payback: null })) + grp('Legacy Growth &amp; SME <span class="muted small">(revenue churn)</span>', sp.ltv.GrowthSME && Object.assign({}, sp.ltv.GrowthSME, { ltv_cac: null, payback: null })) + (sp.ltv.company ? `<tr class="tot"><td>Company-level LTV <span class="muted small">weighted by active accounts</span></td><td colspan="3"></td><td>${fmt.money(sp.ltv.company.ltv)}</td><td colspan="2" class="na">no company CAC</td></tr>` : '') : ''}
+      ${co ? grp('Commission Enterprise <span class="muted small">(revenue churn)</span>', sp.ltv.Enterprise && Object.assign({}, sp.ltv.Enterprise, { ltv_cac: null, payback: null })) + grp('Commission Growth &amp; SME <span class="muted small">(revenue churn)</span>', sp.ltv.GrowthSME && Object.assign({}, sp.ltv.GrowthSME, { ltv_cac: null, payback: null })) + (sp.ltv.company ? `<tr class="tot"><td>Company-level LTV <span class="muted small">weighted by active accounts</span></td><td colspan="3"></td><td>${fmt.money(sp.ltv.company.ltv)}</td><td colspan="2" class="na">no company CAC</td></tr>` : '') : ''}
       </tbody></table></div>
       <div class="note">The economics of a new signing are the <b>blended</b> row. L2+ and Large reached their tier by surviving and upgrading; every signing costs the same CAC.</div></div></div>`;
 
@@ -583,17 +596,17 @@ function renderInvestor() {
       <div class="note">Top 1 ${fmt.pct(ttm.concentration.top1, 0)} · top 5 ${fmt.pct(ttm.concentration.top5, 0)} · top 10 ${fmt.pct(ttm.concentration.top10, 0)}. HHI ${Math.round(ttm.concentration.hhi).toLocaleString()}.</div></div></div>`;
 
   const defs = `<div class="card" style="margin-top:16px"><p class="eyebrow">Definitions note</p><div class="defs">
-    <p><b>Active legacy client:</b> annualised revenue ≥ $950 and fewer than 6 consecutive months below $100. <b>Churned:</b> the first month either test fails (not backdated).</p>
-    <p><b>ROAS brand:</b> active from its ladder Since month; churned at the ladder Churn month, or after 6 months without payment. No revenue threshold. Migrated legacy clients (DKNY, Izil, Metro Brazil) are one client in one view per month, never counted twice.</p>
-    <p><b>ARR:</b> legacy = last 3 months, each divided by its seasonality weight, averaged; ROAS = last 3 months × 4. <b>ARPA</b> = ARR ÷ average active accounts over the same 3 months.</p>
+    <p><b>Active commission client:</b> annualised revenue ≥ $950 and fewer than 6 consecutive months below $100. <b>Churned:</b> the first month either test fails (not backdated).</p>
+    <p><b>ROAS brand:</b> active from its ladder Since month; churned at the ladder Churn month, or after 6 months without payment. No revenue threshold. Migrated commission clients (DKNY, Izil, Metro Brazil) are one client in one view per month, never counted twice.</p>
+    <p><b>ARR:</b> commission = last 3 months, each divided by its seasonality weight, averaged; ROAS = last 3 months × 4. <b>ARPA</b> = ARR ÷ average active accounts over the same 3 months.</p>
     <p><b>Churn rates</b> are stored monthly (unique churned ÷ average active ÷ months) and shown as 12-month churn, 1 − (1 − m)<sup>12</sup>, with average lifetime 1 ÷ m.</p>
-    <p><b>LTV</b> = ARPA ÷ 12 × margin × lifetime (capped at 60 months). ROAS uses logo churn and a 50% margin; legacy uses revenue churn (1 − GRR) and the actual TTM contribution margin.</p>
-    <p><b>Size:</b> legacy Enterprise = annualised revenue ≥ AED 1M (exit below 500k), Growth / SME by the client's own company revenue (≥ / &lt; $50M). ROAS Small = CAC not yet paid back on profit; Medium = paid back; Large = annualised spend ≥ the ARPA of the largest legacy segment by account count.</p>
+    <p><b>LTV</b> = ARPA ÷ 12 × margin × lifetime (capped at 60 months). ROAS uses logo churn and a 50% margin; commission uses revenue churn (1 − GRR) and the actual TTM contribution margin.</p>
+    <p><b>Size:</b> commission Enterprise = annualised revenue ≥ AED 1M (exit below 500k), Growth / SME by the client's own company revenue (≥ / &lt; $50M). ROAS Small = CAC not yet paid back on profit; Medium = paid back; Large = annualised spend ≥ the ARPA of the largest commission segment by account count.</p>
   </div></div>`;
   root.innerHTML = hdr + heroes + chartCard + kpiCard + ueCard + cohortCard;
 
   barChart(document.getElementById('inv-rev'), { labels: lab, fullLabels: months.map(fmt.monthLong), series: [
-    { name: 'Named legacy', color: 'var(--c-legacy)', values: S.rev_named }, { name: 'ROAS', color: 'var(--c-roas)', values: S.rev_roas },
+    { name: 'Named commission', color: 'var(--c-legacy)', values: S.rev_named }, { name: 'ROAS', color: 'var(--c-roas)', values: S.rev_roas },
     { name: 'Other pricing', color: 'var(--c-other)', values: S.rev_other }, { name: 'Unallocated', color: 'var(--c-plug)', values: S.rev_plug }],
     lines: [{ name: 'Blended ARR ÷ 12', color: 'var(--ink)', values: S.arr_blended.map(v => v == null ? null : v / 12) }], height: 240 });
   barChart(document.getElementById('inv-mix'), { labels: lab, fullLabels: months.map(fmt.monthLong), series: [], kind: 'pct', height: 240, lines: [
@@ -606,7 +619,7 @@ function renderInvestor() {
 
 /* ============================================================ PAGE 2: annual */
 function renderAnnual() {
-  const root = document.getElementById('page-annual'); const Lm = M.latest_month;
+  const root = document.getElementById('fin-annual'); const Lm = M.latest_month;
   const fy24 = P['FY:2024'], fy25 = P['FY:2025'], ytd = P['YTD:' + Lm.slice(0, 4)], pytd = P['YTD:2025']; const A = D.annualised, apl = annualisedPL();
   const cols = [fy24, fy25, ytd]; const pls = [pPL(fy24), pPL(fy25), pPL(ytd), apl];
   const colh = ['FY2024', 'FY2025', ytd.label, '<span style="color:var(--coral)">2026 annualised</span>', 'YoY (YTD)'];
@@ -618,15 +631,15 @@ function renderAnnual() {
   let T = `<table class="t"><thead><tr><th>Line</th>${colh.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>`;
   T += sec('Revenue', 5);
   T += rr('Total revenue', p => p.rev.total, money, A.total, yoy(y => y.total), 'tot');
-  T += rr('Legacy', p => p.rev.legacy, money, A.legacy, yoy(y => y.legacy), 'sub');
+  T += rr('Commission', p => p.rev.legacy, money, A.legacy, yoy(y => y.legacy), 'sub');
   LEG_SEGS.forEach(s => T += rr(s, p => p.rev.leg_seg[s], money, null, null, 'sub2'));
   T += rr('ROAS + other pricing', p => p.rev.roas + p.rev.other, money, A.roas, yoy(y => y.roas), 'sub');
   TIERS.forEach(s => T += rr(s, p => p.rev.roas_tier[s], money, null, null, 'sub2'));
   T += rr('Unallocated plug', p => p.rev.plug, money, null, null, 'sub');
-  T += rr('Enterprise share of legacy revenue', p => p.rev.named ? p.rev.leg_seg.Enterprise / p.rev.named : null, pct0, null, null);
+  T += rr('Enterprise share of commission revenue', p => p.rev.named ? p.rev.leg_seg.Enterprise / p.rev.named : null, pct0, null, null);
   T += sec('Run-rate at year end', 5);
   T += rr('Blended ARR', p => p.arr.blended, money, null, null, 'tot');
-  T += rr('Legacy run-rate', p => p.arr.legacy, money, null, null, 'sub'); T += rr('ROAS ARR', p => p.arr.roas, money, null, null, 'sub');
+  T += rr('Commission run-rate', p => p.arr.legacy, money, null, null, 'sub'); T += rr('ROAS ARR', p => p.arr.roas, money, null, null, 'sub');
   T += sec('P&amp;L', 5);
   T += pr('Revenue', p => p.rev, money, 'tot');
   T += pr('Creator payouts', p => -p.cp, money, 'sub');
@@ -648,21 +661,21 @@ function renderAnnual() {
   T += pr('Marketing &amp; branding', rv(p => p.opex_marketing), pct1, 'sub2'); T += pr('Staff', rv(p => p.opex_staff), pct1, 'sub2'); T += pr('Technology', rv(p => p.opex_tech), pct1, 'sub2'); T += pr('G&amp;A', rv(p => p.opex_ga), pct1, 'sub2');
   T += sec('Volume <span class="tag warn">basis under review</span>', 5);
   T += rr('Net orders (incl. unattributed)', p => p.creators.orders_total, fmt.int, A.orders, yoy(y => y.orders));
-  T += rr('GMV (legacy, net)', p => p.gmv, money, A.gmv, yoy(y => y.gmv));
+  T += rr('GMV (commission, net)', p => p.gmv, money, A.gmv, yoy(y => y.gmv));
   T += rr('Take rate', p => p.gmv ? p.rev.legacy / p.gmv : null, pct1, null, null);
   T += rr('Closed ads (from Apr-25 counting change)', p => p.ads, fmt.int, A.ads, null);
   T += sec('Clients', 5);
   T += rr('Active clients at year end', p => p.active_end.total, fmt.int, null, null, 'tot');
-  T += rr('Legacy (E / G / SME)', p => p.active_end.legacy, v => v, null, null, 'sub');
+  T += rr('Commission (E / G / SME)', p => p.active_end.legacy, v => v, null, null, 'sub');
   T += row('', cols.map(p => `<td class="muted">${LEG_SEGS.map(s => p.active_end.leg_seg[s]).join(' / ')}</td>`).concat(['<td></td>', '<td></td>']), 'sub2');
   T += rr('ROAS (S / M / L)', p => p.active_end.roas, v => v, null, null, 'sub');
   T += row('', cols.map(p => `<td class="muted">${TIERS.map(s => p.active_end.roas_tier[s]).join(' / ')}</td>`).concat(['<td></td>', '<td></td>']), 'sub2');
-  T += row('New legacy / reactivated / churned <span class="muted small">(YTD vs prior YTD, never annualised)</span>', [...cols.map(p => `<td>${p.events.leg_new} / ${p.events.leg_react} / ${p.events.leg_churn}</td>`), '<td class="na">—</td>', `<td class="muted">${pytd.events.leg_new} / ${pytd.events.leg_react} / ${pytd.events.leg_churn} prior YTD</td>`]);
+  T += row('New commission / reactivated / churned <span class="muted small">(YTD vs prior YTD, never annualised)</span>', [...cols.map(p => `<td>${p.events.leg_new} / ${p.events.leg_react} / ${p.events.leg_churn}</td>`), '<td class="na">—</td>', `<td class="muted">${pytd.events.leg_new} / ${pytd.events.leg_react} / ${pytd.events.leg_churn} prior YTD</td>`]);
   T += row('ROAS signed / churned', [...cols.map(p => `<td>${p.events.roas_signed} / ${p.events.roas_churn}</td>`), '<td class="na">—</td>', '<td></td>']);
   T += sec('Retention and churn', 5);
-  T += row('Legacy NRR · rolling 12m', [...cols.map(p => td(p.retention.legacy_12m && p.retention.legacy_12m.nrr, pct0)), '<td class="na">—</td>', '<td></td>']);
-  T += row('Legacy GRR · rolling 12m', [...cols.map(p => td(p.retention.legacy_12m && p.retention.legacy_12m.grr, pct0)), '<td class="na">—</td>', '<td></td>']);
-  T += row('Legacy logo churn · 12-month / lifetime', [...cols.map(p => `<td>${churnTxt(p.churn.legacy)}</td>`), '<td class="na">—</td>', '<td></td>']);
+  T += row('Commission NRR · rolling 12m', [...cols.map(p => td(p.retention.legacy_12m && p.retention.legacy_12m.nrr, pct0)), '<td class="na">—</td>', '<td></td>']);
+  T += row('Commission GRR · rolling 12m', [...cols.map(p => td(p.retention.legacy_12m && p.retention.legacy_12m.grr, pct0)), '<td class="na">—</td>', '<td></td>']);
+  T += row('Commission logo churn · 12-month / lifetime', [...cols.map(p => `<td>${churnTxt(p.churn.legacy)}</td>`), '<td class="na">—</td>', '<td></td>']);
   T += row('Enterprise · Growth &amp; SME', [...cols.map(p => `<td class="muted">${fmt.pct(p.churn.Enterprise && p.churn.Enterprise.twelve_month, 0)} · ${fmt.pct(p.churn.GrowthSME && p.churn.GrowthSME.twelve_month, 0)}</td>`), '<td></td>', '<td></td>'], 'sub2');
   T += row('ROAS logo churn · 12-month / lifetime', [...cols.map(p => `<td>${churnTxt(p.churn.ROAS)}</td>`), '<td class="na">—</td>', '<td></td>']);
   T += row('L1 · L2+ · Small · Medium · Large', [...cols.map(p => `<td class="muted">${['L1', 'L2+', 'Small', 'Medium', 'Large'].map(g => fmt.pct(p.churn[g] && p.churn[g].twelve_month, 0)).join(' · ')}</td>`), '<td></td>', '<td></td>'], 'sub2');
@@ -679,23 +692,23 @@ function renderAnnual() {
   T += rr('Creator churn · 12-month', p => p.creators.churn && p.creators.churn.twelve_month, pct0, null, null);
   T += row('Order NRR / GRR · rolling 12m', [...cols.map(p => p.retention.orders_12m ? `<td>${fmt.pct(p.retention.orders_12m.nrr, 0)} / ${fmt.pct(p.retention.orders_12m.grr, 0)}</td>` : '<td class="na">—</td>'), '<td class="na">—</td>', '<td></td>']);
   T += '</tbody></table>';
-  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">02 · Annual summary</p><h1 class="h2">Full years against the current year</h1>
-    <p>“2026 annualised (seasonality-adjusted)” is a mechanical extrapolation from YTD: legacy YTD ÷ the seasonal share of the elapsed months (${fmt.pct(A.share_elapsed, 1)} for Jan–${fmt.month(Lm).slice(0, 3)}), ROAS YTD + ARR × remaining months. It is not a forecast. Event counts and snapshots are never annualised.</p></div></div>
+  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">02 · Financials · Annual</p><h1 class="h2">Full years against the current year</h1>
+    <p>“2026 annualised (seasonality-adjusted)” is a mechanical extrapolation from YTD: commission YTD ÷ the seasonal share of the elapsed months (${fmt.pct(A.share_elapsed, 1)} for Jan–${fmt.month(Lm).slice(0, 3)}), ROAS YTD + ARR × remaining months. It is not a forecast. Event counts and snapshots are never annualised.</p></div></div>
     <div class="grid g3">
-      <div class="card block"><p class="eyebrow">2026 annualised revenue</p><div class="hero">${fmt.money(A.total)}</div><div class="split"><div class="it"><span class="sw legacy"></span><span class="k">Legacy</span><b>${fmt.money(A.legacy)}</b></div><div class="it"><span class="sw roas"></span><span class="k">ROAS</span><b>${fmt.money(A.roas)}</b></div></div><div class="muted small" style="margin-top:8px">vs FY2025 ${fmt.money(fy25.rev.total)} · ${fmt.pctS(A.total / fy25.rev.total - 1)}</div></div>
+      <div class="card block"><p class="eyebrow">2026 annualised revenue</p><div class="hero">${fmt.money(A.total)}</div><div class="split"><div class="it"><span class="sw legacy"></span><span class="k">Commission</span><b>${fmt.money(A.legacy)}</b></div><div class="it"><span class="sw roas"></span><span class="k">ROAS</span><b>${fmt.money(A.roas)}</b></div></div><div class="muted small" style="margin-top:8px">vs FY2025 ${fmt.money(fy25.rev.total)} · ${fmt.pctS(A.total / fy25.rev.total - 1)}</div></div>
       <div class="card"><p class="eyebrow">Annualised EBITDA</p><div class="hero">${fmt.money(apl.ebitda)}</div><div class="muted small">Looks better than YTD (${fmt.money(pls[2].ebitda)}) because Q4 carries the strongest revenue while fixed costs scale evenly. Before development: ${fmt.money(apl.ebitda_x)}.</div></div>
-      <div class="card"><p class="eyebrow">Revenue by year</p><div class="chart" id="ann-rev"></div><div class="legend"><span><span class="sw legacy"></span>Legacy</span><span><span class="sw roas"></span>ROAS + other</span></div></div>
+      <div class="card"><p class="eyebrow">Revenue by year</p><div class="chart" id="ann-rev"></div><div class="legend"><span><span class="sw legacy"></span>Commission</span><span><span class="sw roas"></span>ROAS + other</span></div></div>
     </div>
     <div class="card" style="margin-top:16px"><div class="tblwrap">${T}</div></div>
 `;
   barChart(document.getElementById('ann-rev'), { labels: ['FY24', 'FY25', ytd.label.replace(' YTD', ' YTD'), '26 ann.'], series: [
-    { name: 'Legacy', color: 'var(--c-legacy)', values: [fy24.rev.legacy, fy25.rev.legacy, ytd.rev.legacy, A.legacy] },
+    { name: 'Commission', color: 'var(--c-legacy)', values: [fy24.rev.legacy, fy25.rev.legacy, ytd.rev.legacy, A.legacy] },
     { name: 'ROAS + other', color: 'var(--c-roas)', values: [fy24.rev.roas + fy24.rev.other, fy25.rev.roas + fy25.rev.other, ytd.rev.roas + ytd.rev.other, A.roas] }], height: 150, labelEvery: 1 });
 }
 
 /* ============================================================ PAGE 3: monthly summary */
 function renderMonthly() {
-  const root = document.getElementById('page-monthly'); const y = state.year; const Lm = M.latest_month;
+  const root = document.getElementById('fin-monthly'); const y = state.year; const Lm = M.latest_month;
   const mk = S.months.filter(m => m.startsWith(y)); const ps = mk.map(m => P['M:' + m]); const ytdKey = y === Lm.slice(0, 4) ? 'YTD:' + y : 'FY:' + y; const ytd = P[ytdKey];
   const n = mk.length + 1; const co = state.view === 'co';
   const hdrs = mk.map(m => `<th class="${m === Lm ? 'now' : ''}">${fmt.month(m).slice(0, 3)}${P['M:' + m].ounass_flag ? '<span class="f">P</span>' : ''}</th>`).join('') + `<th>${y === Lm.slice(0, 4) ? 'YTD' : 'FY'}</th>`;
@@ -704,16 +717,16 @@ function renderMonthly() {
   const pls = ps.map(pPL), pytd = pPL(ytd); const PR = (label, f, fm, klass = '') => row(label, [...pls.map(p => td(f(p), fm)), td(f(pytd), fm)], klass);
   let T = `<table class="t dense"><thead><tr><th>${y}</th>${hdrs}</tr></thead><tbody>`;
   T += sec('Financials', n);
-  T += R('Total revenue', p => p.rev.total, money, 'tot'); T += R('Legacy (named)', p => p.rev.named, money, 'sub'); T += R('ROAS', p => p.rev.roas, money, 'sub'); T += R('Other pricing', p => p.rev.other, money, 'sub'); T += R('Unallocated plug', p => p.rev.plug, money, 'sub');
-  T += R('Blended ARR', p => p.arr.blended, money, 'tot', false); T += R('Legacy run-rate', p => p.arr.legacy, money, 'sub', false); T += R('ROAS ARR', p => p.arr.roas, money, 'sub', false);
+  T += R('Total revenue', p => p.rev.total, money, 'tot'); T += R('Commission (named)', p => p.rev.named, money, 'sub'); T += R('ROAS', p => p.rev.roas, money, 'sub'); T += R('Other pricing', p => p.rev.other, money, 'sub'); T += R('Unallocated plug', p => p.rev.plug, money, 'sub');
+  T += R('Blended ARR', p => p.arr.blended, money, 'tot', false); T += R('Commission run-rate', p => p.arr.legacy, money, 'sub', false); T += R('ROAS ARR', p => p.arr.roas, money, 'sub', false);
   T += PR('Contribution margin %', p => p.cm_pct, pct1); T += PR('Gross margin %', p => p.gm_pct, pct1); T += PR('EBITDA', p => p.ebitda, money); T += PR('EBITDA margin %', p => p.ebitda_pct, pct1);
-  T += sec('Legacy movement', n);
+  T += sec('Commission movement', n);
   T += row('Start', [...ps.map((p, i) => `<td>${p.active_end.legacy - p.events.leg_new - p.events.leg_react + p.events.leg_churn + p.events.leg_migrated}</td>`), `<td>${ps[0].active_end.legacy - ps[0].events.leg_new - ps[0].events.leg_react + ps[0].events.leg_churn + ps[0].events.leg_migrated}</td>`]);
   T += R('New', p => p.events.leg_new, fmt.int, 'sub'); T += R('Reactivated', p => p.events.leg_react, fmt.int, 'sub'); T += R('Churned', p => -p.events.leg_churn, fmt.int, 'sub'); T += R('Migrated to ROAS', p => -p.events.leg_migrated, fmt.int, 'sub');
-  T += R('End · active legacy', p => p.active_end.legacy, fmt.int, 'tot');
+  T += R('End · active commission', p => p.active_end.legacy, fmt.int, 'tot');
   LEG_SEGS.forEach(s => T += R(s, p => p.active_end.leg_seg[s], fmt.int, 'sub2'));
   T += sec('ROAS movement', n);
-  T += R('Signed', p => p.events.roas_signed, fmt.int, 'sub'); T += R('of which migrated from legacy', p => p.events.roas_migrated, fmt.int, 'sub2'); T += R('Churned', p => -p.events.roas_churn, fmt.int, 'sub'); T += R('Reactivated', p => p.events.roas_react, fmt.int, 'sub');
+  T += R('Signed', p => p.events.roas_signed, fmt.int, 'sub'); T += R('of which migrated from commission', p => p.events.roas_migrated, fmt.int, 'sub2'); T += R('Churned', p => -p.events.roas_churn, fmt.int, 'sub'); T += R('Reactivated', p => p.events.roas_react, fmt.int, 'sub');
   T += R('End · active ROAS', p => p.active_end.roas, fmt.int, 'tot');
   TIERS.forEach(s => T += R(s, p => p.active_end.roas_tier[s], fmt.int, 'sub2'));
   T += row('L1 / L2+', [...ps.map(p => `<td class="muted">${p.active_end.roas_lvl.L1} / ${p.active_end.roas_lvl['L2+']}</td>`), `<td class="muted">${ytd.active_end.roas_lvl.L1} / ${ytd.active_end.roas_lvl['L2+']}</td>`], 'sub2');
@@ -722,11 +735,11 @@ function renderMonthly() {
   T += R('Blended', p => p.arpa.blended, money, 'tot', false); T += R('Blended excl. Enterprise', p => p.arpa.blended_ex_ent, money, 'sub', false);
   ['Enterprise', 'Growth', 'SME', 'ROAS'].forEach(g => T += R(g, p => p.arpa[g], money, 'sub', false));
   TIERS.forEach(g => T += R('ROAS ' + g, p => p.arpa[g], money, 'sub2', false));
-  T += R('Enterprise share of legacy revenue', p => p.rev.named ? p.rev.leg_seg.Enterprise / p.rev.named : null, pct0);
+  T += R('Enterprise share of commission revenue', p => p.rev.named ? p.rev.leg_seg.Enterprise / p.rev.named : null, pct0);
   T += sec('Churn and risk', n);
-  T += row('Legacy churn events', [...ps.map(p => `<td>${p.churn.legacy ? p.churn.legacy.events : 0}</td>`), `<td>${ytd.churn.legacy.events} <span class="muted small">(${fmt.pct(ytd.churn.legacy.twelve_month, 0)} 12-mo)</span></td>`]);
+  T += row('Commission churn events', [...ps.map(p => `<td>${p.churn.legacy ? p.churn.legacy.events : 0}</td>`), `<td>${ytd.churn.legacy.events} <span class="muted small">(${fmt.pct(ytd.churn.legacy.twelve_month, 0)} 12-mo)</span></td>`]);
   T += row('ROAS churn events', [...ps.map(p => `<td>${p.churn.ROAS ? p.churn.ROAS.events : 0}</td>`), `<td>${ytd.churn.ROAS ? ytd.churn.ROAS.events + ' <span class="muted small">(' + fmt.pct(ytd.churn.ROAS.twelve_month, 0) + ' 12-mo)</span>' : '—'}</td>`]);
-  T += row('At risk · legacy (3–5 quiet months)', [...mk.map(m => `<td class="muted">${S.at_risk_leg[kOf(m)].length}</td>`), '<td></td>']);
+  T += row('At risk · commission (3–5 quiet months)', [...mk.map(m => `<td class="muted">${S.at_risk_leg[kOf(m)].length}</td>`), '<td></td>']);
   T += row('At risk · ROAS (3–5 months unpaid)', [...mk.map(m => `<td class="muted">${S.at_risk_roas[kOf(m)].length}</td>`), '<td></td>']);
   T += sec('ROAS economics', n);
   T += R('Merchant acquisition spend', p => p.cac ? p.cac.spend : null, money, 'sub');
@@ -737,26 +750,26 @@ function renderMonthly() {
   T += R('Net orders', p => p.creators.orders_total, fmt.int); T += R('% orders from Major', p => p.creators.orders_total ? p.creators.orders_major / p.creators.orders_total : null, pct0);
   T += R('Graduation · % of new creators active within 3 months', p => p.creators.graduation.within3, pct0);
   T += sec('Growth', n);
-  T += R('Revenue YoY', p => p.yoy ? p.yoy.total : null, fmt.pctS); T += R('Legacy YoY', p => p.yoy ? p.yoy.legacy : null, fmt.pctS, 'sub'); T += R('ROAS YoY', p => p.yoy ? p.yoy.roas : null, fmt.pctS, 'sub');
+  T += R('Revenue YoY', p => p.yoy ? p.yoy.total : null, fmt.pctS); T += R('Commission YoY', p => p.yoy ? p.yoy.legacy : null, fmt.pctS, 'sub'); T += R('ROAS YoY', p => p.yoy ? p.yoy.roas : null, fmt.pctS, 'sub');
   T += row('Revenue MoM <span class="muted small">(seasonal)</span>', [...mk.map(m => { const k = kOf(m); return td(k > 0 ? S.rev_total[k] / S.rev_total[k - 1] - 1 : null, fmt.pctS); }), '<td></td>']);
-  T += row('Legacy NRR · 3m vs same 3m last year', [...ps.map((p, i) => { const q = findQ3m(mk[i]); return td(q, pct0); }), '<td></td>']);
+  T += row('Commission NRR · 3m vs same 3m last year', [...ps.map((p, i) => { const q = findQ3m(mk[i]); return td(q, pct0); }), '<td></td>']);
   T += '</tbody></table>';
 
   const moves = Object.entries(S.tier_moves).filter(([m]) => m.startsWith(y)).sort().reverse();
   const movesHtml = moves.length ? moves.map(([m, arr]) => `<li><b>${fmt.month(m)}</b> · ${arr.map(x => `${esc(x.brand)} <span class="muted">${x.from} → ${x.to}</span>`).join(' · ')}</li>`).join('') : '<li class="muted">No tier moves in ' + y + '</li>';
   const lastK = kOf(mk[mk.length - 1]);
   const riskL = S.at_risk_leg[lastK], riskR = S.at_risk_roas[Math.min(lastK + 1, S.at_risk_roas.length - 1)];
-  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">03 · Monthly summary · ${y}</p><h1 class="h2">Month by month, with client movement</h1><p>Who is growing, churning and moving between tiers. ROAS tier moves and at-risk lists come from the ladder; legacy movement from the Datos extract.</p></div></div>
+  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">02 · Financials · Monthly · ${y}</p><h1 class="h2">Month by month, with client movement</h1><p>Who is growing, churning and moving between tiers. ROAS tier moves and at-risk lists come from the ladder; commission movement from the Datos extract.</p></div></div>
     <div class="grid g3">
-      <div class="card"><p class="eyebrow">ARR trend</p><div class="chart" id="mo-arr"></div><div class="legend"><span><span class="sw legacy"></span>Legacy run-rate</span><span><span class="sw roas"></span>ROAS ARR</span></div></div>
+      <div class="card"><p class="eyebrow">ARR trend</p><div class="chart" id="mo-arr"></div><div class="legend"><span><span class="sw legacy"></span>Commission run-rate</span><span><span class="sw roas"></span>ROAS ARR</span></div></div>
       <div class="card"><p class="eyebrow">Active clients by size</p><div class="chart" id="mo-act"></div><div class="legend"><span><span class="sw ent"></span>Enterprise</span><span><span class="sw gro"></span>Growth</span><span><span class="sw sme"></span>SME</span><span><span class="sw s"></span>ROAS Small</span><span><span class="sw m"></span>Medium</span><span><span class="sw l"></span>Large</span></div></div>
       <div class="card"><p class="eyebrow">ROAS tier moves · ${y}</p><ul class="plain">${movesHtml}</ul><div class="hairline"></div><p class="eyebrow">At risk · ${fmt.month(mk[mk.length - 1])}</p>
-        <div class="small"><span class="sw legacy"></span>Legacy: ${riskL.length ? riskL.map(r => `${esc(r.name)} (${r.months})`).join(', ') : 'none'}<br><span class="sw roas"></span>ROAS: ${riskR.length ? riskR.map(r => `${esc(r.name)} (${r.months})`).join(', ') : 'none'}</div>
+        <div class="small"><span class="sw legacy"></span>Commission: ${riskL.length ? riskL.map(r => `${esc(r.name)} (${r.months})`).join(', ') : 'none'}<br><span class="sw roas"></span>ROAS: ${riskR.length ? riskR.map(r => `${esc(r.name)} (${r.months})`).join(', ') : 'none'}</div>
         <div class="note">Numbers in brackets are consecutive quiet months. Large-tier benchmark at ${fmt.month(mk[mk.length - 1])}: ${fmt.money(S.benchmark_large[lastK])} (${S.benchmark_seg[lastK]} ARPA); CAC used for the Small/Medium line: ${fmt.money(S.cac_sl[lastK])}.</div></div>
     </div>
     <div class="card" style="margin-top:16px"><div class="tblwrap">${T}</div><div class="note"><b>P</b> provisional Ounass month. Churn events are detected late (up to 6 months), so recent months understate churn; the At-risk rows show what is coming.</div></div>`;
   const ks = mk.map(kOf), lab = mk.map(m => fmt.month(m).slice(0, 3));
-  lineChart(document.getElementById('mo-arr'), { labels: lab, fullLabels: mk.map(fmt.monthLong), series: [{ name: 'Legacy run-rate', color: 'var(--c-legacy)', values: ks.map(k => S.arr_legacy[k]) }, { name: 'ROAS ARR', color: 'var(--c-roas)', values: ks.map(k => S.arr_roas[k]) }], height: 190, labelEvery: 1 });
+  lineChart(document.getElementById('mo-arr'), { labels: lab, fullLabels: mk.map(fmt.monthLong), series: [{ name: 'Commission run-rate', color: 'var(--c-legacy)', values: ks.map(k => S.arr_legacy[k]) }, { name: 'ROAS ARR', color: 'var(--c-roas)', values: ks.map(k => S.arr_roas[k]) }], height: 190, labelEvery: 1 });
   barChart(document.getElementById('mo-act'), { labels: lab, fullLabels: mk.map(fmt.monthLong), kind: 'num', height: 190, labelEvery: 1, series: [
     ...LEG_SEGS.map(s => ({ name: s, color: SEG_C[s], values: ks.map(k => S.act_leg_seg[s][k]) })), ...TIERS.map(s => ({ name: 'ROAS ' + s, color: TIER_C[s], values: ks.map(k => S.act_roas_tier[s][k]) }))] });
 }
@@ -769,7 +782,7 @@ function findQ3m(m) { // legacy rolling-3 NRR vs same 3 months a year earlier, f
 
 /* ============================================================ PAGE 4: monthly actuals */
 function renderActuals() {
-  const root = document.getElementById('page-actuals'); const months = S.months, n = months.length; const Lm = M.latest_month;
+  const root = document.getElementById('fin-actuals'); const months = S.months, n = months.length; const Lm = M.latest_month;
   const years = [...new Set(months.map(m => m.slice(0, 4)))];
   const fyP = y => P['FY:' + y] || P['YTD:' + y];
   const hdr = months.map(m => `<th class="${m === Lm ? 'now' : ''}">${fmt.month(m)}${P['M:' + m].ounass_flag ? '<span class="f">P</span>' : ''}</th>`).join('') + years.map(y => `<th style="border-left:1px solid var(--rule)">${y === Lm.slice(0, 4) ? y + ' YTD' : 'FY' + y}</th>`).join('');
@@ -782,17 +795,17 @@ function renderActuals() {
   let T = `<table class="t dense"><thead><tr><th>USD</th>${hdr}</tr></thead><tbody>`;
   T += sec('Volume', total);
   T += R('New ROAS brands signed', mv.roas_signed.slice(0, n), fmt.int);
-  T += R('Active legacy clients', S.act_leg, fmt.int, '', p => p.active_end.legacy); T += R('Active ROAS brands', S.act_roas.slice(0, n), fmt.int, '', p => p.active_end.roas); T += R('Active other pricing', S.act_other.slice(0, n), fmt.int, '', p => p.active_end.other);
+  T += R('Active commission clients', S.act_leg, fmt.int, '', p => p.active_end.legacy); T += R('Active ROAS brands', S.act_roas.slice(0, n), fmt.int, '', p => p.active_end.roas); T += R('Active other pricing', S.act_other.slice(0, n), fmt.int, '', p => p.active_end.other);
   T += R('Total active clients', S.act_total, fmt.int, 'tot', p => p.active_end.total);
   T += R('Active creators', cr.active, fmt.int, '', p => p.creators.active_end); T += R('Emerging creators', cr.emerging, fmt.int, '', p => p.creators.emerging_end);
   T += R('Net orders (incl. unattributed)', cr.orders_total, fmt.int); T += R('Unattributed orders', cr.orders_unatt, fmt.int, 'sub'); T += R('Closed ads', S.ads, fmt.int);
   T += sec('Revenue composition', total);
-  T += R('P&amp;L sales (total revenue)', S.rev_total, money, 'tot'); T += R('Named legacy (Datos)', S.rev_named, money, 'sub'); T += R('ROAS (ladder)', S.rev_roas, money, 'sub'); T += R('Other pricing', S.rev_other, money, 'sub'); T += R('Unallocated plug', S.rev_plug, money, 'sub');
-  T += R('Legacy run-rate (ARR)', S.arr_legacy, money, '', false); T += R('ROAS ARR', S.arr_roas.slice(0, n), money, '', false); T += R('Blended ARR', S.arr_blended, money, 'tot', false);
-  T += sec('Revenue by status (legacy, 12-month cohort window)', total);
+  T += R('P&amp;L sales (total revenue)', S.rev_total, money, 'tot'); T += R('Named commission (Datos)', S.rev_named, money, 'sub'); T += R('ROAS (ladder)', S.rev_roas, money, 'sub'); T += R('Other pricing', S.rev_other, money, 'sub'); T += R('Unallocated plug', S.rev_plug, money, 'sub');
+  T += R('Commission run-rate (ARR)', S.arr_legacy, money, '', false); T += R('ROAS ARR', S.arr_roas.slice(0, n), money, '', false); T += R('Blended ARR', S.arr_blended, money, 'tot', false);
+  T += sec('Revenue by status (commission, 12-month cohort window)', total);
   ['Existing', 'New', 'Reactivated', 'Not active'].forEach(s => T += R(s, S.rev_leg_status[s], money, 'sub'));
   T += sec('Revenue and clients by size', total);
-  LEG_SEGS.concat(['Unassigned']).forEach(s => T += R('Legacy ' + s, S.rev_leg_seg[s], money, 'sub'));
+  LEG_SEGS.concat(['Unassigned']).forEach(s => T += R('Commission ' + s, S.rev_leg_seg[s], money, 'sub'));
   TIERS.forEach(s => T += R('ROAS ' + s, S.rev_roas_tier[s], money, 'sub'));
   LEG_SEGS.forEach(s => T += R('Active ' + s, S.act_leg_seg[s], fmt.int, 'sub2', p => p.active_end.leg_seg[s]));
   TIERS.forEach(s => T += R('Active ROAS ' + s, S.act_roas_tier[s].slice(0, n), fmt.int, 'sub2', p => p.active_end.roas_tier[s]));
@@ -805,7 +818,7 @@ function renderActuals() {
   T += PR('D&amp;A', p => -p.da, money, 'sub'); T += PR('Finance cost', p => -p.fin, money, 'sub'); T += PR('Corporate tax', p => -p.tax, money, 'sub'); T += PR('Net profit', p => p.np, money, 'tot');
   T += PR('Transfer pricing', p => -p.tp, money, 'sub'); T += PR('Net profit after transfer pricing', p => p.np_tp, money, 'tot'); T += PR('Product development capitalised (memo)', p => p.devC, money, 'sub');
   T += sec('Client movement', total);
-  T += R('Legacy new', mv.leg_new, fmt.int, 'sub'); T += R('Legacy reactivated', mv.leg_react, fmt.int, 'sub'); T += R('Legacy churned', mv.leg_churn.map(v => -v), fmt.int, 'sub'); T += R('Legacy migrated to ROAS', mv.leg_migrated.map(v => -v), fmt.int, 'sub');
+  T += R('Commission new', mv.leg_new, fmt.int, 'sub'); T += R('Commission reactivated', mv.leg_react, fmt.int, 'sub'); T += R('Commission churned', mv.leg_churn.map(v => -v), fmt.int, 'sub'); T += R('Commission migrated to ROAS', mv.leg_migrated.map(v => -v), fmt.int, 'sub');
   T += R('ROAS signed', mv.roas_signed.slice(0, n), fmt.int, 'sub'); T += R('ROAS churned', mv.roas_churn.slice(0, n).map(v => -v), fmt.int, 'sub'); T += R('ROAS reactivated', mv.roas_react.slice(0, n), fmt.int, 'sub');
   T += sec('Creators', total);
   T += R('New (first active month)', cr.new, fmt.int, 'sub'); T += R('Reactivated', cr.react, fmt.int, 'sub'); T += R('Churned', cr.churned.map(v => -v), fmt.int, 'sub'); T += R('Major creators', cr.major, fmt.int, '', p => p.creators.major_end);
@@ -814,12 +827,12 @@ function renderActuals() {
   T += R('Merchant acquisition spend', S.cac_merchant_spend, money, 'sub'); T += R('Creator acquisition spend', S.cac_creator_spend, money, 'sub');
   T += R('Merchant CAC (month)', months.map((_, k) => { const s = S.cac_merchant_spend[k], b = mv.roas_signed[k]; return (s != null && b) ? s / b : null; }), money, '', p => p.cac ? p.cac.cac : null);
   T += sec('Metrics <span class="tag warn">basis under review</span>', total);
-  T += R('GMV (legacy, net)', S.gmv, money); T += R('Take rate', months.map((_, k) => S.gmv[k] ? S.rev_legacy[k] / S.gmv[k] : null), pct1, '', p => p.gmv ? p.rev.legacy / p.gmv : null);
+  T += R('GMV (commission, net)', S.gmv, money); T += R('Take rate', months.map((_, k) => S.gmv[k] ? S.rev_legacy[k] / S.gmv[k] : null), pct1, '', p => p.gmv ? p.rev.legacy / p.gmv : null);
   T += R('AOV (GMV ÷ orders)', months.map((_, k) => S.gmv[k] && cr.orders_total[k] ? S.gmv[k] / cr.orders_total[k] : null), v => fmt.money(v, 0), '', p => p.gmv && p.creators.orders_total ? p.gmv / p.creators.orders_total : null);
   T += R('Orders per ad', months.map((_, k) => S.ads[k] && k >= 15 ? cr.orders_total[k] / S.ads[k] : null), v => fmt.num(v, 1), '', false);
   T += R('Contribution per order', months.map((_, k) => cr.orders_total[k] ? pls[k].cm / cr.orders_total[k] : null), v => fmt.money(v, 1), '', false);
   T += '</tbody></table>';
-  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">04 · Monthly actuals</p><h1 class="h2">Full grid, Jan-24 to ${fmt.month(Lm)}</h1><p>Actuals only. Projection columns from the old model are not carried over. Scroll sideways; the first column stays put. Year columns sum additive rows and show period-end values for snapshots.</p></div></div>
+  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">02 · Financials · Full grid</p><h1 class="h2">Full grid, Jan-24 to ${fmt.month(Lm)}</h1><p>Actuals only. Projection columns from the old model are not carried over. Scroll sideways; the first column stays put. Year columns sum additive rows and show period-end values for snapshots.</p></div></div>
     <div class="card"><div class="tblwrap" id="act-wrap">${T}</div><div class="note"><b>P</b> provisional Ounass month${addbackActive() ? ' (AED 150k add-back applied)' : ''}. Development follows the capitalisation switches on the Control page. 2024–25 P&amp;L lines are the frozen snapshot from the old model pending the 2024–25 P&amp;L cross-check (F4).</div></div>`;
   const w = document.getElementById('act-wrap'); if (w) w.scrollLeft = w.scrollWidth;
 }
@@ -833,9 +846,9 @@ function renderControl() {
     return `<tr><td>${fmt.month(m)}</td><td>${fmt.moneyFull(sys * M.fx).replace('$', 'AED ')}</td><td>${fmt.moneyFull(sys)}</td><td>${conf ? '<span class="muted">—</span>' : (addbackActive() ? '<span class="pos">+ AED ' + o.buffer_aed.toLocaleString() + ' added back</span>' : '<span class="muted">held (deducted)</span>')}</td>
       <td>${conf ? '<span class="tag ok">Confirmed · locked</span>' : '<span class="tag coral">Unconfirmed</span>'}</td><td><button class="btn ghost" data-conf="${m}" style="padding:4px 10px;font-size:12px">${conf ? 'Unconfirm' : 'Mark confirmed'}</button></td></tr>`; }).join('');
   const caps = Object.keys(state.cap).map(y => `<tr><td>${y}</td><td>${['Capitalised', 'Expensed', 'Split'].map(v => `<button class="btn ${state.cap[y] === v ? '' : 'ghost'}" data-cap="${y}" data-v="${v}" style="padding:4px 10px;font-size:12px;margin-right:6px">${v}</button>`).join('')}</td><td class="muted small">${y === '2024' ? 'Split = Jan–Jun capitalised, Jul–Dec expensed (spec default)' : y === '2025' ? 'Spec default: Capitalised ($100.5k)' : 'Spec default: Expensed; may be capitalised at year end'}</td></tr>`).join('');
-  const checks = M.checks.map(c => `<tr><td>${c.id}</td><td style="text-align:left;white-space:normal">${esc(c.metric)} <span class="muted">· ${esc(c.period)}</span></td><td>${c.expected}</td><td>${c.got}</td><td>${c.pass ? '<span class="ok">pass</span>' : '<span class="neg">FAIL</span>'}</td></tr>`).join('');
+  const checks = M.checks.map(c => `<tr><td>${c.id}</td><td style="text-align:left;white-space:normal">${esc(c.metric.replace(/Legacy/g, 'Commission').replace(/legacy/g, 'commission'))} <span class="muted">· ${esc(c.period)}</span></td><td>${c.expected}</td><td>${c.got}</td><td>${c.pass ? '<span class="ok">pass</span>' : '<span class="neg">FAIL</span>'}</td></tr>`).join('');
   const rv = D.review;
-  const newNames = rv.new_names.length ? rv.new_names.map(r => `<li><b>${esc(r.extract_name)}</b> · ${esc(r.action)} <span class="muted">(merchant match: ${r.merchant_match[0]} ${r.merchant_match[1] ? '→ ' + esc(r.merchant_match[1]) + ' ' + r.merchant_match[2] : ''}; ladder: ${r.ladder_match[0]})</span></li>`).join('') : '<li class="muted">none</li>';
+  const newNames = rv.new_names.length ? rv.new_names.map(r => `<li><b>${esc(r.extract_name)}</b> · ${esc(r.action.replace(/Legacy/g, 'Commission').replace(/legacy/g, 'commission'))} <span class="muted">(merchant match: ${r.merchant_match[0]} ${r.merchant_match[1] ? '→ ' + esc(r.merchant_match[1]) + ' ' + r.merchant_match[2] : ''}; ladder: ${r.ladder_match[0]})</span></li>`).join('') : '<li class="muted">none</li>';
   const idf = rv.creator_id_flags.length ? rv.creator_id_flags.map(f => `<li>${esc(f.join(' · '))}</li>`).join('') : '<li class="muted">none</li>';
   const r2 = rv.r2_churned.length ? rv.r2_churned.map(b => `<li><b>${esc(b)}</b> · churned by the 6-months-without-payment backstop; update the ladder Churn month</li>`).join('') : '<li class="muted">none</li>';
   const seg = D.roas_brands.filter(b => !b.other_pricing && ['New', 'Existing', 'Reactivated'].includes(b.status)).map(b => `<tr><td>${esc(b.name)}${b.migrated ? '<span class="tag">migrated</span>' : ''}</td><td>${fmt.month(b.since)}</td><td>${b.level}</td><td>${fmt.moneyFull(b.paid_to_latest)}</td><td><span class="sw ${b.tier === 'Small' ? 's' : b.tier === 'Medium' ? 'm' : 'l'}"></span>${b.tier || '—'}</td><td class="muted">${b.status}</td></tr>`).join('');
@@ -855,8 +868,8 @@ function renderControl() {
         <h3 class="h3">New or unknown merchant names</h3><ul class="plain">${newNames}</ul>
         <h3 class="h3" style="margin-top:12px">Creator ID flags</h3><ul class="plain">${idf}</ul>
         <h3 class="h3" style="margin-top:12px">ROAS brands churned by rule R2</h3><ul class="plain">${r2}</ul>
-        <h3 class="h3" style="margin-top:12px">Legacy merchants with proposed / low-confidence segment</h3><ul class="plain">${rv.low_confidence.length ? rv.low_confidence.map(esc).join(', ') : '<li class="muted">none</li>'}</ul></div>
-      <div class="card"><p class="eyebrow">Reconciliation</p><h3 class="h3">Unallocated plug by month (P&amp;L sales − named legacy − ROAS − other)</h3><div class="chart" id="ctl-plug"></div>
+        <h3 class="h3" style="margin-top:12px">Commission merchants with proposed / low-confidence segment</h3><ul class="plain">${rv.low_confidence.length ? rv.low_confidence.map(esc).join(', ') : '<li class="muted">none</li>'}</ul></div>
+      <div class="card"><p class="eyebrow">Reconciliation</p><h3 class="h3">Unallocated plug by month (P&amp;L sales − named commission − ROAS − other)</h3><div class="chart" id="ctl-plug"></div>
         <div class="note">Negative months are cash-vs-invoice timing on ROAS. Large positive months are provisional Datos figures below the P&amp;L (Ounass). Mapped cost of sales and EBITDA tie to the P&amp;L within AED 0.01.</div>
         <div class="hairline"></div><p class="eyebrow">Load log</p>
         <dl class="kv"><dt>Built</dt><dd>${M.built}</dd><dt>Latest full month</dt><dd>${fmt.monthLong(Lm)} (Datos + P&amp;L)</dd><dt>ROAS ladder</dt><dd>${M.ladder_file} (to Oct-26, Sep used as latest ROAS month)</dd><dt>Merchants / ROAS brands</dt><dd>${D.merchants.length} / ${D.roas_brands.length}</dd><dt>FX</dt><dd>AED ${M.fx} per USD</dd><dt>Cash report (S10)</dt><dd class="muted">not loaded</dd><dt>Plan / budget (S11)</dt><dd class="muted">not loaded</dd><dt>Net order history (T1)</dt><dd class="muted">pending · order metrics flagged</dd></dl></div>
@@ -864,26 +877,92 @@ function renderControl() {
     <div class="grid g2" style="margin-top:16px">
       <div class="card"><p class="eyebrow">ROAS size tiers · ${fmt.month(S.months[L()])}</p><h3 class="h3">Active brands and their tier</h3>
         <div class="tblwrap"><table class="t dense fit"><thead><tr><th>Brand</th><th>Since</th><th>Level</th><th>Paid to date</th><th style="text-align:left">Tier</th><th>Status</th></tr></thead><tbody>${seg}</tbody></table></div>
-        <div class="note">Small: CAC not yet paid back on profit (paid × 50% &lt; CAC). Medium: paid back. Large: annualised spend ≥ the legacy benchmark (${fmt.money(S.benchmark_large[L()])}, the ${S.benchmark_seg[L()]} segment ARPA). Recalculated every month, so brands can move down as well as up.</div></div>
+        <div class="note">Small: CAC not yet paid back on profit (paid × 50% &lt; CAC). Medium: paid back. Large: annualised spend ≥ the commission benchmark (${fmt.money(S.benchmark_large[L()])}, the ${S.benchmark_seg[L()]} segment ARPA). Recalculated every month, so brands can move down as well as up.</div></div>
       <div class="card"><p class="eyebrow">Build check</p><h3 class="h3">${M.checks_pass} of ${M.checks.length} check figures reproduced</h3>
         <div class="tblwrap" style="max-height:420px;overflow:auto"><table class="t dense fit"><thead><tr><th>ID</th><th style="text-align:left">Metric</th><th>Expected</th><th>Got</th><th></th></tr></thead><tbody>${checks}</tbody></table></div></div>
     </div>
     <div class="card" style="margin-top:16px"><p class="eyebrow">Definitions &amp; notes</p><div class="defs">
-      <p><b>Active legacy client:</b> annualised revenue ≥ $950 and fewer than 6 consecutive months below $100. <b>Churned (legacy):</b> the first month either test fails (not backdated); i.e. no longer meets the threshold ($950/yr, or 6+ quiet months).</p>
+      <p><b>Active commission client:</b> annualised revenue ≥ $950 and fewer than 6 consecutive months below $100. <b>Churned (commission):</b> the first month either test fails (not backdated); i.e. no longer meets the threshold ($950/yr, or 6+ quiet months).</p>
       <p><b>ROAS brand:</b> active from its ladder Since month; churned at the ladder Churn month, or after 6 months without payment. No revenue threshold. The two segments use different churn triggers by design.</p>
-      <p><b>Migrated clients</b> (DKNY, Izil, Metro Brazil) are one client in one view per month — legacy before their Since month, ROAS after — never counted twice.</p>
-      <p><b>ARR:</b> legacy = last 3 months each ÷ its seasonality weight, averaged; ROAS = last 3 months × 4. <b>ARPA</b> = ARR ÷ average active accounts over the same 3 months.</p>
+      <p><b>Migrated clients</b> (DKNY, Izil, Metro Brazil) are one client in one view per month — commission before their Since month, ROAS after — never counted twice.</p>
+      <p><b>ARR:</b> commission = last 3 months each ÷ its seasonality weight, averaged; ROAS = last 3 months × 4. <b>ARPA</b> = ARR ÷ average active accounts over the same 3 months.</p>
       <p><b>Churn rates</b> are stored monthly (unique churned ÷ average active ÷ months) and shown as 12-month churn, 1 − (1 − m)¹², with average lifetime 1 ÷ m.</p>
-      <p><b>LTV</b> = ARPA ÷ 12 × margin × lifetime (capped 60 months). ROAS uses logo churn and a 50% margin; legacy uses revenue churn (1 − GRR) and the actual TTM contribution margin.</p>
-      <p><b>Size — legacy:</b> Enterprise = annualised revenue ≥ AED 1M (exit below 500k); Growth / SME by the client's own company revenue (≥ / &lt; $50M). <b>Size — ROAS:</b> Small = CAC not yet paid back on profit; Medium = paid back; Large = annualised spend ≥ the ARPA of the largest legacy segment by account count.</p>
+      <p><b>LTV</b> = ARPA ÷ 12 × margin × lifetime (capped 60 months). ROAS uses logo churn and a 50% margin; commission uses revenue churn (1 − GRR) and the actual TTM contribution margin.</p>
+      <p><b>Size — commission:</b> Enterprise = annualised revenue ≥ AED 1M (exit below 500k); Growth / SME by the client's own company revenue (≥ / &lt; $50M). <b>Size — ROAS:</b> Small = CAC not yet paid back on profit; Medium = paid back; Large = annualised spend ≥ the ARPA of the largest commission segment by account count.</p>
       <p><b>Creators:</b> active = averages ≥5 net orders/month and ordered in the last 6 months; Major = annualised ≥5,000 net orders (exit below 2,500). Order and GMV history before Jun-26 appears gross, so those metrics are flagged “basis under review”.</p>
       <p><b>Development accounting:</b> ${Object.entries(state.cap).map(([y, v]) => y + ' ' + v).join(', ')} (set above). EBITDA before development is shown throughout so the accounting change doesn’t read as cost growth.</p>
-      <p><b>Ads &amp; CAC:</b> ad counting changed in Apr-25, so 2024 ads aren’t comparable; 2024 CAC may be understated (company spun out of ITCAN in 2024). All acquisition spend is on ROAS; legacy CAC is n/a.</p>
+      <p><b>Ads &amp; CAC:</b> ad counting changed in Apr-25, so 2024 ads aren’t comparable; 2024 CAC may be understated (company spun out of ITCAN in 2024). All acquisition spend is on ROAS; commission CAC is n/a.</p>
     </div></div>`;
   root.querySelectorAll('[data-conf]').forEach(b => b.addEventListener('click', () => { const m = b.dataset.conf; state.confirmed.has(m) ? state.confirmed.delete(m) : state.confirmed.add(m); LS('mm.confirmed', JSON.stringify([...state.confirmed])); mergeData(); renderAll(); }));
   root.querySelectorAll('[data-cap]').forEach(b => b.addEventListener('click', () => { state.cap[b.dataset.cap] = b.dataset.v; LS('mm.cap', JSON.stringify(state.cap)); renderAll(); }));
   document.getElementById('export-ctl').addEventListener('click', () => { const out = JSON.parse(JSON.stringify(ctl)); out.ounass.confirmed_months = [...state.confirmed].sort(); out.capitalisation = state.cap; const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'control.json'; a.click(); });
   barChart(document.getElementById('ctl-plug'), { labels: S.months.map(m => fmt.month(m)), fullLabels: S.months.map(fmt.monthLong), series: [{ name: 'Unallocated plug', color: 'var(--c-plug)', values: S.rev_plug }], height: 170 });
+}
+
+/* ============================================================ PAGE: KPIs (phase 1 shell) */
+function renderKpis() {
+  const root = document.getElementById('page-kpis'); if (!root) return;
+  const Lm = M.latest_month, Lk = L();
+  const sel = P[state.period] || P['TTM:' + Lm], latest = P['M:' + Lm], sl = P['SL'], ttm = P['TTM:' + Lm];
+  const co = state.view === 'co';
+  const arr = latest.arr;
+  const arpaB = (S.arpa && S.arpa.blended) ? S.arpa.blended[Lk] : null;
+  const econ = (sl && sl.ltv) ? sl.ltv.ROAS : null, cac = sl ? sl.cac : null;
+  const nrr = (sel.retention && sel.retention.legacy_12m) || ttm.retention.legacy_12m;
+  const ev = sel.events;
+  const card = (eyebrow, hero, sub) => `<div class="card"><p class="eyebrow">${eyebrow}</p><div class="hero">${hero}</div>${sub || ''}</div>`;
+  const split2 = (aLab, a, bLab, b) => co ? '' : `<div class="split"><div class="it"><span class="sw legacy"></span><span class="k">${aLab}</span><b>${a}</b></div><div class="it"><span class="sw roas"></span><span class="k">${bLab}</span><b>${b}</b></div></div>`;
+  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">01 · KPIs</p><h1 class="h2">Key metrics at a glance</h1>
+      <p>The headline numbers management tracks. Revenue, ARR, ARPA and retention follow the selected period; economics (LTV, CAC, payback) are cumulative since ROAS launch. Targets vs actual, and a query box, come later in the build.</p></div>
+      <div class="muted small">Period: <b>${esc(sel.label)}</b></div></div>
+    <div class="grid g4">
+      <div class="card block"><p class="eyebrow">Revenue · ${esc(sel.label)}</p><div class="hero">${fmt.money(sel.rev.total)}</div>
+        <div class="delta ${sel.yoy ? (sel.yoy.total >= 0 ? 'up' : 'down') : 'flat'}">${sel.yoy ? fmt.pctS(sel.yoy.total) + ' vs prior year' : 'period total'}</div>
+        ${split2('Commission', fmt.money(sel.rev.legacy), 'ROAS', fmt.money(sel.rev.roas))}</div>
+      <div class="card block"><p class="eyebrow">Blended ARR · ${fmt.month(Lm)}</p><div class="hero">${fmt.money(arr.blended)}</div>
+        ${split2('Commission run-rate', fmt.money(arr.legacy), 'ROAS ARR', fmt.money(arr.roas))}</div>
+      ${card('ARPA · blended', fmt.money(arpaB), '<div class="muted small">per active account · latest month</div>')}
+      ${card('Commission NRR · rolling 12m', fmt.pct(nrr && nrr.nrr, 0), '<div class="muted small">GRR ' + fmt.pct(nrr && nrr.grr, 0) + '</div>')}
+    </div>
+    <div class="grid g4" style="margin-top:14px">
+      ${card('LTV · ROAS (since launch)', fmt.money(econ && econ.ltv), '')}
+      ${card('LTV / CAC · ROAS', fmt.x(econ && econ.ltv_cac), '')}
+      ${card('Payback · ROAS', fmt.mo(econ && econ.payback), '')}
+      ${card('Merchant CAC (since launch)', fmt.money(cac && cac.cac), '')}
+    </div>
+    <div class="grid g4" style="margin-top:14px">
+      ${card('Active clients · ' + esc(sel.label), fmt.int(sel.active_end.total), split2('Commission', sel.active_end.legacy, 'ROAS', sel.active_end.roas))}
+      ${card('New ROAS signed · ' + esc(sel.label), ev ? fmt.int(ev.roas_signed) : '—', ev ? '<div class="muted small">churned ' + fmt.int(ev.roas_churn) + '</div>' : '')}
+      ${card('ROAS share of revenue', fmt.pct(sel.rev.total ? sel.rev.roas / sel.rev.total : null, 0), '')}
+      ${card('Revenue YoY', sel.yoy ? fmt.pctS(sel.yoy.total) : '—', '')}
+    </div>
+    <div class="note" style="margin-top:14px">Targets vs actual for each KPI, and a free-text query box to pull any metric, are planned as a later step.</div>`;
+}
+
+/* ============================================================ PAGE: Client Segmentation (phase 1 first pass) */
+function renderSegmentation() {
+  const root = document.getElementById('page-segmentation'); if (!root) return;
+  const Lm = M.latest_month;
+  const sel = P[state.period] || P['TTM:' + Lm];
+  const seg = sel.rev.leg_seg || {}, tier = sel.rev.roas_tier || {};
+  const aseg = sel.active_end.leg_seg || {}, atier = sel.active_end.roas_tier || {};
+  const segRow = s => `<tr><td><span class="sw" style="background:${SEG_C[s]}"></span>${s}</td><td>${fmt.money(seg[s])}</td><td>${fmt.int(aseg[s])}</td></tr>`;
+  const tierRow = s => `<tr><td><span class="sw" style="background:${TIER_C[s]}"></span>${s}</td><td>${fmt.money(tier[s])}</td><td>${fmt.int(atier[s])}</td></tr>`;
+  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">03 · Client Segmentation</p><h1 class="h2">Clients by model and size</h1>
+      <p>Breakdown for <b>${esc(sel.label)}</b>. The next step turns this into one report with two independent axes — Commission vs ROAS and Enterprise / Growth / SME — sliceable in any combination, showing only the segmentable metrics (CAC, payback and LTV:CAC flagged n/a).</p></div></div>
+    <div class="grid g2">
+      <div class="card"><p class="eyebrow">Commission · by size</p>
+        <div class="tblwrap"><table class="t"><thead><tr><th style="text-align:left">Enterprise / Growth / SME</th><th>Revenue</th><th>Active</th></tr></thead><tbody>${LEG_SEGS.map(segRow).join('')}</tbody></table></div></div>
+      <div class="card"><p class="eyebrow">ROAS · by tier</p>
+        <div class="tblwrap"><table class="t"><thead><tr><th style="text-align:left">Small / Medium / Large</th><th>Revenue</th><th>Active</th></tr></thead><tbody>${TIERS.map(tierRow).join('')}</tbody></table></div>
+        <div class="note">Tier rule is being switched in the pipeline to the agreed CAC-payback definition (Small = CAC not yet paid back, Medium = around CAC, Large = exceeded CAC).</div></div>
+    </div>
+    <div class="card" style="margin-top:16px"><p class="eyebrow">Size definitions</p><div class="defs">
+      <p><b>Enterprise:</b> spending above AED 1M annualised with us (exit below AED 500k).</p>
+      <p><b>Growth:</b> the client's own company revenue above $50M (estimated) and spending below AED 1M with us.</p>
+      <p><b>SME:</b> the client's own company revenue below $50M.</p>
+      <p class="muted small">Provisional — Enterprise is spend-based while Growth / SME are potential-based; to be revisited.</p>
+    </div></div>`;
 }
 
 boot();

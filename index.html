@@ -264,7 +264,7 @@ footer{border-top:1px solid var(--rule);padding:18px 0 40px;font-size:11.5px;col
 const LS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
 const state = {
   page: LS('mm.page') || 'kpis', view: LS('mm.view') || 'seg', buffer: LS('mm.buffer') || 'on',
-  finView: LS('mm.finview') || 'annual',
+  finView: LS('mm.finview') || 'annual', segModel: LS('mm.segmodel') || 'all',
   period: null, year: null, confirmed: null, cap: null, theme: LS('mm.theme')
 };
 if (state.theme) document.documentElement.setAttribute('data-theme', state.theme);
@@ -939,30 +939,71 @@ function renderKpis() {
     <div class="note" style="margin-top:14px">Targets vs actual for each KPI, and a free-text query box to pull any metric, are planned as a later step.</div>`;
 }
 
-/* ============================================================ PAGE: Client Segmentation (phase 1 first pass) */
+/* ============================================================ PAGE: Client Segmentation (two-axis) */
 function renderSegmentation() {
   const root = document.getElementById('page-segmentation'); if (!root) return;
-  const Lm = M.latest_month;
+  const Lm = M.latest_month, Lk = L();
   const sel = P[state.period] || P['TTM:' + Lm];
-  const seg = sel.rev.leg_seg || {}, tier = sel.rev.roas_tier || {};
-  const aseg = sel.active_end.leg_seg || {}, atier = sel.active_end.roas_tier || {};
-  const segRow = s => `<tr><td><span class="sw" style="background:${SEG_C[s]}"></span>${s}</td><td>${fmt.money(seg[s])}</td><td>${fmt.int(aseg[s])}</td></tr>`;
-  const tierRow = s => `<tr><td><span class="sw" style="background:${TIER_C[s]}"></span>${s}</td><td>${fmt.money(tier[s])}</td><td>${fmt.int(atier[s])}</td></tr>`;
-  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">03 · Client Segmentation</p><h1 class="h2">Clients by model and size</h1>
-      <p>Breakdown for <b>${esc(sel.label)}</b>. The next step turns this into one report with two independent axes — Commission vs ROAS and Enterprise / Growth / SME — sliceable in any combination, showing only the segmentable metrics (CAC, payback and LTV:CAC flagged n/a).</p></div></div>
-    <div class="grid g2">
-      <div class="card"><p class="eyebrow">Commission · by size</p>
-        <div class="tblwrap"><table class="t"><thead><tr><th style="text-align:left">Enterprise / Growth / SME</th><th>Revenue</th><th>Active</th></tr></thead><tbody>${LEG_SEGS.map(segRow).join('')}</tbody></table></div></div>
-      <div class="card"><p class="eyebrow">ROAS · by tier</p>
-        <div class="tblwrap"><table class="t"><thead><tr><th style="text-align:left">Small / Medium / Large</th><th>Revenue</th><th>Active</th></tr></thead><tbody>${TIERS.map(tierRow).join('')}</tbody></table></div>
-        <div class="note">Tier rule is being switched in the pipeline to the agreed CAC-payback definition (Small = CAC not yet paid back, Medium = around CAC, Large = exceeded CAC).</div></div>
-    </div>
+  const model = state.segModel || 'all';
+  const money = v => fmt.money(v);
+  const arpaOf = s => (S.arpa && S.arpa[s]) ? S.arpa[s][Lk] : null;
+  const naCell = '<td class="na" title="not segmentable">n/a</td>';
+  const dash = '<td class="na">—</td>';
+  const chTd = c => `<td>${churnTxt(c)}</td>`;
+  const head = lead => `<thead><tr><th style="text-align:left">${lead}</th><th>Revenue</th><th>Active</th><th>ARPA</th><th>LTV</th><th>Logo churn 12m</th><th>CAC</th><th>Payback</th><th>LTV:CAC</th></tr></thead>`;
+
+  // Commission block — rows E / G / SME (segmentable: revenue, active, ARPA, LTV, churn)
+  const commRows = LEG_SEGS.map(s => {
+    const lv = s === 'Enterprise' ? (sel.ltv && sel.ltv.Enterprise) : (sel.ltv && sel.ltv.GrowthSME);
+    const ch = s === 'Enterprise' ? (sel.churn && sel.churn.Enterprise) : (sel.churn && sel.churn.GrowthSME);
+    return `<tr><td><span class="sw" style="background:${SEG_C[s]}"></span>${s}</td>`
+      + td(sel.rev.leg_seg[s], money) + td(sel.active_end.leg_seg[s], fmt.int) + td(arpaOf(s), money)
+      + td(lv && lv.ltv, money) + chTd(ch) + naCell + naCell + naCell + '</tr>';
+  }).join('');
+  const commTot = `<tr class="tot"><td>All commission</td>`
+    + td(sel.rev.legacy, money) + td(sel.active_end.legacy, fmt.int) + td(arpaOf('blended'), money)
+    + dash + chTd(sel.churn && sel.churn.legacy) + naCell + naCell + naCell + '</tr>';
+  const commTable = `<div class="card"><p class="eyebrow">Commission · by size (Enterprise / Growth / SME)</p>
+    <div class="tblwrap"><table class="t">${head('Segment')}<tbody>${commRows}${commTot}</tbody></table></div>
+    <div class="note">LTV and logo churn for Growth &amp; SME are measured together. CAC, payback and LTV:CAC don't break down by segment — there is no segment-level acquisition cost — so they show n/a.</div></div>`;
+
+  // ROAS block — rows S / M / L (CAC/payback/LTV:CAC available at the ROAS total only)
+  const roasRows = TIERS.map(s => `<tr><td><span class="sw" style="background:${TIER_C[s]}"></span>${s}</td>`
+    + td(sel.rev.roas_tier[s], money) + td(sel.active_end.roas_tier[s], fmt.int) + dash + dash
+    + chTd(sel.churn && sel.churn[s]) + naCell + naCell + naCell + '</tr>').join('');
+  const re = sel.ltv && sel.ltv.ROAS, rc = sel.cac;
+  const roasTot = `<tr class="tot"><td>All ROAS</td>`
+    + td(sel.rev.roas, money) + td(sel.active_end.roas, fmt.int) + td(arpaOf('ROAS'), money)
+    + td(re && re.ltv, money) + chTd(sel.churn && sel.churn.ROAS)
+    + td(rc && rc.cac, money) + td(re && re.payback, fmt.mo) + td(re && re.ltv_cac, fmt.x) + '</tr>';
+  const roasTable = `<div class="card" style="margin-top:16px"><p class="eyebrow">ROAS · by tier (Small / Medium / Large)</p>
+    <div class="tblwrap"><table class="t">${head('Tier')}<tbody>${roasRows}${roasTot}</tbody></table></div>
+    <div class="note">ARPA, LTV and the acquisition metrics are only available blended across ROAS, so they sit on the total row; per-tier they show —. Tier rule switches to the agreed CAC-payback definition in the pipeline step.</div></div>`;
+
+  // Client list — all active clients, with model, segment/tier, revenue and ROAS level
+  const clients = [];
+  D.merchants.forEach(m => { if ((m.rev_ttm || 0) > 0) clients.push({ name: m.name, model: 'Commission', seg: m.segment, rev: m.rev_ttm, level: '—' }); });
+  D.roas_brands.forEach(b => { if (!b.other_pricing && ['Existing', 'New', 'Reactivated'].includes(b.status)) clients.push({ name: b.name, model: 'ROAS', seg: b.tier, rev: b.paid_to_latest, level: b.level, migrated: b.migrated }); });
+  const show = clients.filter(c => model === 'all' || c.model.toLowerCase() === model).sort((a, b) => (b.rev || 0) - (a.rev || 0));
+  const clientRows = show.map(c => `<tr><td>${esc(c.name)}${c.migrated ? '<span class="tag">migrated</span>' : ''}</td><td>${c.model}</td><td>${c.seg || '—'}</td><td>${fmt.money(c.rev)}</td><td>${c.level || '—'}</td></tr>`).join('');
+
+  const mbtn = (v, lab) => `<button data-sm="${v}" class="${model === v ? 'on' : ''}">${lab}</button>`;
+  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">03 · Client Segmentation</p><h1 class="h2">Two ways to slice the same clients</h1>
+      <p>Model (Commission vs ROAS) and size are independent axes: pick a model to see only those clients, broken down by size, for <b>${esc(sel.label)}</b> (set the period in the header). Only the segmentable metrics show by segment; CAC, payback and LTV:CAC are not segmentable.</p></div>
+      <div class="ctl" style="margin:0"><label>Model</label><div class="seg" id="seg-model">${mbtn('all', 'All')}${mbtn('commission', 'Commission')}${mbtn('roas', 'ROAS')}</div></div></div>
+    ${model !== 'roas' ? commTable : ''}
+      ${model !== 'commission' ? roasTable : ''}
+    <div class="card" style="margin-top:16px"><p class="eyebrow">Clients · revenue (commission) / paid to date (ROAS)</p>
+      <div class="tblwrap" style="max-height:420px;overflow:auto"><table class="t dense fit"><thead><tr><th style="text-align:left">Client</th><th>Model</th><th>Segment / tier</th><th>Revenue / paid</th><th>ROAS level</th></tr></thead><tbody>${clientRows}</tbody></table></div>
+      <div class="note">${show.length} clients. ROAS “level” is the ladder tier (L1–L5) as a ROAS proxy; true per-brand monthly budget and ROAS come with the ladder detail. Migrated clients appear once under each model for the months they were on it.</div></div>
     <div class="card" style="margin-top:16px"><p class="eyebrow">Size definitions</p><div class="defs">
       <p><b>Enterprise:</b> spending above AED 1M annualised with us (exit below AED 500k).</p>
       <p><b>Growth:</b> the client's own company revenue above $50M (estimated) and spending below AED 1M with us.</p>
       <p><b>SME:</b> the client's own company revenue below $50M.</p>
-      <p class="muted small">Provisional — Enterprise is spend-based while Growth / SME are potential-based; to be revisited.</p>
+      <p><b>ROAS Small / Medium / Large</b> (agreed rule, being wired in the pipeline): Small = CAC not yet paid back; Medium = around CAC; Large = exceeded CAC.</p>
+      <p class="muted small">E/G/SME is provisional (Enterprise is spend-based, Growth / SME potential-based). Commission uses E/G/SME and ROAS uses S/M/L; carrying one size axis across both models is a pipeline step so the two axes become fully combinable.</p>
     </div></div>`;
+  root.querySelectorAll('#seg-model button').forEach(b => b.addEventListener('click', () => { state.segModel = b.dataset.sm; LS('mm.segmodel', state.segModel); renderSegmentation(); }));
 }
 
 boot();

@@ -204,6 +204,38 @@ ul.plain li{margin:3px 0}
 .loading{padding:80px 0;text-align:center;color:var(--ink-3)}
 footer{border-top:1px solid var(--rule);padding:18px 0 40px;font-size:11.5px;color:var(--ink-3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 .ok{color:var(--good)}
+/* ---------- ROAS Ladder (live report) ---------- */
+#page-ladder .lad-scroll{max-height:calc(100vh - 230px);min-height:300px;overflow:auto;border:1px solid var(--rule);border-radius:10px}
+#page-ladder table.lad{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
+#page-ladder table.lad th{position:sticky;top:0;z-index:3;background:var(--card);padding:9px 8px;white-space:nowrap;text-align:right;font-weight:600;color:var(--ink-3);box-shadow:inset 0 -1px 0 var(--rule)}
+#page-ladder table.lad th.txt,#page-ladder table.lad td.txt{text-align:left}
+#page-ladder table.lad td{padding:0 8px;height:44px;border-bottom:1px solid var(--rule-2);vertical-align:middle;text-align:right;font-variant-numeric:tabular-nums}
+#page-ladder table.lad th:first-child,#page-ladder table.lad td:first-child{position:sticky;left:0;z-index:2;background:var(--card);box-shadow:inset -1px 0 0 var(--rule)}
+#page-ladder table.lad thead th:first-child{z-index:4}
+#page-ladder table.lad tbody tr:hover td{background:var(--teal-wash)}
+#page-ladder tr.dropped td:not(.keep)>*{opacity:.5}
+#page-ladder .cwrap{display:flex;align-items:center;gap:10px}
+#page-ladder .cname{font-weight:600;color:var(--ink);font-size:13px;line-height:1.2}
+#page-ladder .cstart{font-size:10.5px;color:var(--ink-4)}
+#page-ladder .avatar{width:26px;height:26px;border-radius:6px;flex:0 0 26px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:10.5px;font-weight:700}
+#page-ladder .lvl{display:inline-block;min-width:34px;padding:2px 7px;border-radius:5px;font-size:11px;font-weight:700;color:#fff;text-align:center}
+#page-ladder .lvl0{background:var(--grey)}#page-ladder .lvl1{background:#7FB5C0}#page-ladder .lvl2{background:#4CA3B4}#page-ladder .lvl3{background:var(--teal)}#page-ladder .lvl4{background:#0E7A8E}#page-ladder .lvl5{background:#0B5E6E}
+#page-ladder .step{color:var(--ink-3);font-size:11.5px}#page-ladder .step.none{color:var(--ink-4)}
+#page-ladder .schip{display:inline-block;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:600}
+#page-ladder .schip.t1{background:var(--teal-wash);color:var(--teal)}#page-ladder .schip.t2{background:var(--teal-wash);color:var(--teal)}#page-ladder .schip.t3{background:rgba(18,150,174,.18);color:var(--teal)}#page-ladder .schip.t4{background:var(--coral-wash);color:var(--coral)}#page-ladder .schip.t5{background:var(--coral-wash);color:var(--deep)}
+#page-ladder .arpa-big{font-weight:700;color:var(--teal)}
+#page-ladder .st{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap}
+#page-ladder .st .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+#page-ladder .st-active{background:rgba(31,138,82,.12);color:var(--good)}
+#page-ladder .st-scaling{background:var(--teal-wash);color:var(--teal)}
+#page-ladder .st-watch{background:rgba(176,114,24,.14);color:var(--ochre)}
+#page-ladder .st-low{background:var(--rule-2);color:var(--ink-3)}
+#page-ladder .st-early{background:var(--rule-2);color:var(--ink-3)}
+#page-ladder .st-risk{background:var(--coral-wash);color:var(--coral)}
+#page-ladder .st-inactive{background:rgba(192,57,43,.1);color:var(--bad)}
+#page-ladder .st-churned{background:rgba(192,57,43,.14);color:var(--bad)}
+#page-ladder .warn{display:none;margin:12px 0;padding:10px 12px;border-radius:8px;background:var(--coral-wash);color:var(--deep);font-size:12.5px;border:1px solid var(--rule)}
+#page-ladder .seg button.on{background:var(--ink);color:var(--card)}
 </style>
 </head>
 <body>
@@ -229,7 +261,9 @@ footer{border-top:1px solid var(--rule);padding:18px 0 40px;font-size:11.5px;col
       <button data-page="financials"><span class="n">02</span>Financials</button>
       <button data-page="segmentation"><span class="n">03</span>Client Segmentation</button>
       <button data-page="investor"><span class="n">04</span>Investor Dashboard</button>
-      <button data-page="control"><span class="n">05</span>Control &amp; data quality</button>
+      <button data-page="ladder"><span class="n">05</span>ROAS Ladder</button>
+      <button data-page="cac"><span class="n">06</span>CAC</button>
+      <button data-page="control"><span class="n">07</span>Control &amp; data quality</button>
     </nav>
   </div>
 </header>
@@ -251,6 +285,8 @@ footer{border-top:1px solid var(--rule);padding:18px 0 40px;font-size:11.5px;col
   </section>
   <section class="page" id="page-segmentation"></section>
   <section class="page" id="page-investor"></section>
+  <section class="page" id="page-ladder"></section>
+  <section class="page" id="page-cac"></section>
   <section class="page" id="page-control"></section>
   <div class="flagbar" id="flagbar" style="margin-top:28px;padding-top:14px;border-top:1px solid var(--rule)"></div>
   <footer>
@@ -377,12 +413,14 @@ function bindUI() {
   document.getElementById('theme').addEventListener('click', () => { const cur = document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); const nx = cur === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', nx); LS('mm.theme', nx); renderAll(); });
   showPage();
 }
-const PAGES = ['kpis', 'financials', 'segmentation', 'investor', 'control'];
+const PAGES = ['kpis', 'financials', 'segmentation', 'investor', 'ladder', 'cac', 'control'];
 function showPage() {
   if (!PAGES.includes(state.page)) state.page = 'kpis';
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.page === state.page));
   document.querySelectorAll('section.page').forEach(s => s.classList.toggle('active', s.id === 'page-' + state.page));
   const ctl = document.getElementById('controls');
+  const liveReport = state.page === 'ladder' || state.page === 'cac';
+  ctl.style.display = liveReport ? 'none' : '';
   const onFin = state.page === 'financials';
   ctl.querySelector('#ctl-finwrap').style.display = onFin ? '' : 'none';
   ctl.querySelector('#ctl-year').parentElement.style.display = (onFin && state.finView === 'monthly') ? '' : 'none';
@@ -1005,6 +1043,293 @@ function renderSegmentation() {
     </div></div>`;
   root.querySelectorAll('#seg-model button').forEach(b => b.addEventListener('click', () => { state.segModel = b.dataset.sm; LS('mm.segmodel', state.segModel); renderSegmentation(); }));
 }
+
+/* ============================================================ ROAS LADDER (live report, ported from Unit-Economics-Moontech) */
+(function () {
+  "use strict";
+  const LADDER_SOURCES = {
+    receivables: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTN4F4HrbFaylUihY5v3JQ6cG8nFwpkQgpfn-zndurG2WGEKAY011cll7OwYJGuR3_wqV76pjSkG14x/pub?gid=634629514&single=true&output=csv",
+    tracker:     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSEEEIegwsvOyMt4ZKFffwcOyCaPVJhftkr8Wyns6u_32dUbyudrArqFFB3Ac6CjTsaEV3ui1RPoDg8/pub?gid=793116860&single=true&output=csv"
+  };
+  const AED_PER_USD = 3.6725, VAT_RATE = 0.05;
+  const ARPA_INCLUDE_BRANDS = ["Jetour"], ACTIVE_ARPA_GATE = 24000;
+  const GRID_START = { y: 2025, m: 11 };
+  const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function parseCSV(text) {
+    const rows = []; let row = [], field = '', q = false;
+    for (let i = 0; i < text.length; i++) { const c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else q = false; } else field += c; }
+      else { if (c === '"') q = true; else if (c === ',') { row.push(field); field = ''; }
+        else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+        else if (c === '\r') {} else field += c; } }
+    if (field.length || row.length) { row.push(field); rows.push(row); } return rows;
+  }
+  const lNorm = s => String(s || '').trim().toLowerCase().replace(/[\s\-_]/g, '');
+  const brandKey = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  function lMoney(s) { if (s == null) return null; s = String(s).replace(/AED|\$|,/g, '').trim(); if (!s) return null; const v = parseFloat(s); return isNaN(v) ? null : v; }
+  function lDate(s) { s = String(s || '').trim(); if (!s) return null; const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/); if (!m) return null; let y = +m[3]; if (y < 100) y += 2000; const d = new Date(Date.UTC(y, +m[1] - 1, +m[2])); return isNaN(d) ? null : d; }
+  function lMilestone(s) { s = String(s || ''); if (/stage/i.test(s)) return null; const m = s.match(/(\d)/); return m ? +m[1] : null; }
+  const ym = d => d.getUTCFullYear() * 12 + d.getUTCMonth();
+  const monthDiff = (a, b) => ym(b) - ym(a);
+  function colGetter(header) { const idx = {}; header.forEach((h, i) => { idx[lNorm(h)] = i; }); return (row, ...names) => { for (const n of names) { const i = idx[lNorm(n)]; if (i != null && i < row.length) return row[i]; } return ''; }; }
+  function sheetToday(header, rows, get) { for (const hh of header) { const d = lDate(hh); if (d) return d; } for (const r of rows) { const d = lDate(get(r, 'Todays Date')); if (d) return d; } const n = new Date(); return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())); }
+  function gridMonths(today) { const out = []; let y = GRID_START.y, m = GRID_START.m; const eY = today.getUTCFullYear(), eM = today.getUTCMonth() + 1; while (y < eY || (y === eY && m <= eM)) { out.push({ y, m, label: MONTH_NAMES[m - 1] + (y !== 2026 ? ' ' + String(y).slice(2) : '') }); m++; if (m > 12) { m = 1; y++; } } return out; }
+  function parseChurnMonth(s) { s = String(s || '').trim(); if (!s) return null; let y = null, m = null, mm; if ((mm = s.match(/^([A-Za-z]{3,9})[\s\-\/,]+(\d{2,4})$/))) { const i = MONTH_NAMES.findIndex(n => n.toLowerCase() === mm[1].slice(0, 3).toLowerCase()); if (i >= 0) { m = i + 1; y = +mm[2]; if (y < 100) y += 2000; } } else if ((mm = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/))) { m = +mm[1]; y = +mm[3]; if (y < 100) y += 2000; } else if ((mm = s.match(/^(\d{4})-(\d{1,2})/))) { y = +mm[1]; m = +mm[2]; } if (!y || !m || m < 1 || m > 12) return { label: s, key: null }; return { label: MONTH_NAMES[m - 1] + ' ' + y, key: y * 12 + (m - 1) }; }
+  function trackerHeaderRow(rows) { for (let i = 0; i < rows.length; i++) { const set = new Set(rows[i].map(lNorm)); if (set.has('brandname') && set.has('status')) return i; } return 0; }
+  function parseTracker(rows) { if (!rows.length) return { churned: new Map(), onHold: new Set() }; const hh = trackerHeaderRow(rows); const get = colGetter(rows[hh]); const churned = new Map(), onHold = new Set(); for (const r of rows.slice(hh + 1)) { const b = String(get(r, 'Brand Name') || '').trim(); if (!b || brandKey(b) === 'average') continue; const st = String(get(r, 'Status') || ''); if (/churn/i.test(st)) churned.set(brandKey(b), { name: b, month: parseChurnMonth(get(r, 'Churn Date', 'Churn Month', 'Churned Month', 'Churn date')) }); else if (/on hold/i.test(st)) onHold.add(brandKey(b)); } return { churned, onHold }; }
+
+  function buildLadder(recvRows, trackerRows) {
+    const header = recvRows[0], get = colGetter(header);
+    const today = sheetToday(header, recvRows.slice(1), get);
+    const months = gridMonths(today);
+    const gridStartDate = new Date(Date.UTC(GRID_START.y, GRID_START.m - 1, 1));
+    const elapsed = Math.round((today - gridStartDate) / 86400000 / 30);
+    const brands = new Map(), allRecvKeys = new Set();
+    for (const r of recvRows.slice(1)) {
+      const brand = String(get(r, 'Brand Name') || get(r, 'Client Name') || '').trim(); if (!brand) continue;
+      allRecvKeys.add(brandKey(brand));
+      const status = String(get(r, 'Invoice Status') || '').trim();
+      const msRaw = get(r, 'ROAS- Milestone', 'ROAS Milestone'); const ms = lMilestone(msRaw);
+      const idate = lDate(get(r, 'Invoice Date')); const pdt = lDate(get(r, 'Payment recepit date', 'Payment receipt date'));
+      const usd = lMoney(get(r, '$ Amount')); const aed = lMoney(get(r, 'Total')); const vat = String(get(r, 'VAT') || '');
+      const refund = lMoney(get(r, 'Refunds VAT Exclusive', 'Refunds')) || 0;
+      let gross = usd != null ? usd : (aed != null ? aed / AED_PER_USD : 0);
+      if (/included/i.test(vat)) gross = gross / (1 + VAT_RATE);
+      const net = Math.max(0, gross - refund);
+      if (!brands.has(brand)) brands.set(brand, []); brands.get(brand).push({ status, ms, idate, pdt, net });
+    }
+    const { churned, onHold } = parseTracker(trackerRows);
+    const rowsOut = [];
+    for (const [brand, invs] of brands) {
+      const paid = invs.filter(i => i.status === 'Paid'); if (!paid.length) continue;
+      const roas = paid.filter(i => i.ms != null); const hasMs = roas.length > 0;
+      if (!hasMs && !ARPA_INCLUDE_BRANDS.includes(brand)) continue;
+      const basisSet = hasMs ? roas : paid; const level = hasMs ? Math.max(...roas.map(i => i.ms)) : 0;
+      const pdates = basisSet.filter(i => i.pdt).map(i => i.pdt).sort((a, b) => a - b);
+      const firstPay = pdates[0] || null;
+      const moActive = firstPay ? monthDiff(firstPay, today) + 1 : 0;
+      const atLevelPays = roas.filter(i => i.ms === level && i.pdt).map(i => i.pdt).sort((a, b) => a - b);
+      const moAtLevel = atLevelPays.length ? monthDiff(atLevelPays[0], today) : 0;
+      const key = brandKey(brand); const isChurn = churned.has(key); const dropped = isChurn;
+      let arpa, basis; const totalToDate = basisSet.reduce((a, i) => a + i.net, 0);
+      if (dropped) { arpa = totalToDate; basis = 'Churned · total to date'; }
+      else if (!hasMs) { arpa = totalToDate; basis = 'Spend to date (CPL)'; }
+      else if (level <= 2) { arpa = totalToDate; basis = 'ROAS spend to date'; }
+      else { const latest = roas.filter(i => i.pdt).sort((a, b) => b.pdt - a.pdt)[0] || roas[roas.length - 1]; arpa = latest.net * 12; basis = 'Latest paid × 12'; }
+      const grid = months.map(mm => { const s = paid.filter(i => i.pdt && i.pdt.getUTCFullYear() === mm.y && i.pdt.getUTCMonth() + 1 === mm.m).reduce((a, i) => a + i.net, 0); return s > 0 ? s : null; });
+      const firstPayAt = k => { const p = roas.filter(i => i.ms === k && i.pdt).map(i => i.pdt).sort((a, b) => a - b); return p[0] || null; };
+      const step = (a, b) => { const pa = firstPayAt(a), pb = firstPayAt(b); if (!pa || !pb) return null; return Math.max(0, Math.round((pb - pa) / 86400000 / 30)); };
+      const ramp = [step(1, 2), step(2, 3), step(3, 4)];
+      let lastPos = 0; grid.forEach((v, i) => { if (v) lastPos = i + 1; }); const G = lastPos ? elapsed - lastPos + 1 : 999;
+      let status;
+      if (dropped) status = 'Churned';
+      else if (moActive <= 1) status = 'Too early';
+      else if (G >= 6) status = 'Inactive';
+      else if (G >= level && moActive > 2) status = 'At risk';
+      else if (level === 1 && G < level) status = 'Low spend';
+      else if (G >= level - 1) status = 'Watch';
+      else if (moAtLevel <= level - 2 && level < 5) status = 'Scaling';
+      else if (arpa >= ACTIVE_ARPA_GATE) status = 'Active';
+      else status = 'Low spend';
+      rowsOut.push({ brand, level, moActive, ramp, grid, total: totalToDate, arpa, basis, status, dropped, onHold: onHold.has(key),
+        churnMonth: isChurn ? (churned.get(key).month ? churned.get(key).month.label : '') : '',
+        since: firstPay ? firstPay.getUTCFullYear() + '-' + String(firstPay.getUTCMonth() + 1).padStart(2, '0') : '' });
+    }
+    const unmatchedChurn = []; for (const [k, c] of churned) { if (!allRecvKeys.has(k)) unmatchedChurn.push(c.name); }
+    const fleetARPA = rowsOut.length ? rowsOut.reduce((a, r) => a + r.arpa, 0) / rowsOut.length : 0;
+    return { rows: rowsOut, months, today, fleetARPA, unmatchedChurn, counts: { brands: rowsOut.length, dropped: rowsOut.filter(r => r.dropped).length, churnedInTracker: churned.size } };
+  }
+  async function fetchLadderSources() {
+    const [rv, tr] = await Promise.allSettled([fetch(LADDER_SOURCES.receivables), fetch(LADDER_SOURCES.tracker)]);
+    if (rv.status !== 'fulfilled' || !rv.value.ok) throw new Error('receivables ' + (rv.reason || rv.value.status));
+    const recvRows = parseCSV(await rv.value.text());
+    let trackerRows = [], trackerError = null;
+    if (tr.status === 'fulfilled' && tr.value.ok) trackerRows = parseCSV(await tr.value.text()); else trackerError = 'tracker unreachable — churn auto-drops not applied';
+    return { recvRows, trackerRows, trackerError };
+  }
+
+  /* render (monthly-model style) */
+  const ST_CLASS = { 'Active': 'st-active', 'Scaling': 'st-scaling', 'Low spend': 'st-low', 'Watch': 'st-watch', 'Too early': 'st-early', 'At risk': 'st-risk', 'Inactive': 'st-inactive', 'Churned': 'st-churned' };
+  const AV_COLORS = ['#1296AE', '#1F8A52', '#B07218', '#6257C9', '#C4330F', '#0E7A8E', '#938E86', '#E8401C'];
+  const esc2 = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const money = v => (v == null || isNaN(v)) ? '—' : (v < 0 ? '-$' : '$') + Math.round(Math.abs(v)).toLocaleString('en-US');
+  const inum = v => (v == null || isNaN(v)) ? '—' : Math.round(v).toLocaleString('en-US');
+  const avatar = name => { let hh = 0; for (let i = 0; i < name.length; i++) hh = (hh * 31 + name.charCodeAt(i)) >>> 0; const ini = name.replace(/[^A-Za-z0-9 ]/g, '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join(''); return '<span class="avatar" style="background:' + AV_COLORS[hh % AV_COLORS.length] + '">' + ini + '</span>'; };
+  const tierOf = v => v >= 4500 ? 5 : v >= 3600 ? 4 : v >= 2700 ? 3 : v >= 1800 ? 2 : 1;
+
+  let BUILT = null, sortMode = (function () { try { return localStorage.getItem('mm.ladderSort') || 'arpa'; } catch (e) { return 'arpa'; } })();
+
+  function renderLadder() {
+    const root = document.getElementById('page-ladder'); if (!root || !BUILT) return;
+    const built = BUILT; const rows = built.rows.slice();
+    if (sortMode === 'level') rows.sort((a, b) => (b.level - a.level) || (b.arpa - a.arpa)); else rows.sort((a, b) => b.arpa - a.arpa);
+    const counts = {}; built.rows.forEach(r => { counts[r.status] = (counts[r.status] || 0) + 1; });
+    const order = ['Active', 'Scaling', 'Watch', 'Low spend', 'Too early', 'At risk', 'Inactive', 'Churned'];
+    const chips = order.filter(k => counts[k]).map(k => '<span class="st ' + ST_CLASS[k] + '"><span class="dot"></span>' + k + ' · ' + counts[k] + '</span>').join(' ');
+    const warns = [];
+    if (built.trackerError) warns.push(built.trackerError);
+    if (built.unmatchedChurn.length) warns.push('Churn match warning: ' + built.unmatchedChurn.map(esc2).join(', ') + ' — churned in the tracker but no matching brand in receivables, so NOT auto-dropped.');
+    const mCols = built.months;
+    const step = v => v == null ? '<span class="step none">–</span>' : '<span class="step">' + v + 'mo</span>';
+    let t = '<div class="lad-scroll"><table class="lad"><thead><tr><th class="txt">Client</th><th>Mo.</th><th>Level</th><th>1→2</th><th>2→3</th><th>3→4</th>' + mCols.map(m => '<th>' + m.label + '</th>').join('') + '<th>Total</th><th>ARPA</th><th class="txt">Status</th><th class="txt">Churn month</th></tr></thead><tbody>';
+    rows.forEach(r => {
+      t += '<tr' + (r.dropped ? ' class="dropped"' : '') + '><td class="txt"><div class="cwrap">' + avatar(r.brand) + '<div><div class="cname">' + esc2(r.brand) + (r.onHold ? ' <span class="tag">on hold</span>' : '') + '</div><div class="cstart">since ' + (r.since || '—') + '</div></div></div></td>'
+        + '<td>' + r.moActive + '</td><td><span class="lvl lvl' + r.level + '">' + (r.level ? 'L' + r.level : 'CPL') + '</span></td>'
+        + '<td>' + step(r.ramp[0]) + '</td><td>' + step(r.ramp[1]) + '</td><td>' + step(r.ramp[2]) + '</td>'
+        + r.grid.map(v => v == null ? '<td></td>' : '<td><span class="schip t' + tierOf(v) + '">' + inum(v) + '</span></td>').join('')
+        + '<td><b>' + money(r.total) + '</b></td><td class="arpa-big" title="' + esc2(r.basis) + '">' + money(r.arpa) + '</td>'
+        + '<td class="txt keep"><span class="st ' + ST_CLASS[r.status] + '"><span class="dot"></span>' + r.status + '</span></td>'
+        + '<td class="txt keep">' + (r.dropped ? (r.churnMonth ? '<b>' + esc2(r.churnMonth) + '</b>' : '<span class="muted">not set</span>') : '') + '</td></tr>';
+    });
+    t += '</tbody></table></div>';
+    root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">05 · ROAS Ladder</p><h1 class="h2">ROAS clients, live from receivables + tracker</h1>'
+      + '<p>Paid invoices drive activation, milestone movement, the monthly grid and ARPA (M1–M2 = spend to date, M3+ = latest paid × 12). Churn comes only from the ROAS tracker. As of ' + built.today.toISOString().slice(0, 10) + '.</p></div></div>'
+      + '<div class="grid g4">'
+      + '<div class="card block"><p class="eyebrow">Fleet ARPA</p><div class="hero">' + money(built.fleetARPA) + '</div><div class="muted small">across ' + built.counts.brands + ' qualifying brands</div></div>'
+      + '<div class="card"><p class="eyebrow">Brands on ladder</p><div class="hero">' + built.counts.brands + '</div><div class="muted small">≥1 paid ROAS invoice</div></div>'
+      + '<div class="card"><p class="eyebrow">At L3 or higher</p><div class="hero">' + built.rows.filter(r => r.level >= 3 && !r.dropped).length + '</div><div class="muted small">active, level 3+</div></div>'
+      + '<div class="card"><p class="eyebrow">Churned</p><div class="hero">' + built.counts.dropped + '</div><div class="muted small">marked churned in tracker</div></div>'
+      + '</div>'
+      + '<div class="warn" id="lad-warn" style="' + (warns.length ? 'display:block' : '') + '">' + warns.join('<br>') + '</div>'
+      + '<div class="card" style="margin-top:16px"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px">'
+      + '<div class="chips">' + chips + '</div>'
+      + '<div class="ctl" style="margin:0"><label>Sort</label><div class="seg" id="lad-sort"><button data-sort="arpa" class="' + (sortMode === 'arpa' ? 'on' : '') + '">ARPA</button><button data-sort="level" class="' + (sortMode === 'level' ? 'on' : '') + '">Level</button></div></div>'
+      + '</div>' + t + '</div>';
+    root.querySelectorAll('#lad-sort button').forEach(b => b.addEventListener('click', () => { sortMode = b.dataset.sort; try { localStorage.setItem('mm.ladderSort', sortMode); } catch (e) {} renderLadder(); }));
+  }
+  function setLadderMsg(msg) { const root = document.getElementById('page-ladder'); if (root) root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">05 · ROAS Ladder</p><h1 class="h2">ROAS clients</h1></div></div><div class="card">' + msg + '</div>'; }
+
+  async function initLadder() {
+    setLadderMsg('<div class="loading">Loading the ROAS ladder from the live sheets…</div>');
+    try { const src = await fetchLadderSources(); BUILT = buildLadder(src.recvRows, src.trackerRows); BUILT.trackerError = src.trackerError; renderLadder(); }
+    catch (e) { setLadderMsg('<b>Live data problem.</b> Could not load the receivables sheet (' + esc2(String(e && e.message || e)) + '). The ladder is not shown rather than shown stale. Open this page over the web (the published Google Sheets must be reachable from the browser).'); }
+  }
+  // kick off once the DOM is ready; independent of the main data build
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initLadder); else initLadder();
+})();
+
+/* ============================================================ CAC (live report, ported from Unit-Economics-Moontech) */
+(function () {
+  "use strict";
+  const CAC_SOURCE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTbBasF2SSMyuhYTfUswU3fh1szd4L0lnUGhD1BGhdNJ-06lFp-MFwcdQeL2ZS5LQ/pub?gid=1662814783&single=true&output=csv";
+  const CAC_AED_PER_USD = 3.6725;
+  const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+  const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function parseCSV(text) {
+    const rows = []; let row = [], field = '', q = false;
+    for (let i = 0; i < text.length; i++) { const c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else q = false; } else field += c; }
+      else { if (c === '"') q = true; else if (c === ',') { row.push(field); field = ''; }
+        else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+        else if (c === '\r') {} else field += c; } }
+    if (field.length || row.length) { row.push(field); rows.push(row); } return rows;
+  }
+  function parseMonthHeader(s) { const m = String(s || '').trim().match(/^([A-Za-z]{3})-(\d{2,4})$/); if (!m || !MON[m[1].toLowerCase()]) return null; let y = +m[2]; if (y < 100) y += 2000; return { y, m: MON[m[1].toLowerCase()] }; }
+  function cnum(s) { if (s == null) return null; s = String(s).trim(); if (s === '' || s === '-' || s === '—') return null; const neg = /^\(.*\)$/.test(s); const v = parseFloat(s.replace(/[$,()]/g, '')); if (isNaN(v)) return null; return neg ? -v : v; }
+  function parseCacSheet(rows) {
+    const norm = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const hIdx = rows.findIndex(r => r.length && norm(r[0]) === 'category'); if (hIdx < 0) throw new Error('CAC sheet: header row ("Category") not found');
+    const header = rows[hIdx]; const monthCols = [];
+    header.forEach((h, i) => { const pm = parseMonthHeader(h); if (pm) monthCols.push({ col: i, ...pm }); });
+    if (!monthCols.length) throw new Error('CAC sheet: no month columns found');
+    const months = monthCols.map(c => ({ y: c.y, m: c.m }));
+    const vals = r => monthCols.map(c => c.col < r.length ? cnum(r[c.col]) : null);
+    const findRow = label => rows.find(r => r.length && norm(r[0]) === norm(label)) || null;
+    function section(startLabel, totalUsdLabel, totalAedLabel) {
+      const start = rows.findIndex(r => r.length && norm(r[0]) === norm(startLabel));
+      const end = rows.findIndex((r, i) => i > start && r.length && norm(r[0]) === norm(totalAedLabel));
+      if (start < 0 || end < 0) throw new Error('CAC sheet: section ' + startLabel + ' not found');
+      const cats = [];
+      for (let i = start + 1; i < end; i++) { const r = rows[i]; const name = String(r[0] || '').trim(); if (!name) continue; const aed = vals(r); cats.push({ name, usd: aed.map(v => v == null ? null : v / CAC_AED_PER_USD) }); }
+      const usdRow = findRow(totalUsdLabel), aedRow = findRow(totalAedLabel);
+      const costUSD = usdRow ? vals(usdRow) : (aedRow ? vals(aedRow).map(v => v == null ? null : v / CAC_AED_PER_USD) : months.map(() => null));
+      return { cats, costUSD };
+    }
+    const merchant = section('MERCHANT CAC', 'Total Merchant Cost — USD', 'Total Merchant Cost — AED');
+    const creator = section('CREATOR CAC', 'Total Creator Cost — USD', 'Total Creator Cost — AED');
+    const nc = findRow('New Clients'), ncr = findRow('New Creators');
+    merchant.count = nc ? vals(nc) : months.map(() => null);
+    creator.count = ncr ? vals(ncr) : months.map(() => null);
+    const mcac = findRow('CAC per New Client (USD)'), ccac = findRow('CAC per New Creator (USD)');
+    merchant.sheetCAC = mcac ? vals(mcac) : null; creator.sheetCAC = ccac ? vals(ccac) : null;
+    return { months, merchant, creator, title: rows[0] && rows[0][0] || '', subtitle: rows[1] && rows[1][0] || '' };
+  }
+  function onYear(parsed, arr, year) { const out = Array(12).fill(null); parsed.months.forEach((mm, i) => { if (mm.y === year) out[mm.m - 1] = arr[i]; }); return out; }
+  function cacForYear(parsed, year) {
+    const side = s => ({ cost: onYear(parsed, s.costUSD, year), count: onYear(parsed, s.count, year), cats: s.cats.map(c => ({ name: c.name, usd: onYear(parsed, c.usd, year) })), sheetCAC: s.sheetCAC ? onYear(parsed, s.sheetCAC, year) : null });
+    return { merchant: side(parsed.merchant), creator: side(parsed.creator), asOf: parsed.subtitle, years: [...new Set(parsed.months.map(mm => mm.y))].sort() };
+  }
+  async function fetchCacSheet() { const res = await fetch(CAC_SOURCE); if (!res.ok) throw new Error('HTTP ' + res.status); return parseCacSheet(parseCSV(await res.text())); }
+
+  const esc2 = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const money = v => (v == null || isNaN(v)) ? '—' : (v < 0 ? '-$' : '$') + Math.round(Math.abs(v)).toLocaleString('en-US');
+  const inum = v => (v == null || isNaN(v)) ? '—' : Math.round(v).toLocaleString('en-US');
+  const sumN = a => a.reduce((x, y) => x + (y || 0), 0);
+
+  let PARSED = null, cacYear = null;
+
+  function sideBlock(side, label, unit, color, elId) {
+    const closed = side.cost.map((v, m) => v != null ? m : -1).filter(m => m >= 0);
+    const li = closed.length ? closed[closed.length - 1] : -1;
+    const months = []; for (let m = 0; m <= li; m++) months.push(m);
+    const perCac = m => (side.count[m] != null && side.count[m] > 0 && side.cost[m] != null) ? side.cost[m] / side.count[m] : null;
+    const costSum = sumN(months.map(m => side.cost[m])), cntSum = sumN(months.map(m => side.count[m]));
+    const blended = cntSum ? costSum / cntSum : null;
+    // chart
+    const chartId = elId + '-ch';
+    // table
+    let t = '<div class="tblwrap"><table class="t dense fit"><thead><tr><th style="text-align:left">Month</th><th>Acq. cost</th><th>' + unit + '</th><th>CAC</th></tr></thead><tbody>';
+    months.forEach(m => { const v = perCac(m); t += '<tr><td style="text-align:left">' + MONTH_NAMES[m] + '-' + String(cacYear).slice(2) + '</td><td>' + (side.cost[m] != null ? money(side.cost[m]) : '<span class="muted">—</span>') + '</td><td>' + (side.count[m] != null ? inum(side.count[m]) : '<span class="muted">—</span>') + '</td><td>' + (v != null ? money(v) : '<span class="muted">n/a</span>') + '</td></tr>'; });
+    t += '<tr class="tot"><td style="text-align:left">Blended YTD</td><td>' + money(costSum) + '</td><td>' + inum(cntSum) + '</td><td>' + money(blended) + '</td></tr></tbody></table></div>';
+    // category breakdown
+    let cat = '';
+    const cats = (side.cats || []).filter(k => months.some(m => k.usd[m]));
+    if (cats.length) {
+      const ytdTotal = sumN(months.map(m => side.cost[m]));
+      cat = '<div class="tblwrap" style="margin-top:12px"><table class="t dense fit"><thead><tr><th style="text-align:left">Category</th>' + months.map(m => '<th>' + MONTH_NAMES[m].slice(0, 1) + '</th>').join('') + '<th>YTD</th><th>Share</th></tr></thead><tbody>';
+      cats.forEach(k => { const y = sumN(k.usd.filter((_, m) => m <= li)); cat += '<tr><td style="text-align:left">' + esc2(k.name) + '</td>' + months.map(m => '<td>' + (k.usd[m] ? money(k.usd[m]) : '<span class="muted">—</span>') + '</td>').join('') + '<td><b>' + money(y) + '</b></td><td>' + (ytdTotal ? (100 * y / ytdTotal).toFixed(0) + '%' : '—') + '</td></tr>'; });
+      cat += '</tbody></table></div>';
+    }
+    return { html: '<div class="card"><p class="eyebrow">' + label + ' CAC · ' + cacYear + (li >= 0 ? ' · Jan–' + MONTH_NAMES[li] : '') + '</p>'
+      + '<div class="grid g3" style="margin:4px 0 12px"><div><div class="eyebrow">Blended CAC</div><div class="hero" style="font-size:26px">' + money(blended) + '</div></div>'
+      + '<div><div class="eyebrow">' + unit + '</div><div class="hero" style="font-size:26px">' + inum(cntSum) + '</div></div>'
+      + '<div><div class="eyebrow">Acquisition cost</div><div class="hero" style="font-size:26px">' + money(costSum) + '</div></div></div>'
+      + '<div class="chart" id="' + chartId + '" style="height:190px"></div>' + t + cat + '</div>',
+      chartId, months, perCac, color };
+  }
+
+  function renderCac() {
+    const root = document.getElementById('page-cac'); if (!root || !PARSED) return;
+    const C = cacForYear(PARSED, cacYear);
+    const years = C.years.filter(y => y >= 2024);
+    const yrBtns = years.map(y => '<button data-cy="' + y + '" class="' + (y === cacYear ? 'on' : '') + '">' + y + '</button>').join('');
+    const m = sideBlock(C.merchant, 'Merchant', 'New merchants', 'var(--teal)', 'cac-m');
+    const c = sideBlock(C.creator, 'Creator', 'New creators', 'var(--coral)', 'cac-c');
+    root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">06 · CAC</p><h1 class="h2">Acquisition cost, live from the CAC sheet</h1>'
+      + '<p>Merchant and creator acquisition cost per month, from the dedicated CAC sheet (AED converted at ' + CAC_AED_PER_USD + '). CAC = acquisition cost ÷ new acquisitions. ' + (C.asOf ? esc2(C.asOf) : '') + '</p></div>'
+      + '<div class="ctl" style="margin:0"><label>Year</label><div class="seg" id="cac-year">' + yrBtns + '</div></div></div>'
+      + '<div class="grid g2">' + m.html + c.html + '</div>';
+    // draw charts with the outer barChart if available
+    [m, c].forEach(side => { const el = document.getElementById(side.chartId); if (!el || typeof barChart !== 'function') return;
+      barChart(el, { labels: side.months.map(mm => MONTH_NAMES[mm]), series: [{ name: 'CAC', color: side.color, values: side.months.map(side.perCac) }], kind: 'money', height: 190, labelEvery: 1 }); });
+    root.querySelectorAll('#cac-year button').forEach(b => b.addEventListener('click', () => { cacYear = +b.dataset.cy; try { localStorage.setItem('mm.cacYear', cacYear); } catch (e) {} renderCac(); }));
+  }
+  function setCacMsg(msg) { const root = document.getElementById('page-cac'); if (root) root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">06 · CAC</p><h1 class="h2">Acquisition cost</h1></div></div><div class="card">' + msg + '</div>'; }
+
+  async function initCac() {
+    setCacMsg('<div class="loading">Loading CAC from the live sheet…</div>');
+    try {
+      PARSED = await fetchCacSheet();
+      const yrs = [...new Set(PARSED.months.map(mm => mm.y))].sort();
+      let saved = null; try { saved = +localStorage.getItem('mm.cacYear') || null; } catch (e) {}
+      cacYear = (saved && yrs.includes(saved)) ? saved : (yrs.includes(2026) ? 2026 : yrs[yrs.length - 1]);
+      renderCac();
+    } catch (e) { setCacMsg('<b>Live data problem.</b> Could not load the CAC sheet (' + esc2(String(e && e.message || e)) + '). Open this page over the web (the published Google Sheet must be reachable from the browser).'); }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initCac); else initCac();
+})();
 
 boot();
 </script>

@@ -58,6 +58,10 @@ ltv:                                     # [§10.6]
   legacy_churn_basis: gross_revenue_churn   # 1 - GRR (rolling 12m)
   roas_churn_basis: logo_churn
 
+roas_tiers:                              # ROAS S/M/L size definition
+  method: arpa_benchmark                 # arpa_benchmark (current, keeps 43/43) | cac_payback (agreed 23-Oct, pending threshold sign-off)
+  large_payback_multiple: 2.0            # cac_payback only: Large = cumulative profit (paid x roas_margin) >= this x CAC. Medium = 1x..this. Kareem to confirm.
+
 reconciliation:
   multi_grain_tie_out_tolerance: 0.01    # [§3 generic recipe]
 

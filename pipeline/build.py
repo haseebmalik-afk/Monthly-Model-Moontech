@@ -117,6 +117,9 @@ def build_dataset(E, ctl):
 
     # ---- ROAS tiers per brand per month
     margin_r = cfg['ltv']['roas_margin']
+    rt_cfg = cfg.get('roas_tiers', {}) or {}
+    tier_method = rt_cfg.get('method', 'arpa_benchmark')      # 'arpa_benchmark' (current) | 'cac_payback' (agreed 23-Oct)
+    large_mult = rt_cfg.get('large_payback_multiple', 2.0)
     tier = {}
     for b in brands:
         v = E.lad[b]; t = ['-'] * NM; prev = None
@@ -125,9 +128,17 @@ def build_dataset(E, ctl):
             paid = sum(v['pay'][v['since']:k + 1]); ten = k - v['since'] + 1
             ann = paid * 12 / ten if ten < 12 else sum(v['pay'][k - 11:k + 1])
             c = cac_at(k)
-            if bench[k] and ann >= bench[k]: tt = 'Large'
-            elif c is not None and paid * margin_r >= c: tt = 'Medium'
-            else: tt = 'Small'
+            if tier_method == 'cac_payback':
+                # Small = CAC not yet paid back; Medium = around CAC; Large = exceeded CAC (>= large_mult x CAC).
+                if c is not None and c > 0:
+                    ratio = (paid * margin_r) / c
+                    tt = 'Large' if ratio >= large_mult else ('Medium' if ratio >= 1 else 'Small')
+                else:
+                    tt = 'Small'   # no CAC history yet -> cannot classify, default Small
+            else:   # arpa_benchmark (current default): Large = annualised spend >= legacy-segment ARPA benchmark
+                if bench[k] and ann >= bench[k]: tt = 'Large'
+                elif c is not None and paid * margin_r >= c: tt = 'Medium'
+                else: tt = 'Small'
             t[k] = tt
         tier[b] = t
     tier_moves = {k: [] for k in range(NM)}
@@ -255,6 +266,8 @@ def build_dataset(E, ctl):
     P['cos_total'] = [P['creator_payouts'][k] + P['materials'][k] + P['freelancers'][k] + P['other_cos'][k] for k in range(NF)]
     S['pl'] = P
     S['gmv'] = gmv; S['ads'] = ads
+    # commission expressed as ROAS: GMV / commission revenue (~ 1 / take-rate, ~13x). Blended across commission clients.
+    S['commission_roas'] = [(gmv[k] / E.legacy[k]) if (gmv[k] is not None and E.legacy[k]) else None for k in range(NF)]
     S['cac_merchant_spend'] = E.cac_m[:NF]; S['cac_creator_spend'] = E.cac_c[:NF]
     # creators
     cr = {x: [0] * NF for x in ['active', 'emerging', 'new', 'churned', 'react', 'major', 'orders_total', 'orders_active', 'orders_unatt', 'orders_major']}

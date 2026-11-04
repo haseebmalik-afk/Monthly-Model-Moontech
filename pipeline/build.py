@@ -28,6 +28,16 @@ def r2(x, n=2):
     if isinstance(x, float) and (x != x): return None
     return round(x, n)
 
+# Monthly data pack (data/pack/): when present, the engine's loaders are fed from the pack + history_base.json
+# instead of the original workbook layouts. The engine itself is untouched.
+import pack_loaders
+PACK = pack_loaders.available()
+if PACK:
+    pack_loaders.install()
+    print('source: monthly data pack (data/pack) + pipeline/history_base.json', file=sys.stderr)
+else:
+    print('source: original workbooks (data/)', file=sys.stderr)
+
 # Simpler approach: subclass load so the add-back happens inside Engine.__init__.
 _orig_load = R.load_merchant_revenue
 def _patched_load(kit, master, lad, cfg, source='system'):
@@ -47,6 +57,7 @@ R.load_master = lambda kit: _orig_master(HERE)
 def month_keys(): return [mo(k) for k in range(NF)]
 
 def load_gmv_ads(kit):
+    if PACK: return pack_loaders.load_gmv_ads(kit)
     wb = openpyxl.load_workbook(os.path.join(kit, 'data', 'MoonTech_Monthly_Model_6.xlsx'), data_only=True, read_only=True)
     ws = wb['Monthly Actuals']
     rows = {r: next(ws.iter_rows(min_row=r, max_row=r, max_col=37, values_only=True)) for r in (16, 20)}
@@ -269,6 +280,9 @@ def build_dataset(E, ctl):
     # commission expressed as ROAS: GMV / commission revenue (~ 1 / take-rate, ~13x). Blended across commission clients.
     S['commission_roas'] = [(gmv[k] / E.legacy[k]) if (gmv[k] is not None and E.legacy[k]) else None for k in range(NF)]
     S['cac_merchant_spend'] = E.cac_m[:NF]; S['cac_creator_spend'] = E.cac_c[:NF]
+    if PACK:
+        S['comm_ttm'] = pack_loaders.comm_ttm(cfg)            # segmentation: commission level / GMV factor inputs
+        S['adj_indicator'] = pack_loaders.adj_indicator(E)     # control: invoicing adjustment indicator
     # creators
     cr = {x: [0] * NF for x in ['active', 'emerging', 'new', 'churned', 'react', 'major', 'orders_total', 'orders_active', 'orders_unatt', 'orders_major']}
     first_order = {i: first_true([v >= 1 for v in x]) for i, x in E.orders.items()}
@@ -290,6 +304,7 @@ def build_dataset(E, ctl):
             if s == 'Churned': cr['churned'][k] += 1
             cr['orders_total'][k] += x[k]
     for k in range(NF): cr['orders_unatt'][k] = E.unatt[k]; cr['orders_total'][k] += E.unatt[k]
+    if PACK: pack_loaders.patch_creator_series(cr)      # status history from baked build; 2026 orders from pack
     S['creators'] = cr
 
     # ---- period metrics
@@ -464,6 +479,7 @@ def build_dataset(E, ctl):
     periods['YTD:2025'] = period(range(12, 12 + NF - 24), '2025 YTD (Jan-Aug)', 'ytd')
     for k in range(11, NF): periods['TTM:' + mo(k)] = period(range(k - 11, k + 1), 'TTM ' + mo(k), 'ttm')
     periods['SL'] = period(range(LAUNCH, NF), 'Since launch (Nov-25)', 'since_launch')
+    if PACK: pack_loaders.patch_creator_periods(periods)
 
     # ---- annualised view (10.19)
     elapsed = NF - 24; share = sum(E.w[:elapsed])
@@ -543,8 +559,13 @@ def build_dataset(E, ctl):
                        'low_confidence': [m for m, v in E.master.items() if v.get('status') != 'Confirmed']}}
 
 # ----------------------------------------------------------------------------- scenarios + checks
-def run_checks(E, kit):
+def run_checks(E, kit, ds=None):
     res = E.compute_checks(); out = []
+    if PACK and ds:
+        # creator status history is not in the pack (to-do #17): the dashboard carries it from history_base,
+        # so the status checks are read from the published series rather than the pack-only engine.
+        cr = ds['series']['creators']
+        res['CF19'] = cr['active'][NF - 1]; res['CF20'] = cr['emerging'][NF - 1]; res['CF21'] = cr['major'][NF - 1]
     for c in csv.DictReader(open(os.path.join(HERE, 'check_figures.csv'))):
         got = res.get(c['id']); exp = float(c['expected_spec_ingestion'])
         out.append({'id': c['id'], 'metric': c['metric'], 'period': c['period'], 'expected': exp, 'got': r2(got, 3), 'pass': got is not None and abs(got - exp) <= float(c['tolerance']) + 1e-9})
@@ -570,13 +591,14 @@ def main():
             if r == 0: base_E = E
             scen[key] = build_dataset(E, ctl)
             print('scenario', key, 'built', file=sys.stderr)
-    checks = run_checks(base_E, kit)
+    checks = run_checks(base_E, kit, scen['none'])
     npass = sum(1 for c in checks if c['pass'])
     print('check figures: %d/%d pass' % (npass, len(checks)), file=sys.stderr)
     base = scen['none']
     # store overrides only where a section differs
     out = {'meta': {'built': __import__('datetime').date.today().isoformat(), 'latest_month': mo(NF - 1), 'fx': base_E.fx, 'spec_version': 'v0.25',
-                    'config': base_E.cfg, 'control': ctl, 'checks': checks, 'checks_pass': npass, 'ladder_file': 'moontech-roas-ladder-2026-10-05.csv'},
+                    'config': base_E.cfg, 'control': ctl, 'checks': checks, 'checks_pass': npass, 'ladder_file': 'moontech-roas-ladder-2026-10-05.csv',
+                    'source': 'monthly data pack + history_base' if PACK else 'original workbooks'},
            'base': base, 'scenarios': {}}
     for key, ds in scen.items():
         if key == 'none': continue

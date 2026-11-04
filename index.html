@@ -301,7 +301,7 @@ footer{border-top:1px solid var(--rule);padding:18px 0 40px;font-size:11.5px;col
 const LS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
 const state = {
   page: LS('mm.page') || 'kpis', view: LS('mm.view') || 'seg', buffer: LS('mm.buffer') || 'on',
-  finView: LS('mm.finview') || 'pnl2026', segModel: LS('mm.segmodel') || 'all',
+  finView: LS('mm.finview') || 'pnl2026', segModel: LS('mm.segmodel') || 'all', showConc: LS('mm.showconc') === '1',
   period: null, year: null, confirmed: null, cap: null, theme: LS('mm.theme')
 };
 if (state.theme) document.documentElement.setAttribute('data-theme', state.theme);
@@ -309,6 +309,10 @@ let RAW = null, D = null, S = null, P = null, M = null;
 /* per-merchant commission + GMV (USD), TTM window from the monthly data pack (Revenue by Merchant + Net Sales by Client); c=commission sum, g=GMV sum, n=active months. Interim bake — to move into the pipeline. */
 const MT_COMM_TTM = {"amazon":{"c":155,"n":1},"americaneagle":{"c":2,"n":1,"g":38},"bathbodyworks":{"c":1269,"n":8},"bloomingdales":{"c":145974,"n":7,"g":1701443},"gap":{"c":16,"n":2,"g":1206},"hm":{"c":8961,"n":8,"g":395456},"izil":{"c":11247,"n":8,"g":66166},"levelshoes":{"c":223164,"n":8,"g":743353},"mamaspapas":{"c":1341,"n":7,"g":26109},"mumzworld":{"c":29233,"n":8,"g":391066},"namshi":{"c":1169,"n":8,"g":41385},"nayomi":{"c":23621,"n":8,"g":137912},"newbalance":{"c":71,"n":8,"g":2362},"niceone":{"c":91,"n":3,"g":5311},"noon":{"c":4330,"n":8},"ontime":{"c":1031,"n":8,"g":8221},"ounass":{"c":1647982,"n":8,"g":21517395},"riva":{"c":62052,"n":8,"g":742605},"sephora":{"c":546396,"n":8,"g":7299671},"styli":{"c":643,"n":8,"g":6157},"sunsports":{"c":62,"n":5},"swarovski":{"c":253,"n":3,"g":2898},"vogacloset":{"c":43880,"n":8,"g":360762},"6thstreet":{"c":965,"n":3,"g":16000},"adidasrakuten":{"c":3,"n":1},"dkny":{"c":13945,"n":8,"g":26077},"eyewa":{"c":2085,"n":5,"g":9202},"farfetch":{"c":406,"n":3},"mothercare":{"c":158,"n":8,"g":8486},"trendyol":{"c":7593,"n":8},"victoriassecret":{"c":97,"n":8,"g":2265},"airalo":{"c":456,"n":5,"g":8151},"facesarabylinks":{"c":21209,"n":7,"g":305479},"colehaan":{"c":66,"n":4},"metrobrazil":{"c":11,"n":2},"charlottetilbury":{"c":95371,"n":8},"bananarepublic":{"c":0,"n":1},"toucheprive":{"c":142,"n":1,"g":284},"squatwolf":{"c":19,"n":3,"g":162},"cos":{"c":52,"n":6,"g":3340},"goldenscentmt":{"c":17478,"n":8,"g":62549},"ultabeauty":{"c":11678,"n":8,"g":117341},"allbirds":{"c":366,"n":3,"g":355},"anafasicmt":{"c":2242,"n":3},"kitopirightbitemt":{"c":4446,"n":3,"g":31084},"aizamt":{"c":1935,"n":2},"maisonsafqamt":{"c":2906,"n":1,"g":17387},"studioearthmt":{"c":917,"n":1,"g":1139},"justhypemt":{"c":875,"n":1,"g":2407}};
 let MT_ROAS_MAP = null;   // filled live from the ROAS-factor mapping sheet (gid 1342595245)
+let MT_LIVE_CAC = null;   // {cac, cost, n, year} — live blended merchant CAC from the CAC sheet; LTV:CAC uses it when present (live sources used live)
+function mtCacUse(bakedCac) { return (MT_LIVE_CAC && MT_LIVE_CAC.cac) ? MT_LIVE_CAC.cac : bakedCac; }
+function mtLtvCac(ltv, bakedLtvCac) { const c = MT_LIVE_CAC && MT_LIVE_CAC.cac; return (ltv != null && c) ? ltv / c : bakedLtvCac; }
+const mtCacTag = () => (MT_LIVE_CAC && MT_LIVE_CAC.cac) ? ' <span class="tag">live CAC</span>' : '';
 /* Adjustment indicator (USD, per 2026 month) from the monthly data pack: indicator = PnL Sales − ROAS ladder billing − ROAS spotted in merchant tracking = commission/legacy revenue in the P&L. Interim bake — to move into the pipeline. */
 const MT_ADJ = {"m":["01","02","03","04","05","06","07","08"],"pnl":[323789,362858,579913,330345,426051,314421,345088,401593],"billing":[4000,7020,7150,1144,8000,7000,20169,18500],"spotted":[539,877,5498,1699,5583,2961,2605,4472],"adj":[-2511,3061,3276,-3906,5276,1154,21756,117588],"ind":[319250,354960,567265,327502,412468,304460,322314,378621]};
 const mtKey = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -524,7 +528,8 @@ function renderInvestor() {
   const selNrr = sel.retention.legacy_12m || ttm.retention.legacy_12m;
   const hdr = h`<div class="pagehead"><div><p class="eyebrow">04 · Investor dashboard</p><h1 class="h2">${co ? 'Company-wide' : 'Commission and ROAS'} headline metrics</h1>
     <p>${co ? 'Blended company figures; use Segmented to see the Commission and ROAS split.' : 'Commission and ROAS shown separately.'} ARR is a 3-month run-rate (commission seasonality-adjusted, ROAS × 4).</p></div>
-    <div class="muted small">Period: <b>${esc(sel.label)}</b></div></div>`;
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><div class="muted small">Period: <b>${esc(sel.label)}</b></div>
+      <div class="ctl" style="margin:0"><label>Client concentration</label><div class="seg" id="inv-conc-toggle"><button data-v="0" class="${state.showConc ? '' : 'on'}">Hidden</button><button data-v="1" class="${state.showConc ? 'on' : ''}">Shown</button></div></div></div></div>`;
 
   // hero row — driven by the selected period and the view toggle
   const heroes = h`<div class="grid g4">
@@ -592,9 +597,11 @@ function renderInvestor() {
   T += row('Logo churn · 12-month / lifetime', cols.map(() => '<td></td>').concat(['<td></td>']), 'sub');
   T += row('Commission', cols.map(p => `<td>${churnTxt(p.churn.legacy)}</td>`).concat(['<td></td>']), 'sub2');
   T += row('ROAS (all) · L1 · L2+', cols.map(p => `<td>${p.churn.ROAS ? churnTxt(p.churn.ROAS) + ' <span class="muted small">· L1 ' + fmt.pct(p.churn.L1 && p.churn.L1.twelve_month, 0) + ' · L2+ ' + fmt.pct(p.churn['L2+'] && p.churn['L2+'].twelve_month, 0) + '</span>' : '—'}</td>`).concat(['<td></td>']), 'sub2');
-  T += sec('Concentration · share of revenue', 5);
-  T += row('Top 1 account', cols.map(p => `<td>${fmt.pct(p.concentration.top1, 0)} <span class="muted small">${esc(p.concentration.top1_name)}</span></td>`).concat(['<td></td>']));
-  T += rrow('Top 5 accounts', p => p.concentration.top5, pct0, null);
+  if (state.showConc) {
+    T += sec('Concentration · share of revenue', 5);
+    T += row('Top 1 account', cols.map(p => `<td>${fmt.pct(p.concentration.top1, 0)} <span class="muted small">${esc(p.concentration.top1_name)}</span></td>`).concat(['<td></td>']));
+    T += rrow('Top 5 accounts', p => p.concentration.top5, pct0, null);
+  }
   T += sec('Margins', 5);
   T += row('Contribution margin', pls.map(p => pctCell(p.cm_pct)).concat(['<td></td>']));
   T += row('Gross margin', pls.map(p => pctCell(p.gm_pct)).concat(['<td></td>']));
@@ -619,9 +626,9 @@ function renderInvestor() {
   const ueCard = h`<div class="grid g23" style="margin-top:16px">
     <div class="card block"><p class="eyebrow">ROAS unit economics · ${esc(sp.label)}</p>
       <div class="statrow" style="margin-top:8px">
-        <div class="st"><div class="k">CAC</div><div class="v">${spc && spc.cac != null ? fmt.money(spc.cac) : 'n/a'}</div><div class="muted small">${spc ? fmt.money(spc.spend) + ' ÷ ' + spc.new_brands + ' brands' + (spc.complete ? '' : ' · spend incomplete') : 'before launch'}</div></div>
+        <div class="st"><div class="k">CAC${mtCacTag()}</div><div class="v">${MT_LIVE_CAC ? fmt.money(MT_LIVE_CAC.cac) : (spc && spc.cac != null ? fmt.money(spc.cac) : 'n/a')}</div><div class="muted small">${MT_LIVE_CAC ? fmt.money(MT_LIVE_CAC.cost) + ' ÷ ' + MT_LIVE_CAC.n + ' merchants · ' + MT_LIVE_CAC.year + ' YTD, live CAC sheet' : (spc ? fmt.money(spc.spend) + ' ÷ ' + spc.new_brands + ' brands' + (spc.complete ? '' : ' · spend incomplete') : 'before launch')}</div></div>
         <div class="st"><div class="k">LTV</div><div class="v">${ue ? fmt.money(ue.ltv) : '—'}</div><div class="muted small">${ue ? fmt.money(ue.arpa) + ' ÷ 12 × ' + fmt.pct(ue.margin, 0) + ' × ' + fmt.mo(ue.lifetime) : ''}</div></div>
-        <div class="st"><div class="k">LTV / CAC</div><div class="v">${ue ? fmt.x(ue.ltv_cac) : '—'}</div><div class="muted small">blended, all signings</div></div>
+        <div class="st"><div class="k">LTV / CAC${mtCacTag()}</div><div class="v">${ue ? fmt.x(mtLtvCac(ue.ltv, ue.ltv_cac)) : '—'}</div><div class="muted small">${MT_LIVE_CAC ? 'LTV ÷ live blended CAC' : 'blended, all signings'}</div></div>
         <div class="st"><div class="k">Payback</div><div class="v">${ue ? fmt.mo(ue.payback) : '—'}</div><div class="muted small">CAC ÷ monthly margin</div></div>
       </div>
       <div class="hairline"></div>
@@ -639,8 +646,9 @@ function renderInvestor() {
   const cohortCard = h`<div class="grid g2" style="margin-top:16px">
     <div class="card"><p class="eyebrow">ROAS logo retention by signing quarter</p><h3 class="h3">% of cohort still active N months after signing</h3><div id="inv-cohort" style="margin-top:10px"></div>
       <div class="note">Only completed cells are shown. Recent cells will fall as late churn is detected (up to 6 months after the last payment).</div></div>
-    <div class="card"><p class="eyebrow">Concentration · TTM to ${fmt.month(Lm)}</p><h3 class="h3">Top 10 accounts, share of revenue</h3><div class="chart" id="inv-conc"></div>
-      <div class="note">Top 1 ${fmt.pct(ttm.concentration.top1, 0)} · top 5 ${fmt.pct(ttm.concentration.top5, 0)} · top 10 ${fmt.pct(ttm.concentration.top10, 0)}. HHI ${Math.round(ttm.concentration.hhi).toLocaleString()}.</div></div></div>`;
+    ${state.showConc ? `<div class="card"><p class="eyebrow">Concentration · TTM to ${fmt.month(Lm)}</p><h3 class="h3">Top 10 accounts, share of revenue</h3><div class="chart" id="inv-conc"></div>
+      <div class="note">Top 1 ${fmt.pct(ttm.concentration.top1, 0)} · top 5 ${fmt.pct(ttm.concentration.top5, 0)} · top 10 ${fmt.pct(ttm.concentration.top10, 0)}. HHI ${Math.round(ttm.concentration.hhi).toLocaleString()}.</div></div>`
+      : `<div class="card"><p class="eyebrow">Investor narrative</p><h3 class="h3">New-model metrics lead</h3><div class="note">Client concentration is kept off the default investor view (agreed 23 Oct). Toggle it on above when a specific investor asks; the data remains in the model.</div></div>`}</div>`;
 
   const defs = `<div class="card" style="margin-top:16px"><p class="eyebrow">Definitions note</p><div class="defs">
     <p><b>Active commission client:</b> annualised revenue ≥ $950 and fewer than 6 consecutive months below $100. <b>Churned:</b> the first month either test fails (not backdated).</p>
@@ -660,8 +668,10 @@ function renderInvestor() {
     { name: 'ROAS % revenue', color: 'var(--c-roas)', values: S.rev_total.map((t, i) => t ? S.rev_roas[i] / t : null) },
     { name: 'ROAS % active clients', color: 'var(--ink)', values: S.act_total.map((t, i) => t ? S.act_roas[i] / t : null) }] });
   cohortGrid(document.getElementById('inv-cohort'), D.cohorts.roas, 10);
-  const top = ttm.concentration.top, mxs = top[0].share;
-  document.getElementById('inv-conc').innerHTML = '<div class="hbars">' + top.map(t => `<div class="hb"><span class="n" title="${esc(t.name)}">${esc(t.name)}</span><span class="bar"><i style="width:${(t.share / mxs * 100).toFixed(1)}%"></i></span><span class="v">${fmt.pct(t.share, 1)}</span></div>`).join('') + '</div>';
+  const concEl = document.getElementById('inv-conc');
+  if (concEl) { const top = ttm.concentration.top, mxs = top[0].share;
+    concEl.innerHTML = '<div class="hbars">' + top.map(t => `<div class="hb"><span class="n" title="${esc(t.name)}">${esc(t.name)}</span><span class="bar"><i style="width:${(t.share / mxs * 100).toFixed(1)}%"></i></span><span class="v">${fmt.pct(t.share, 1)}</span></div>`).join('') + '</div>'; }
+  root.querySelectorAll('#inv-conc-toggle button').forEach(b => b.addEventListener('click', () => { state.showConc = b.dataset.v === '1'; LS('mm.showconc', state.showConc ? '1' : '0'); renderInvestor(); }));
 }
 
 /* ============================================================ PAGE 2: annual */
@@ -984,9 +994,9 @@ function renderKpis() {
     </div>
     <div class="grid g4" style="margin-top:14px">
       ${card('LTV · ROAS (since launch)', fmt.money(econ && econ.ltv), '')}
-      ${card('LTV / CAC · ROAS', fmt.x(econ && econ.ltv_cac), '')}
+      ${card('LTV / CAC · ROAS' + mtCacTag(), fmt.x(mtLtvCac(econ && econ.ltv, econ && econ.ltv_cac)), MT_LIVE_CAC ? '<div class="muted small">LTV ÷ live blended merchant CAC (' + MT_LIVE_CAC.year + ' YTD)</div>' : '')}
       ${card('Payback · ROAS', fmt.mo(econ && econ.payback), '')}
-      ${card('Merchant CAC (since launch)', fmt.money(cac && cac.cac), '')}
+      ${card('Merchant CAC' + (MT_LIVE_CAC ? ' (live, ' + MT_LIVE_CAC.year + ' YTD)' : ' (since launch)'), fmt.money(mtCacUse(cac && cac.cac)), '')}
     </div>
     <div class="grid g4" style="margin-top:14px">
       ${card('Active clients · ' + esc(sel.label), fmt.int(sel.active_end.total), split2('Commission', sel.active_end.legacy, 'ROAS', sel.active_end.roas))}
@@ -1033,7 +1043,7 @@ function renderSegmentation() {
   const roasTot = `<tr class="tot"><td>All ROAS</td>`
     + td(sel.rev.roas, money) + td(sel.active_end.roas, fmt.int) + td(arpaOf('ROAS'), money)
     + td(re && re.ltv, money) + chTd(sel.churn && sel.churn.ROAS)
-    + td(rc && rc.cac, money) + td(re && re.payback, fmt.mo) + td(re && re.ltv_cac, fmt.x) + '</tr>';
+    + td(mtCacUse(rc && rc.cac), money) + td(re && re.payback, fmt.mo) + td(mtLtvCac(re && re.ltv, re && re.ltv_cac), fmt.x) + '</tr>';
   const roasTable = `<div class="card" style="margin-top:16px"><p class="eyebrow">ROAS · by tier (Small / Medium / Large)</p>
     <div class="tblwrap"><table class="t">${head('Tier')}<tbody>${roasRows}${roasTot}</tbody></table></div>
     <div class="note">ARPA, LTV and the acquisition metrics are only available blended across ROAS, so they sit on the total row; per-tier they show —. Tier rule switches to the agreed CAC-payback definition in the pipeline step.</div></div>`;
@@ -1377,6 +1387,11 @@ function renderSegmentation() {
       let saved = null; try { saved = +localStorage.getItem('mm.cacYear') || null; } catch (e) {}
       cacYear = (saved && yrs.includes(saved)) ? saved : (yrs.includes(2026) ? 2026 : yrs[yrs.length - 1]);
       renderCac();
+      // publish live blended merchant CAC (current year YTD) for LTV:CAC on KPIs / Investor / Segmentation
+      try { const C = cacForYear(PARSED, cacYear); const s = C.merchant; let cost = 0, n = 0;
+        s.cost.forEach((v, m) => { if (v != null) { cost += v; if (s.count[m] != null) n += s.count[m]; } });
+        if (n > 0) { MT_LIVE_CAC = { cac: cost / n, cost, n, year: cacYear };
+          ['renderKpis', 'renderInvestor', 'renderSegmentation'].forEach(f => { try { if (typeof window[f] === 'function') window[f](); } catch (e) {} }); } } catch (e) {}
     } catch (e) { setCacMsg('<b>Live data problem.</b> Could not load the CAC sheet (' + esc2(String(e && e.message || e)) + '). Open this page over the web (the published Google Sheet must be reachable from the browser).'); }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initCac); else initCac();

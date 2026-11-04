@@ -14,5 +14,12 @@
     "2024": "Split",
     "2025": "Capitalised",
     "2026": "Expensed"
+  },
+  "cash": {
+    "as_of": null,
+    "balance_usd": null,
+    "secured_funding_usd": null,
+    "monthly_burn_usd": null,
+    "_note": "Investor page cash inputs (USD); not in any export"
   }
 }

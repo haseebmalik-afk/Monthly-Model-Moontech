@@ -6,7 +6,7 @@ Pack files (data/pack/, git-ignored, re-uploaded monthly):
   net_sales_by_client.xlsx     Net Sales & Orders by Client  -> per-client GMV (Net Revenue AED), orders
   orders_by_creator.xlsx       Orders by Creator             -> net orders per Contact ID per month
   ads_by_creator.xlsx          Ads by Creator                -> closed ads per month
-  revenue_by_merchant.xlsx     Revenue by Merchant (model)   -> commission revenue per merchant (AED), Adjustment row
+  revenue_by_merchant.xlsx     Revenue by Merchant (model)   -> commission revenue per merchant (AED); its Adjustment row is ignored
   2026_model_pnl.csv           2026 Model PnL (published)    -> P&L lines (AED), Sales -> Net Profit (+ transfer pricing)
 
 Sources per domain:
@@ -54,25 +54,59 @@ def _num(v):
     except ValueError: return None
     return -f if neg else f
 
-# ----------------------------------------------------------------------------- ladder (from baked roas_brands)
+# ----------------------------------------------------------------------------- ladder (live ROAS ladder snapshot: data/pack/ladder.json; fallback history_base)
+def _ladder_rows():
+    """ladder.json is produced from the live receivables + tracker sheets by the dashboard's own ladder logic
+    (pulled through the browser at pack-update time): rows = [brand, level, since, churn label, status, dropped, grid by month]."""
+    p = os.path.join(PACK, 'ladder.json')
+    if os.path.exists(p):
+        L = json.load(open(p)); out = []
+        for brand, level, since, churn, status, dropped, grid in L['rows']:
+            monthly = [0.0] * NM
+            for lab, v in zip(L['months'], grid):
+                if v in ('', None): continue
+                y, m = map(int, lab.split('-')); k = kidx(y, m)
+                if 0 <= k < NM: monthly[k] += float(v)
+            out.append({'name': brand, 'since': since, 'level': ('L%d' % level) if level else 'CPL', 'churn_month': _churn_ym(churn) if dropped else None,
+                        'monthly': monthly, 'other_pricing': not level})
+        return out, L.get('today')
+    return [dict(b, other_pricing=bool(b.get('other_pricing'))) for b in hist()['roas_brands']], None
+
+def _churn_ym(s):
+    s = str(s or '').strip()
+    if not s: return None
+    if re.match(r'^\d{4}-\d{2}', s): return s[:7]
+    mon = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+    m = re.match(r'^([A-Za-z]{3,9})[\s\-/,]+(\d{2,4})$', s)
+    if not m: return None
+    mi = mon.index(m.group(1)[:3].lower()) + 1; y = int(m.group(2)); y = y + 2000 if y < 100 else y
+    return '%d-%02d' % (y, mi)
+
 def load_ladder(kit, cfg):
     lvl_re = re.compile(cfg['roas_status']['other_pricing_levels_not_matching'])
-    lad = {}
-    for b in hist()['roas_brands']:
+    include = set(cfg['roas_status'].get('include_as_roas', []))
+    rows, _ = _ladder_rows(); lad = {}
+    for b in rows:
         if not b.get('since'): continue
-        y, m = map(int, b['since'].split('-'))
+        y, m = map(int, str(b['since'])[:7].split('-'))
         pay = [0.0] * NM
         for k, v in enumerate(b['monthly'][:NM]): pay[k] = float(v or 0)
         ch = b.get('churn_month'); churn = None
         if ch:
             try: cy, cm = map(int, str(ch)[:7].split('-')); churn = kidx(cy, cm)
             except Exception: churn = None
-        lad[b['name']] = {'since': kidx(y, m), 'pay': pay, 'churn': churn, 'level': b['level'],
-                          'other_pricing': bool(b.get('other_pricing')) or not lvl_re.match(str(b['level']))}
+        level = b['level']
+        other = (bool(b.get('other_pricing')) or not lvl_re.match(str(level))) and b['name'] not in include
+        lad[b['name']] = {'since': kidx(y, m), 'pay': pay, 'churn': churn, 'level': level, 'other_pricing': other}
     return lad
 
+def _roas_brand_names():
+    rows, _ = _ladder_rows(); return [b['name'] for b in rows]
+
+def _migrated_names():
+    return {b['name'] for b in hist()['roas_brands'] if b.get('migrated')}        # DKNY, Izil: commission clients that moved to ROAS
 def _pure_roas_keys():
-    return {_key(b['name']) for b in hist()['roas_brands'] if not b.get('migrated')}
+    mig = _migrated_names(); return {_key(n) for n in _roas_brand_names() if n not in mig}
 def _strip_tags(name):
     s = re.sub(r'\s*-\s*MT$|\s+MT$', '', str(name).strip(), flags=re.I)      # "Joli - MT", "Goldenscent MT"
     s = re.sub(r'^Kitopi\s*-\s*', '', s, flags=re.I)                           # "Kitopi - Rightbite MT"
@@ -86,9 +120,10 @@ def _is_pure_roas(name, pure):
         if (k in rk or rk in k) and min(len(k), len(rk)) >= 4: return True
         if difflib.SequenceMatcher(None, k, rk).ratio() >= 0.8: return True        # Naysa Beauty ~ Nysaa Beauty
     # first word of the ROAS brand name (Lauras ~ Laurus Aroma)
-    for b in hist()['roas_brands']:
-        if b.get('migrated'): continue
-        w = _key(str(b['name']).split()[0])
+    mig = _migrated_names()
+    for n in _roas_brand_names():
+        if n in mig: continue
+        w = _key(str(n).split()[0])
         if len(w) >= 5 and len(k) >= 5 and difflib.SequenceMatcher(None, k, w).ratio() >= 0.8: return True
     return False
 
@@ -119,11 +154,7 @@ def load_merchant_revenue(kit, master, lad, cfg, source='system'):
         if not n: continue
         n = str(n).strip()
         if n.lower() in ('total', 'pnl total') or 'total' in n.lower(): continue
-        if n == 'Adjustment':
-            for i, k in cols.items():
-                v = _num(_g(r, i))
-                if v is not None: adj[k] += v
-            continue
+        if n == 'Adjustment': continue          # ignored: the Adjustment is computed (P&L Sales - tracked), not read
         if _is_pure_roas(n, pure):            # rule #1: ROAS revenue comes from the ladder
             continue
         if n in alias: m = alias[n]
@@ -328,18 +359,37 @@ def comm_ttm(cfg):
     return out
 
 def adj_indicator(E):
-    """Invoicing adjustment indicator per 2026 month (USD): P&L Sales (incl. ROAS) - ROAS ladder billing - ROAS spotted in
-    the merchant export = commission (old model) in the P&L; memo: the export's Adjustment row."""
+    """Invoicing adjustment, computed per 2026 month (USD) and identical to the Adjustment shown on every other page:
+       P&L Sales (incl. ROAS) - ROAS ladder billing - commission tracked (named merchants, as the model counts them)
+       = Adjustment (commission revenue in the P&L that merchant tracking does not yet show).
+       Memo: ROAS brands still invoiced through merchant tracking (discounted from commission; part of the Adjustment).
+       The export's own 'Adjustment' row is ignored everywhere."""
     fx = E.fx; pure = _pure_roas_keys()
-    ks = list(K26.values()); spotted = {k: 0.0 for k in ks}; adj = {k: 0.0 for k in ks}; export_total = {k: 0.0 for k in ks}
+    ks = list(K26.values()); spotted = {k: 0.0 for k in ks}
     for n, vals in _rbm_2026():
+        if n == 'Adjustment' or not _is_pure_roas(n, pure): continue
         for k, v in vals.items():
-            if k not in spotted: continue
-            export_total[k] += v / fx
-            if n == 'Adjustment': adj[k] += v / fx
-            elif _is_pure_roas(n, pure): spotted[k] += v / fx
-    pnl = [E.pl['sales'][k] / fx for k in ks]; billing = [E.roas[k] + E.other[k] for k in ks]
+            if k in spotted: spotted[k] += v / fx
+    pnl = [E.pl['sales'][k] / fx for k in ks]; billing = [E.roas[k] + E.other[k] for k in ks]; tracked = [E.named[k] for k in ks]
+    adj = [E.plug[k] for k in ks]
     return {'m': ['%02d' % m for m in K26], 'pnl': [round(x) for x in pnl], 'billing': [round(x) for x in billing],
-            'spotted': [round(spotted[k]) for k in ks], 'adj': [round(adj[k]) for k in ks],
-            'ind': [round(pnl[i] - billing[i] - spotted[k]) for i, k in enumerate(ks)],
-            'export_total': [round(export_total[k]) for k in ks]}
+            'tracked': [round(x) for x in tracked], 'adj': [round(x) for x in adj],
+            'ind': [round(pnl[i] - billing[i]) for i in range(len(ks))], 'spotted': [round(spotted[k]) for k in ks]}
+
+# ----------------------------------------------------------------------------- ROAS level history (milestone by payment month)
+def level_monthly(brand):
+    """Level reached by month k (max paid milestone with payment month <= k); None before the first payment.
+    Source: data/pack/ladder_milestones.json (paid invoices: [milestone, payment YYYY-MM]) pulled with the ladder."""
+    p = os.path.join(PACK, 'ladder_milestones.json')
+    if not os.path.exists(p): return None
+    MS = json.load(open(p)); inv = MS.get(brand)
+    if inv is None: return None
+    out = [None] * NM; cur = None
+    byk = {}
+    for ms, ymv in inv:
+        y, m = map(int, ymv.split('-')); k = kidx(y, m)
+        if 0 <= k < NM: byk[k] = max(byk.get(k, 0), int(ms or 0))
+    for k in range(NM):
+        if k in byk: cur = max(cur or 0, byk[k])
+        out[k] = cur
+    return out

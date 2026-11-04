@@ -337,6 +337,7 @@ async function boot() {
   const ctl = M.control;
   state.confirmed = new Set(JSON.parse(LS('mm.confirmed') || 'null') || ctl.ounass.confirmed_months);
   state.cap = Object.assign({}, ctl.capitalisation, JSON.parse(LS('mm.cap') || '{}'));
+  state.cash = Object.assign({}, ctl.cash || {}, JSON.parse(LS('mm.cash') || '{}'));
   state.year = LS('mm.year') || M.latest_month.slice(0, 4);
   state.period = LS('mm.period') || ('TTM:' + M.latest_month);
   mergeData(); buildControls(); bindUI(); renderAll();
@@ -347,6 +348,7 @@ function scenarioKey() {
   const prov = M.control.ounass.provisional_months.filter(m => !state.confirmed.has(m)).sort();
   return prov.length ? prov.join('+') : 'none';
 }
+const HAS_OTHER = () => !!(S && S.rev_other && S.rev_other.some(v => v));   // 'Other pricing' rows only when something is priced that way
 function mergeData() {
   const key = scenarioKey(); D = Object.assign({}, RAW.base, RAW.scenarios[key] || {});
   S = D.series; P = D.periods;
@@ -522,163 +524,134 @@ function sec(label, n) { return `<tr class="sec"><td colspan="${n + 1}">${label}
 /* ============================================================ PAGE 1: investor */
 function renderInvestor() {
   const root = document.getElementById('page-investor'); const Lm = M.latest_month, Lk = L();
-  const sel = P[state.period], ttm = P['TTM:' + Lm], ytd = P['YTD:' + Lm.slice(0, 4)], fy25 = P['FY:2025'], fy24 = P['FY:2024'], latest = P['M:' + Lm], sl = P['SL'];
-  const co = state.view === 'co';
-  const arr = latest.arr, arrPrev = P['M:' + S.months[Lk - 3]].arr;
-  const legShare = arr.blended ? arr.legacy / arr.blended : null;
-  const nrr = ttm.retention.legacy_12m;
-  const roasQ = (() => { const qs = Object.keys(P).filter(k => k.startsWith('Q:') && P[k].retention.roas_qoq); const k = qs[qs.length - 1]; return k ? { k, v: P[k].retention.roas_qoq, lab: P[k].label } : null; })();
-  const econ = sl.ltv.ROAS, cac = sl.cac;
-  const selNrr = sel.retention.legacy_12m || ttm.retention.legacy_12m;
-  const hdr = h`<div class="pagehead"><div><p class="eyebrow">04 · Investor dashboard</p><h1 class="h2">${co ? 'Company-wide' : 'Commission and ROAS'} headline metrics</h1>
-    <p>${co ? 'Blended company figures; use Segmented to see the Commission and ROAS split.' : 'Commission and ROAS shown separately.'} ARR is a 3-month run-rate (commission seasonality-adjusted, ROAS × 4).</p></div>
-    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><div class="muted small">Period: <b>${esc(sel.label)}</b></div>
-      <div class="ctl" style="margin:0"><label>Client concentration</label><div class="seg" id="inv-conc-toggle"><button data-v="0" class="${state.showConc ? '' : 'on'}">Hidden</button><button data-v="1" class="${state.showConc ? 'on' : ''}">Shown</button></div></div></div></div>`;
-
-  // hero row — driven by the selected period and the view toggle
-  const heroes = h`<div class="grid g4">
-    <div class="card block"><p class="eyebrow">Revenue · ${esc(sel.label)}${sel.ounass_flag ? ' · provisional' : ''}</p><div class="hero">${fmt.money(sel.rev.total)}</div>
-      <div class="delta ${sel.yoy ? (sel.yoy.total >= 0 ? 'up' : 'down') : 'flat'}">${sel.yoy ? fmt.pctS(sel.yoy.total) + ' vs prior year' : 'period total'}</div>
-      ${co ? `<div class="split"><div class="it"><span class="k">Blended</span><b>${fmt.money(sel.rev.total)}</b></div></div>`
-           : `<div class="split seg-only"><div class="it"><span class="sw legacy"></span><span class="k">Commission</span><b>${fmt.money(sel.rev.legacy)}</b></div><div class="it"><span class="sw roas"></span><span class="k">ROAS</span><b>${fmt.money(sel.rev.roas)}</b></div><div class="it"><span class="k">Mix</span><b>${fmt.pct(sel.rev.roas / sel.rev.total, 1)} ROAS</b></div></div>`}</div>
-    <div class="card"><p class="eyebrow">ARR · end of ${fmt.month(sel.end)}</p><div class="hero">${fmt.money(sel.arr.blended)}</div>
-      <div class="delta flat">${co ? 'company run-rate' : 'commission run-rate + ROAS ARR'}</div>
-      ${co ? '' : `<div class="split seg-only"><div class="it"><span class="sw legacy"></span><span class="k">Commission run-rate</span><b>${fmt.money(sel.arr.legacy)}</b></div><div class="it"><span class="sw roas"></span><span class="k">ROAS ARR</span><b>${fmt.money(sel.arr.roas)}</b></div></div>`}</div>
-    <div class="card"><p class="eyebrow">Active clients · end of ${fmt.month(sel.end)}</p><div class="hero">${sel.active_end.total}</div>
-      <div class="delta flat">${sel.events.roas_signed} ROAS signed · ${sel.events.leg_churn + sel.events.roas_churn} churned in period</div>
-      ${co ? '' : `<div class="split seg-only"><div class="it"><span class="sw legacy"></span><span class="k">Commission</span><b>${sel.active_end.legacy}</b></div><div class="it"><span class="sw roas"></span><span class="k">ROAS</span><b>${sel.active_end.roas}</b></div><div class="it"><span class="sw other"></span><span class="k">Other</span><b>${sel.active_end.other}</b></div></div>`}</div>
-    <div class="card"><p class="eyebrow">Commission NRR · ${selNrr === sel.retention.legacy_12m && sel.retention.legacy_12m ? esc(sel.label) : 'rolling 12m'}</p><div class="hero">${fmt.pct(selNrr && selNrr.nrr, 0)}</div>
-      <div class="delta flat">GRR ${fmt.pct(selNrr && selNrr.grr, 0)}</div>
-      ${co ? '' : `<div class="split seg-only"><div class="it"><span class="sw roas"></span><span class="k">ROAS NRR ${roasQ ? roasQ.lab : ''}</span><b>${roasQ ? fmt.pct(roasQ.v.nrr, 0) : '—'}</b>${roasQ && roasQ.v.cohort < 5 ? '<span class="tag warn">n&lt;5</span>' : ''}</div></div>`}</div>
-  </div>`;
-
-  // revenue chart + mix
-  const months = S.months, lab = months.map(m => fmt.month(m));
-  const chartCard = h`<div class="grid g32" style="margin-top:16px">
-    <div class="card"><p class="eyebrow">Monthly revenue · P&amp;L sales split</p><h3 class="h3">Commission, ROAS and unallocated</h3><div class="chart" id="inv-rev"></div>
-      <div class="legend"><span><span class="sw legacy"></span>Named commission</span><span><span class="sw roas"></span>ROAS (ladder)</span><span><span class="sw other"></span>Other pricing</span><span><span class="sw plug"></span>Adjustment</span><span style="margin-left:auto"><span class="sw" style="background:var(--ink)"></span>Blended ARR ÷ 12</span></div>
-      <div class="note">Total always equals P&amp;L Sales. The Adjustment is P&amp;L Sales not assigned to a named client (invoicing timing plus any provisional Ounass gap)${addbackActive() ? ' (AED 150k buffer added back to unconfirmed months)' : ''}.</div></div>
-    <div class="card"><p class="eyebrow">Revenue mix</p><h3 class="h3">ROAS share of revenue and of active clients</h3><div class="chart" id="inv-mix"></div>
-      <div class="legend"><span><span class="sw roas"></span>ROAS % of revenue</span><span><span class="sw" style="background:var(--ink)"></span>ROAS % of active clients</span></div>
-      <div class="note">${fmt.month(Lm)}: ROAS is ${fmt.pct(latest.rev.roas / latest.rev.total, 0)} of revenue and ${fmt.pct(latest.active_end.roas / latest.active_end.total, 0)} of active clients.</div></div></div>`;
-
-  // KPI table
-  const cols = [fy24, fy25, ytd, latest]; const colh = ['FY2024', 'FY2025', ytd.label, fmt.month(Lm) + (latest.ounass_flag ? ' <span class="f">P</span>' : '')];
-  const yoy = (f) => growthCell(ytd.yoy ? f(ytd.yoy) : null);
-  const pls = cols.map(pPL);
-  const rrow = (label, f, fm, g, klass = '') => row(label, [...cols.map((p, i) => td(f(p, i), fm)), g || '<td class="na">—</td>'], klass);
+  const ttm = P['TTM:' + Lm], ytd = P['YTD:' + Lm.slice(0, 4)], latest = P['M:' + Lm], sl = P['SL'];
+  const ttmPrev = P['TTM:' + S.months[Lk - 12]], ytdPrev = P['YTD:' + S.months[Lk - 12].slice(0, 4)];
   const money = v => fmt.money(v), pct0 = v => fmt.pct(v, 0), pct1 = v => fmt.pct(v, 1);
-  let T = `<table class="t"><thead><tr><th>Metric</th>${colh.map(c => `<th>${c}</th>`).join('')}<th>YoY (YTD)</th></tr></thead><tbody>`;
-  T += sec('Revenue', 5);
-  T += rrow('Total revenue (P&amp;L)', p => p.rev.total, money, yoy(y => y.total), 'tot');
-  T += rrow('Commission', p => p.rev.legacy, money, yoy(y => y.legacy), 'sub');
-  T += rrow('ROAS', p => p.rev.roas, money, yoy(y => y.roas), 'sub');
-  T += rrow('Other pricing', p => p.rev.other, money, null, 'sub');
-  T += rrow('Revenue growth excl. top account (' + esc(ttm.concentration.top1_name) + ')', p => p.yoy ? p.yoy.total_ex_top : null, fmt.pctS, null);
-  T += rrow('ROAS share of revenue', p => p.rev.roas / p.rev.total, pct1, null);
-  T += sec('Run-rate at period end', 5);
-  T += rrow('Blended ARR', p => p.arr.blended, money, null, 'tot');
-  T += rrow('Commission run-rate (3m, seasonality-adjusted)', p => p.arr.legacy, money, null, 'sub');
-  T += rrow('ROAS ARR (3m × 4)', p => p.arr.roas, money, null, 'sub');
-  T += sec('Clients at period end', 5);
-  T += rrow('Active clients', p => p.active_end.total, fmt.int, null, 'tot');
-  T += rrow('Commission · Enterprise / Growth / SME', p => p.active_end.legacy, (v) => v, null, 'sub');
-  T += row('', cols.map(p => `<td class="muted">${LEG_SEGS.map(s => p.active_end.leg_seg[s]).join(' / ')}</td>`).concat(['<td></td>']), 'sub2');
-  T += rrow('ROAS · Small / Medium / Large', p => p.active_end.roas, fmt.int, null, 'sub');
-  T += row('', cols.map(p => `<td class="muted">${TIERS.map(s => p.active_end.roas_tier[s]).join(' / ')}</td>`).concat(['<td></td>']), 'sub2');
-  T += rrow('ROAS brands signed in period', p => p.events.roas_signed, fmt.int, null);
-  T += sec('ARPA · ARR ÷ average active accounts (3 months)', 5);
-  T += rrow('Blended', p => p.arpa.blended, money, null, 'tot');
-  T += rrow('Blended excl. Enterprise', p => p.arpa.blended_ex_ent, money, null, 'sub');
-  T += rrow('Enterprise', p => p.arpa.Enterprise, money, null, 'sub');
-  T += rrow('Growth', p => p.arpa.Growth, money, null, 'sub');
-  T += rrow('SME', p => p.arpa.SME, money, null, 'sub');
-  T += rrow('ROAS', p => p.arpa.ROAS, money, null, 'sub');
-  T += sec('Retention', 5);
-  T += row('Commission NRR · rolling 12 months', cols.map(p => td(p.retention.legacy_12m && p.retention.legacy_12m.nrr, pct0)).concat(['<td></td>']));
-  T += row('Commission GRR · rolling 12 months', cols.map(p => td(p.retention.legacy_12m && p.retention.legacy_12m.grr, pct0)).concat(['<td></td>']));
-  T += row('ROAS NRR · quarter on quarter', cols.map((p, i) => { const q = roasQ && i === 3 ? roasQ.v : null; return td(q && q.nrr, pct0); }).concat(['<td></td>']));
-  T += row('Logo churn · 12-month / lifetime', cols.map(() => '<td></td>').concat(['<td></td>']), 'sub');
-  T += row('Commission', cols.map(p => `<td>${churnTxt(p.churn.legacy)}</td>`).concat(['<td></td>']), 'sub2');
-  T += row('ROAS (all) · L1 · L2+', cols.map(p => `<td>${p.churn.ROAS ? churnTxt(p.churn.ROAS) + ' <span class="muted small">· L1 ' + fmt.pct(p.churn.L1 && p.churn.L1.twelve_month, 0) + ' · L2+ ' + fmt.pct(p.churn['L2+'] && p.churn['L2+'].twelve_month, 0) + '</span>' : '—'}</td>`).concat(['<td></td>']), 'sub2');
-  if (state.showConc) {
-    T += sec('Concentration · share of revenue', 5);
-    T += row('Top 1 account', cols.map(p => `<td>${fmt.pct(p.concentration.top1, 0)} <span class="muted small">${esc(p.concentration.top1_name)}</span></td>`).concat(['<td></td>']));
-    T += rrow('Top 5 accounts', p => p.concentration.top5, pct0, null);
-  }
-  T += sec('Margins', 5);
-  T += row('Contribution margin', pls.map(p => pctCell(p.cm_pct)).concat(['<td></td>']));
-  T += row('Gross margin', pls.map(p => pctCell(p.gm_pct)).concat(['<td></td>']));
-  T += row('EBITDA margin', pls.map(p => pctCell(p.ebitda_pct)).concat(['<td></td>']));
-  T += sec('Creators <span class="tag warn">basis under review</span>', 5);
-  T += rrow('Active creators (period end)', p => p.creators.active_end, fmt.int, null);
-  T += rrow('Major creators (period end)', p => p.creators.major_end, fmt.int, null);
-  T += rrow('Orders per active creator', p => p.creators.orders_per_active, v => fmt.num(v, 0), null);
-  T += rrow('Net orders (incl. unattributed)', p => p.creators.orders_total, fmt.int, yoy(y => y.orders));
-  T += sec('Volume', 5);
-  T += rrow('GMV (commission, net)', p => p.gmv, money, yoy(y => y.gmv));
-  T += rrow('Take rate (commission revenue ÷ GMV)', p => p.gmv ? p.rev.legacy / p.gmv : null, pct1, null);
-  T += sec('Cash', 5);
-  T += row('Cash, net burn, runway', cols.map(() => '<td class="na">n/a until cash report (S10) is linked</td>').concat(['<td></td>']));
+  const ACTIVE = ['New', 'Existing', 'Reactivated'];
+  const NM_MARGIN = 0.5, BLENDED_CHURN = 0.2;                 // assumptions from the Investor Metrics file
+  const sum = a => a.reduce((x, y) => x + (y || 0), 0);
+  const win = (k0, k1) => { const r = []; for (let k = k0; k <= k1; k++) r.push(k); return r; };
+  const cur3 = win(Lk - 2, Lk), prev3 = win(Lk - 5, Lk - 3);  // "quarter" = last 3 months vs the 3 before (Jun–Aug vs Mar–May)
+  const ytdK = win(Lk - (Lk % 12), Lk), ytdPrevK = ytdK.map(k => k - 12);
+  const g = (a, b) => (a != null && b) ? a / b - 1 : null;      // growth
+  const pts = (a, b) => (a != null && b != null) ? (a - b) : null;   // percentage-point change
+
+  // ---- New Model (ROAS brands incl. Jetour) from the ladder
+  const nm = D.roas_brands;
+  const nmRev = ks => sum(nm.map(br => sum(ks.map(k => br.monthly[k] || 0))));
+  const sinceK = br => S.months.indexOf(br.since);
+  const churnK = br => br.churn_month ? S.months.indexOf(br.churn_month) : -1;
+  const paidBy = k => nm.filter(br => sinceK(br) >= 0 && sinceK(br) <= k);
+  const churnedBy = k => nm.filter(br => churnK(br) >= 0 && churnK(br) <= k && sinceK(br) <= k);
+  const activeAt = k => paidBy(k).length - churnedBy(k).length;
+  const nmArrCur = nmRev(cur3) * 4, nmArrPrev = nmRev(prev3) * 4;
+  const nmActive = activeAt(Lk), nmActivePrev = activeAt(Lk - 3);
+  const nmSigned = paidBy(Lk).filter(br => sinceK(br) >= 24).length;             // signed Jan–Aug 2026
+  const nmSignedCur = nm.filter(br => cur3.includes(sinceK(br))).length, nmSignedPrev = nm.filter(br => prev3.includes(sinceK(br))).length;
+  const monthsYtd = ytdK.length;
+  const nmChurned = churnedBy(Lk).length, nmPaid = paidBy(Lk).length;
+  const nmLogoChurn = nmPaid ? (nmChurned / nmPaid) * (12 / monthsYtd) : null;   // annualised, as in the file
+  const nmLogoChurnPrev = (() => { const k = Lk - 3; const p = paidBy(k).length; return p ? (churnedBy(k).length / p) * (12 / (monthsYtd - 3)) : null; })();
+  // NRR / GRR: last 3 months revenue from brands that paid in the 3 before, over what they paid then
+  const nmRet = (k0s, k1s) => { let base = 0, now = 0, kept = 0; nm.forEach(br => { const a = sum(k0s.map(k => br.monthly[k] || 0)); if (a <= 0) return; const b2 = sum(k1s.map(k => br.monthly[k] || 0)); base += a; now += b2; kept += Math.min(a, b2); }); return base ? { nrr: now / base, grr: kept / base, cohort: nm.filter(br => sum(k0s.map(k => br.monthly[k] || 0)) > 0).length } : null; };
+  const nmNrr = nmRet(prev3, cur3), nmNrrPrev = nmRet(win(Lk - 8, Lk - 6), prev3);
+  // Upgrade rate: brands active during the window that moved up ≥1 level in it ÷ brands active during the window
+  const upgrade = (k0, k1) => { let act = 0, up = 0; nm.forEach(br => { const sk = sinceK(br), ck = churnK(br); if (sk < 0 || sk > k1 || (ck >= 0 && ck < k0) || !br.level_monthly) return; act++; const l0 = br.level_monthly[k0 - 1] || 0, l1 = br.level_monthly[k1] || 0; if (l1 > l0 && sk < k0) up++; }); return act ? up / act : null; };
+  const nmUp = upgrade(cur3[0], Lk), nmUpPrev = upgrade(prev3[0], prev3[2]);
+  // CAC: spend since launch ÷ brands that have paid; quarter CAC = window spend ÷ brands signed in window
+  const spendK = ks => sum(ks.map(k => S.cac_merchant_spend[k] || 0));
+  const cacSL = sl.cac && sl.cac.cac != null ? mtCacUse(sl.cac.cac) : null;
+  const cacCur = nmSignedCur ? spendK(cur3) / nmSignedCur : null, cacPrev = nmSignedPrev ? spendK(prev3) / nmSignedPrev : null;
+  const nmArpa = nmActive ? nmArrCur / nmActive : null, nmArpaPrev = nmActivePrev ? nmArrPrev / nmActivePrev : null;
+  const nmLtv = (nmArpa != null && nmLogoChurn) ? nmArpa * NM_MARGIN / nmLogoChurn : null;
+  const nmLtvPrev = (nmArpaPrev != null && nmLogoChurnPrev) ? nmArpaPrev * NM_MARGIN / nmLogoChurnPrev : null;
+  const nmLtvCac = (nmLtv != null && cacSL) ? nmLtv / cacSL : null;
+  const nmPayback = (nmArpa && cacSL) ? cacSL / (nmArpa * NM_MARGIN / 12) : null;
+  const nmPaybackPrev = (nmArpaPrev && cacPrev) ? cacPrev / (nmArpaPrev * NM_MARGIN / 12) : null;
+
+  // ---- Blended (whole company)
+  const blArr = latest.arr.blended, blArrPrev = S.arr_blended ? S.arr_blended[Lk - 12] : null;
+  const blActive = latest.active_end.total, blActivePrev = P['M:' + S.months[Lk - 12]].active_end.total;
+  const blArpa = blActive ? ttm.rev.total / blActive : null, blArpaPrev = (ttmPrev && blActivePrev) ? ttmPrev.rev.total / blActivePrev : null;
+  const margin = ttm.legacy_margin_ttm, marginPrev = ttmPrev && ttmPrev.legacy_margin_ttm;
+  const blLtv = (blArpa != null && margin != null) ? blArpa * margin / BLENDED_CHURN : null;
+  const blLtvPrev = (blArpaPrev != null && marginPrev != null) ? blArpaPrev * marginPrev / BLENDED_CHURN : null;
+  const blLtvCac = (blLtv != null && cacSL) ? blLtv / cacSL : null;
+  const legNewPrev = ytdPrev ? ytdPrev.events.leg_new : null;                   // commission clients acquired Jan–Aug 2025
+  // repeat revenue: % of YTD revenue (named clients) from clients that also paid in the prior year
+  const repeat = (ks, prevKs) => { let tot = 0, rep = 0; const add = (mon, usd) => { const a = sum(ks.map(k => usd ? mon[k] : mon[k])); if (!a) return; tot += a; if (sum(prevKs.map(k => mon[k] || 0)) > 0) rep += a; };
+    D.merchants.forEach(m => add(m.monthly)); nm.forEach(br => add(br.monthly)); return tot ? rep / tot : null; };
+  const repNow = repeat(ytdK, win(ytdK[0] - 12, ytdK[0] - 1)), repPrev = repeat(ytdPrevK, win(ytdPrevK[0] - 12, ytdPrevK[0] - 1));
+  const nrr = ttm.retention.legacy_12m, nrrPrev = ttmPrev && ttmPrev.retention.legacy_12m;
+  const top1 = ttm.concentration.top1, top1Prev = ttmPrev && ttmPrev.concentration.top1;
+
+  // ---- cash inputs (not in any export; typed in and kept with control.json)
+  const cash = state.cash || {};
+  const cashNum = v => (v === '' || v == null || isNaN(+v)) ? null : +v;
+  const cashBal = cashNum(cash.balance_usd), cashFund = cashNum(cash.secured_funding_usd), burn = cashNum(cash.monthly_burn_usd);
+  const proForma = cashBal != null ? cashBal + (cashFund || 0) : null;
+  const runway = (proForma != null && burn) ? proForma / burn : null;
+
+  // ---- table
+  const gc = (v, kind) => v == null ? '<td class="na">—</td>' : kind === 'pts' ? `<td class="${v >= 0 ? 'pos' : 'neg'}">${(v * 100 >= 0 ? '+' : '') + (v * 100).toFixed(1)} pts</td>` : growthCell(v);
+  const na = '<td class="na">n/a</td>';
+  const R = (metric, blv, blg, blKind, nmv, nmg, nmKind, def, fm = money) => `<tr><td>${metric}</td>${blv === 'na' ? na : td(blv, fm)}${blv === 'na' ? na : gc(blg, blKind)}${nmv === 'na' ? na : td(nmv, fm)}${nmv === 'na' ? na : gc(nmg, nmKind)}<td class="muted small" style="text-align:left;white-space:normal;min-width:260px">${def}</td></tr>`;
+  const S6 = label => `<tr class="sec"><td colspan="6">${label}</td></tr>`;
+  const asOf = fmt.month(Lm), q = fmt.month(S.months[cur3[0]]) + '–' + asOf, qp = fmt.month(S.months[prev3[0]]) + '–' + fmt.month(S.months[prev3[2]]);
+  let T = `<table class="t"><thead><tr><th style="text-align:left">Metric</th><th>Blended</th><th>Growth<br><span class="muted small">YoY</span></th><th>New Model</th><th>Growth<br><span class="muted small">${q} vs ${qp}</span></th><th style="text-align:left">Definition</th></tr></thead><tbody>`;
+  T += S6('Revenue');
+  T += R('ARR', blArr, g(blArr, blArrPrev), 'g', nmArrCur, g(nmArrCur, nmArrPrev), 'g', `Blended: 3-month run-rate to ${asOf}, commission seasonality-adjusted + ROAS × 4; vs the same at ${fmt.month(S.months[Lk - 12])}. New Model: ${q} revenue × 4; vs ${qp} × 4.`);
+  T += R('TTM revenue', ttm.rev.total, ttm.yoy ? ttm.yoy.total : null, 'g', 'na', null, null, `Revenue ${fmt.month(S.months[Lk - 11])} to ${asOf} vs the 12 months before.`);
+  T += R('YTD revenue', ytd.rev.total, ytd.yoy ? ytd.yoy.total : null, 'g', nmRev(ytdK), g(nmRev(cur3), nmRev(prev3)), 'g', `${ytd.label} vs Jan–${asOf.slice(0, 3)} 2025. New Model: ROAS revenue Jan–${asOf.slice(0, 3)}; growth ${q} vs ${qp}.`);
+  T += S6('Brands');
+  T += R('Active brands', blActive, g(blActive, blActivePrev), 'g', nmActive, g(nmActive, nmActivePrev), 'g', `Blended: active commission clients (model rule) + New Model active, end of ${asOf}; vs ${fmt.month(S.months[Lk - 12])}. New Model: brands that have paid less brands churned (ladder churn month); vs ${fmt.month(S.months[Lk - 3])}.`, fmt.int);
+  T += R('New brands signed', nmSigned, g(nmSigned, legNewPrev), 'g', nmSigned, g(nmSignedCur, nmSignedPrev), 'g', `New Model brands that first paid Jan–${asOf.slice(0, 3)} 2026 (${nmSigned}) vs commission clients acquired Jan–${asOf.slice(0, 3)} 2025 (${legNewPrev == null ? '—' : legNewPrev}). New Model growth: ${q} (${nmSignedCur}) vs ${qp} (${nmSignedPrev}).`, fmt.int);
+  T += R('Upgrade rate', 'na', null, null, nmUp, pts(nmUp, nmUpPrev), 'pts', `Brands that moved up ≥1 ROAS level in ${q}, ÷ brands active during it (signed before the window, not churned before it). Levels from paid milestones.`, pct0);
+  T += S6('Repeat revenue &amp; concentration');
+  T += R('Repeat revenue %', repNow, pts(repNow, repPrev), 'pts', 'na', null, null, `% of ${ytd.label} revenue (named clients) from clients that also paid in 2025; vs the same for 2025 against 2024.`, pct0);
+  T += R('Top client % of revenue', top1, pts(top1, top1Prev), 'pts', 'na', null, null, `${esc(ttm.concentration.top1_name)} as % of TTM revenue to ${asOf}; vs the prior TTM.`, pct0);
+  T += R('New brands % of active', nmActive && blActive ? nmActive / blActive : null, null, null, 'na', null, null, `New Model active brands ÷ all active brands at ${asOf}.`, pct0);
+  T += S6('Unit economics');
+  T += R('Gross revenue churn', nrr ? 1 - nrr.grr : null, nrrPrev ? pts(1 - nrr.grr, 1 - nrrPrev.grr) : null, 'pts', nmNrr ? 1 - nmNrr.grr : null, nmNrrPrev ? pts(1 - nmNrr.grr, 1 - nmNrrPrev.grr) : null, 'pts', `Blended: revenue lost or reduced over the TTM from commission clients with revenue in the prior 12 months, as % of that prior revenue. New Model: ${q} vs ${qp}, brands that paid in ${qp}.`, pct0);
+  T += R('Gross revenue retention', nrr ? nrr.grr : null, nrrPrev ? pts(nrr.grr, nrrPrev.grr) : null, 'pts', nmNrr ? nmNrr.grr : null, nmNrrPrev ? pts(nmNrr.grr, nmNrrPrev.grr) : null, 'pts', '1 − gross revenue churn.', pct0);
+  T += R('Gross logo churn', 'na', null, null, nmLogoChurn, pts(nmLogoChurn, nmLogoChurnPrev), 'pts', `New Model: churned (${nmChurned}) ÷ brands that have paid (${nmPaid}) over Jan–${asOf.slice(0, 3)}, annualised × 12/${monthsYtd}; vs the same at ${fmt.month(S.months[Lk - 3])}.`, pct0);
+  T += R('Gross logo retention', 'na', null, null, nmLogoChurn != null ? 1 - nmLogoChurn : null, nmLogoChurnPrev != null ? -pts(nmLogoChurn, nmLogoChurnPrev) : null, 'pts', '1 − annualised logo churn.', pct0);
+  T += R('Net revenue retention', nrr ? nrr.nrr : null, nrrPrev ? pts(nrr.nrr, nrrPrev.nrr) : null, 'pts', nmNrr ? nmNrr.nrr : null, nmNrrPrev ? pts(nmNrr.nrr, nmNrrPrev.nrr) : null, 'pts', `Blended: TTM revenue from commission clients with revenue in the prior 12 months ÷ that prior revenue. New Model: ${q} revenue from brands that paid in ${qp} ÷ their ${qp} revenue${nmNrr && nmNrr.cohort < 5 ? ' <b>(n&lt;5)</b>' : ''}.`, pct0);
+  T += R('CAC' + mtCacTag(), cacSL, g(cacCur, cacPrev), 'g', cacSL, g(cacCur, cacPrev), 'g', `Acquisition spend since launch (Nov-25) ÷ brands that have paid${MT_LIVE_CAC ? ' — live from the CAC sheet' : ''}. Growth: ${q} CAC (${fmt.money(cacCur)}) vs ${qp} (${fmt.money(cacPrev)}).`);
+  T += R('ARPA', blArpa, g(blArpa, blArpaPrev), 'g', nmArpa, g(nmArpa, nmArpaPrev), 'g', `Blended: TTM revenue ÷ active brands at ${asOf}; vs prior TTM. New Model: ARR ÷ active brands; vs ${fmt.month(S.months[Lk - 3])}.`);
+  T += R('LTV', blLtv, g(blLtv, blLtvPrev), 'g', nmLtv, g(nmLtv, nmLtvPrev), 'g', `Blended: ARPA × margin ÷ assumed 20% annual churn (5-year life). New Model: ARPA × 50% ÷ annualised logo churn.`);
+  T += R('LTV / CAC', blLtvCac, null, null, nmLtvCac, null, null, 'LTV ÷ CAC.', fmt.x);
+  T += R('Payback', 'na', null, null, nmPayback, g(nmPayback, nmPaybackPrev), 'g', `New Model: CAC ÷ monthly gross profit per brand (ARPA × 50% ÷ 12); vs ${qp}. Blended payback on commission ARPA is not meaningful.`, fmt.mo);
+  T += R('Margin', margin, pts(margin, marginPrev), 'pts', NM_MARGIN, null, null, `Blended: (revenue − creator payouts) ÷ revenue, TTM; vs prior TTM. New Model: 50% assumption (payouts not tracked by brand).`, pct0);
+  T += S6('Cash');
+  T += R('Current cash (pro forma)', proForma, null, null, 'na', null, null, `Cash at end of ${cash.as_of || asOf}${cashFund ? ' + ' + fmt.money(cashFund) + ' secured funding' : ''}. Typed in below — not in any export.`);
+  T += R('Operational burn (monthly)', burn, null, null, 'na', null, null, 'Monthly net cash outflow. Typed in below.');
+  T += R('Runway', runway, null, null, 'na', null, null, 'Pro forma cash ÷ monthly burn.', fmt.mo);
   T += '</tbody></table>';
-  const kpiCard = `<div class="card" style="margin-top:16px"><p class="eyebrow">Headline table</p><h3 class="h3">Full years, year to date and the latest month</h3><div class="tblwrap">${T}</div>
-    <div class="note"><b>P</b> provisional Ounass month. <b>n&lt;5</b> small sample. Creator counts use the active rule (≥5 net orders a month on average, ordered in the last 6 months) and are far lower than the old cumulative count.</div></div>`;
 
-  // ROAS unit economics (selected period)
-  const sp = P[state.period], ue = sp.ltv.ROAS, spc = sp.cac;
-  const grp = (name, o) => o ? `<tr><td>${name}${o.survivorship ? '<span class="tag warn" title="L2+ brands got there by surviving; never present as our LTV/CAC">survivorship</span>' : ''}${o.small_sample ? '<span class="tag warn">n&lt;5</span>' : ''}</td><td>${fmt.money(o.arpa)}</td><td>${fmt.pct(o.monthly_churn, 1)}</td><td>${fmt.mo(o.lifetime)}</td><td>${fmt.money(o.ltv)}</td><td>${fmt.x(o.ltv_cac == null ? null : mtLtvCac(o.ltv, o.ltv_cac))}</td><td>${fmt.mo(o.payback == null ? null : mtPayback(o))}</td></tr>` : `<tr><td>${name}</td><td colspan="6" class="na">—</td></tr>`;
-  const ueCard = h`<div class="grid g23" style="margin-top:16px">
-    <div class="card block"><p class="eyebrow">ROAS unit economics · ${esc(sp.label)}</p>
-      <div class="statrow" style="margin-top:8px">
-        <div class="st"><div class="k">CAC${mtCacTag()}</div><div class="v">${MT_LIVE_CAC ? fmt.money(MT_LIVE_CAC.cac) : (spc && spc.cac != null ? fmt.money(spc.cac) : 'n/a')}</div><div class="muted small">${MT_LIVE_CAC ? fmt.money(MT_LIVE_CAC.cost) + ' ÷ ' + MT_LIVE_CAC.n + ' merchants · ' + MT_LIVE_CAC.year + ' YTD, live CAC sheet' : (spc ? fmt.money(spc.spend) + ' ÷ ' + spc.new_brands + ' brands' + (spc.complete ? '' : ' · spend incomplete') : 'before launch')}</div></div>
-        <div class="st"><div class="k">LTV</div><div class="v">${ue ? fmt.money(ue.ltv) : '—'}</div><div class="muted small">${ue ? fmt.money(ue.arpa) + ' ÷ 12 × ' + fmt.pct(ue.margin, 0) + ' × ' + fmt.mo(ue.lifetime) : ''}</div></div>
-        <div class="st"><div class="k">LTV / CAC${mtCacTag()}</div><div class="v">${ue ? fmt.x(mtLtvCac(ue.ltv, ue.ltv_cac)) : '—'}</div><div class="muted small">${MT_LIVE_CAC ? 'LTV ÷ live blended CAC' : 'blended, all signings'}</div></div>
-        <div class="st"><div class="k">Payback</div><div class="v">${ue ? fmt.mo(mtPayback(ue)) : '—'}</div><div class="muted small">${MT_LIVE_CAC ? 'live ' : ''}CAC ÷ monthly margin</div></div>
-      </div>
-      <div class="hairline"></div>
-      <div class="small muted">Logo churn ${ue ? fmt.pct(ue.monthly_churn, 1) : '—'} a month = ${ue ? fmt.pct(sp.churn.ROAS.twelve_month, 0) : '—'} lost within 12 months (${sp.churn.ROAS ? sp.churn.ROAS.events : 0} events on ${sp.churn.ROAS ? sp.churn.ROAS.avg_active : 0} average active). Margin 50% is an assumption until ROAS creator payouts can be separated. Lifetime capped at 60 months. Undiscounted.</div>
-    </div>
-    <div class="card"><p class="eyebrow">By group · ${esc(sp.label)}</p><h3 class="h3">Where the value is created</h3>
-      <div class="tblwrap"><table class="t dense fit"><thead><tr><th>Group</th><th>ARPA</th><th>Monthly churn</th><th>Lifetime</th><th>LTV</th><th>LTV/CAC</th><th>Payback</th></tr></thead><tbody>
-      ${grp('All ROAS', sp.ltv.ROAS)}${grp('L1', sp.ltv.L1)}${grp('L2+', sp.ltv['L2+'])}
-      ${grp('Small', sp.ltv.Small)}${grp('Medium', sp.ltv.Medium)}${grp('Large', sp.ltv.Large)}
-      ${co ? grp('Commission Enterprise <span class="muted small">(revenue churn)</span>', sp.ltv.Enterprise && Object.assign({}, sp.ltv.Enterprise, { ltv_cac: null, payback: null })) + grp('Commission Growth &amp; SME <span class="muted small">(revenue churn)</span>', sp.ltv.GrowthSME && Object.assign({}, sp.ltv.GrowthSME, { ltv_cac: null, payback: null })) + (sp.ltv.company ? `<tr class="tot"><td>Company-level LTV <span class="muted small">weighted by active accounts</span></td><td colspan="3"></td><td>${fmt.money(sp.ltv.company.ltv)}</td><td colspan="2" class="na">no company CAC</td></tr>` : '') : ''}
-      </tbody></table></div>
-      <div class="note">The economics of a new signing are the <b>blended</b> row. L2+ and Large reached their tier by surviving and upgrading; every signing costs the same CAC.</div></div></div>`;
-
-  // cohorts + concentration
-  const cohortCard = h`<div class="grid g2" style="margin-top:16px">
-    <div class="card"><p class="eyebrow">ROAS logo retention by signing quarter</p><h3 class="h3">% of cohort still active N months after signing</h3><div id="inv-cohort" style="margin-top:10px"></div>
-      <div class="note">Only completed cells are shown. Recent cells will fall as late churn is detected (up to 6 months after the last payment).</div></div>
-    ${state.showConc ? `<div class="card"><p class="eyebrow">Concentration · TTM to ${fmt.month(Lm)}</p><h3 class="h3">Top 10 accounts, share of revenue</h3><div class="chart" id="inv-conc"></div>
-      <div class="note">Top 1 ${fmt.pct(ttm.concentration.top1, 0)} · top 5 ${fmt.pct(ttm.concentration.top5, 0)} · top 10 ${fmt.pct(ttm.concentration.top10, 0)}. HHI ${Math.round(ttm.concentration.hhi).toLocaleString()}.</div></div>`
-      : `<div class="card"><p class="eyebrow">Investor narrative</p><h3 class="h3">New-model metrics lead</h3><div class="note">Client concentration is kept off the default investor view (agreed 23 Oct). Toggle it on above when a specific investor asks; the data remains in the model.</div></div>`}</div>`;
-
-  const defs = `<div class="card" style="margin-top:16px"><p class="eyebrow">Definitions note</p><div class="defs">
-    <p><b>Active commission client:</b> annualised revenue ≥ $950 and fewer than 6 consecutive months below $100. <b>Churned:</b> the first month either test fails (not backdated).</p>
-    <p><b>ROAS brand:</b> active from its ladder Since month; churned at the ladder Churn month, or after 6 months without payment. No revenue threshold. Migrated commission clients (DKNY, Izil, Metro Brazil) are one client in one view per month, never counted twice.</p>
-    <p><b>ARR:</b> commission = last 3 months, each divided by its seasonality weight, averaged; ROAS = last 3 months × 4. <b>ARPA</b> = ARR ÷ average active accounts over the same 3 months.</p>
-    <p><b>Churn rates</b> are stored monthly (unique churned ÷ average active ÷ months) and shown as 12-month churn, 1 − (1 − m)<sup>12</sup>, with average lifetime 1 ÷ m.</p>
-    <p><b>LTV</b> = ARPA ÷ 12 × margin × lifetime (capped at 60 months). ROAS uses logo churn and a 50% margin; commission uses revenue churn (1 − GRR) and the actual TTM contribution margin.</p>
-    <p><b>Size:</b> commission Enterprise = annualised revenue ≥ AED 1M (exit below 500k), Growth / SME by the client's own company revenue (≥ / &lt; $50M). ROAS Small = CAC not yet paid back on profit; Medium = paid back; Large = annualised spend ≥ the ARPA of the largest commission segment by account count.</p>
-  </div></div>`;
-  root.innerHTML = hdr + heroes + chartCard + kpiCard + ueCard + cohortCard;
-
-  barChart(document.getElementById('inv-rev'), { labels: lab, fullLabels: months.map(fmt.monthLong), series: [
-    { name: 'Named commission', color: 'var(--c-legacy)', values: S.rev_named }, { name: 'ROAS', color: 'var(--c-roas)', values: S.rev_roas },
-    { name: 'Other pricing', color: 'var(--c-other)', values: S.rev_other }, { name: 'Adjustment', color: 'var(--c-plug)', values: S.rev_plug }],
-    lines: [{ name: 'Blended ARR ÷ 12', color: 'var(--ink)', values: S.arr_blended.map(v => v == null ? null : v / 12) }], height: 240 });
-  barChart(document.getElementById('inv-mix'), { labels: lab, fullLabels: months.map(fmt.monthLong), series: [], kind: 'pct', height: 240, lines: [
-    { name: 'ROAS % revenue', color: 'var(--c-roas)', values: S.rev_total.map((t, i) => t ? S.rev_roas[i] / t : null) },
-    { name: 'ROAS % active clients', color: 'var(--ink)', values: S.act_total.map((t, i) => t ? S.act_roas[i] / t : null) }] });
-  cohortGrid(document.getElementById('inv-cohort'), D.cohorts.roas, 10);
-  const concEl = document.getElementById('inv-conc');
-  if (concEl) { const top = ttm.concentration.top, mxs = top[0].share;
-    concEl.innerHTML = '<div class="hbars">' + top.map(t => `<div class="hb"><span class="n" title="${esc(t.name)}">${esc(t.name)}</span><span class="bar"><i style="width:${(t.share / mxs * 100).toFixed(1)}%"></i></span><span class="v">${fmt.pct(t.share, 1)}</span></div>`).join('') + '</div>'; }
-  root.querySelectorAll('#inv-conc-toggle button').forEach(b => b.addEventListener('click', () => { state.showConc = b.dataset.v === '1'; LS('mm.showconc', state.showConc ? '1' : '0'); renderInvestor(); }));
+  const hdr = h`<div class="pagehead"><div><p class="eyebrow">04 · Investor dashboard</p><h1 class="h2">Investor metrics · cut at ${asOf}</h1>
+    <p>The agreed investor metric set (Investor Metrics file). <b>Blended</b> is the whole company; <b>New Model</b> is the ROAS-priced brands (incl. Jetour), the primary growth driver, launched Jan 2026. Every number comes from the same series as the rest of the model.</p></div>
+    <div class="muted small">As of ${asOf} · ${nm.length} ladder brands · FX ${M.fx}</div></div>`;
+  const heroes = h`<div class="grid g4">
+    <div class="card block"><p class="eyebrow">ARR · blended</p><div class="hero">${money(blArr)}</div><div class="delta ${g(blArr, blArrPrev) >= 0 ? 'up' : 'down'}">${fmt.pctS(g(blArr, blArrPrev))} YoY</div></div>
+    <div class="card"><p class="eyebrow">ARR · New Model</p><div class="hero">${money(nmArrCur)}</div><div class="delta ${g(nmArrCur, nmArrPrev) >= 0 ? 'up' : 'down'}">${fmt.pctS(g(nmArrCur, nmArrPrev))} vs prior 3 months</div></div>
+    <div class="card"><p class="eyebrow">Active brands</p><div class="hero">${blActive}</div><div class="delta flat">${nmActive} New Model · ${blActive - nmActive} commission</div></div>
+    <div class="card"><p class="eyebrow">New Model LTV / CAC${mtCacTag()}</p><div class="hero">${fmt.x(nmLtvCac)}</div><div class="delta flat">payback ${fmt.mo(nmPayback)} · CAC ${money(cacSL)}</div></div>
+  </div>`;
+  const cashCard = `<div class="card" style="margin-top:16px"><p class="eyebrow">Cash inputs</p><h3 class="h3">Not in any export — type in, then export control.json from the Control page</h3>
+    <div class="statrow" style="margin-top:8px;gap:18px;flex-wrap:wrap">
+      <label class="small">Cash at month end (USD)<br><input id="cash-bal" type="number" value="${cash.balance_usd ?? ''}" style="width:150px"></label>
+      <label class="small">Secured funding, post period (USD)<br><input id="cash-fund" type="number" value="${cash.secured_funding_usd ?? ''}" style="width:150px"></label>
+      <label class="small">Monthly operational burn (USD)<br><input id="cash-burn" type="number" value="${cash.monthly_burn_usd ?? ''}" style="width:150px"></label>
+      <label class="small">As of (e.g. Aug-26)<br><input id="cash-asof" type="text" value="${cash.as_of ?? ''}" style="width:110px"></label>
+    </div></div>`;
+  root.innerHTML = hdr + heroes + `<div class="card" style="margin-top:16px"><p class="eyebrow">Investor metrics</p><h3 class="h3">Blended and New Model, with growth and definitions</h3><div class="tblwrap">${T}</div>
+    <div class="note">Growth for Blended is year on year; for New Model it is the last 3 months (${q}) against the 3 before (${qp}), since the model is less than a year old. YE 2026 and Y5 projection columns come once Q3 is complete (September pack).</div></div>` + cashCard;
+  root.querySelectorAll('#cash-bal,#cash-fund,#cash-burn,#cash-asof').forEach(el => el.addEventListener('change', () => {
+    state.cash = { balance_usd: document.getElementById('cash-bal').value, secured_funding_usd: document.getElementById('cash-fund').value, monthly_burn_usd: document.getElementById('cash-burn').value, as_of: document.getElementById('cash-asof').value };
+    LS('mm.cash', JSON.stringify(state.cash)); renderInvestor(); }));
 }
 
-/* ============================================================ PAGE 2: annual */
 function renderAnnual() {
   const root = document.getElementById('fin-annual'); const Lm = M.latest_month;
   const fy24 = P['FY:2024'], fy25 = P['FY:2025'], ytd = P['YTD:' + Lm.slice(0, 4)], pytd = P['YTD:2025']; const A = D.annualised, apl = annualisedPL();
@@ -776,7 +749,7 @@ function renderMonthly() {
   const pls = ps.map(pPL), pytd = pPL(ytd); const PR = (label, f, fm, klass = '') => row(label, [...pls.map(p => td(f(p), fm)), td(f(pytd), fm)], klass);
   let T = `<table class="t dense"><thead><tr><th>${y}</th>${hdrs}</tr></thead><tbody>`;
   T += sec('Financials', n);
-  T += R('Total revenue', p => p.rev.total, money, 'tot'); T += R('Commission (named)', p => p.rev.named, money, 'sub'); T += R('ROAS', p => p.rev.roas, money, 'sub'); T += R('Other pricing', p => p.rev.other, money, 'sub'); T += R('Adjustment', p => p.rev.plug, money, 'sub');
+  T += R('Total revenue', p => p.rev.total, money, 'tot'); T += R('Commission (named)', p => p.rev.named, money, 'sub'); T += R('ROAS', p => p.rev.roas, money, 'sub'); if (HAS_OTHER()) T += R('Other pricing', p => p.rev.other, money, 'sub'); T += R('Adjustment', p => p.rev.plug, money, 'sub');
   T += R('Blended ARR', p => p.arr.blended, money, 'tot', false); T += R('Commission run-rate', p => p.arr.legacy, money, 'sub', false); T += R('ROAS ARR', p => p.arr.roas, money, 'sub', false);
   T += PR('Contribution margin %', p => p.cm_pct, pct1); T += PR('Gross margin %', p => p.gm_pct, pct1); T += PR('EBITDA', p => p.ebitda, money); T += PR('EBITDA margin %', p => p.ebitda_pct, pct1);
   T += sec('Commission movement', n);
@@ -859,7 +832,7 @@ function renderActuals() {
   T += R('Active creators', cr.active, fmt.int, '', p => p.creators.active_end); T += R('Emerging creators', cr.emerging, fmt.int, '', p => p.creators.emerging_end);
   T += R('Net orders (incl. unattributed)', cr.orders_total, fmt.int); T += R('Unattributed orders', cr.orders_unatt, fmt.int, 'sub'); T += R('Closed ads', S.ads, fmt.int);
   T += sec('Revenue composition', total);
-  T += R('P&amp;L sales (total revenue)', S.rev_total, money, 'tot'); T += R('Named commission (Datos)', S.rev_named, money, 'sub'); T += R('ROAS (ladder)', S.rev_roas, money, 'sub'); T += R('Other pricing', S.rev_other, money, 'sub'); T += R('Adjustment', S.rev_plug, money, 'sub');
+  T += R('P&amp;L sales (total revenue)', S.rev_total, money, 'tot'); T += R('Named commission (Datos)', S.rev_named, money, 'sub'); T += R('ROAS (ladder)', S.rev_roas, money, 'sub'); if (HAS_OTHER()) T += R('Other pricing', S.rev_other, money, 'sub'); T += R('Adjustment', S.rev_plug, money, 'sub');
   T += R('Commission run-rate (ARR)', S.arr_legacy, money, '', false); T += R('ROAS ARR', S.arr_roas.slice(0, n), money, '', false); T += R('Blended ARR', S.arr_blended, money, 'tot', false);
   T += sec('Revenue by status (commission, 12-month cohort window)', total);
   ['Existing', 'New', 'Reactivated', 'Not active'].forEach(s => T += R(s, S.rev_leg_status[s], money, 'sub'));
@@ -916,12 +889,12 @@ function renderControl() {
   const adjCols = MT_ADJ.m.map((mm, i) => `<th>${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+mm - 1]}</th>`).join('') + '<th>YTD</th>';
   const adjRow = (label, arr, klass = '') => `<tr class="${klass}"><td style="text-align:left">${label}</td>${arr.map(v => '<td>' + fmt.money(v) + '</td>').join('')}<td><b>${fmt.money(arr.reduce((a, b) => a + b, 0))}</b></td></tr>`;
   const adjTable = `<table class="t dense fit"><thead><tr><th style="text-align:left">USD</th>${adjCols}</tr></thead><tbody>`
-    + adjRow('PnL Sales (incl. ROAS)', MT_ADJ.pnl, 'tot')
+    + adjRow('P&amp;L Sales (incl. ROAS)', MT_ADJ.pnl, 'tot')
     + adjRow('− ROAS ladder billing', MT_ADJ.billing, 'sub')
-    + adjRow('− ROAS spotted in merchant', MT_ADJ.spotted, 'sub')
-    + adjRow('= Commission (old model) in P&amp;L', MT_ADJ.ind, 'tot')
-    + `<tr class="sub2"><td style="text-align:left" class="muted">memo: Revenue-by-Merchant Adjustment row</td>${MT_ADJ.adj.map(v => '<td class="muted">' + fmt.money(v) + '</td>').join('')}<td class="muted">${fmt.money(MT_ADJ.adj.reduce((a, b) => a + b, 0))}</td></tr>`
-    + (MT_ADJ.export_total ? `<tr class="sub2"><td style="text-align:left" class="muted">memo: merchant export total incl. Adjustment − PnL Sales</td>${MT_ADJ.export_total.map((v, i) => { const d = v - MT_ADJ.pnl[i]; return '<td class="' + (Math.abs(d) > 1000 ? 'neg' : 'muted') + '">' + (Math.abs(d) > 1000 ? fmt.money(d) : '—') + '</td>'; }).join('')}<td class="muted">${fmt.money(MT_ADJ.export_total.reduce((a, b) => a + b, 0) - MT_ADJ.pnl.reduce((a, b) => a + b, 0))}</td></tr>` : '')
+    + adjRow('= Commission in P&amp;L', MT_ADJ.ind, 'tot')
+    + (MT_ADJ.tracked ? adjRow('− Commission tracked (named merchants)', MT_ADJ.tracked, 'sub') : '')
+    + (MT_ADJ.tracked ? adjRow('= Adjustment', MT_ADJ.adj, 'tot') : '')
+    + `<tr class="sub2"><td style="text-align:left" class="muted">memo: ROAS brands still in merchant tracking (not counted as commission)</td>${MT_ADJ.spotted.map(v => '<td class="muted">' + fmt.money(v) + '</td>').join('')}<td class="muted">${fmt.money(MT_ADJ.spotted.reduce((a, b) => a + b, 0))}</td></tr>`
     + '</tbody></table>';
   root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">05 · Control &amp; data quality</p><h1 class="h2">Finance controls and the monthly load check</h1><p>Nothing here changes a number by hand. Confirmations and switches set status; every figure is recomputed from the extracts. Changes are kept in this browser until you export <code>control.json</code> and commit it with the next monthly build.</p></div>
       <button class="btn" id="export-ctl">Export control.json</button></div>
@@ -933,9 +906,9 @@ function renderControl() {
         <div class="tblwrap"><table class="t dense fit"><thead><tr><th>Year</th><th style="text-align:left">Treatment</th><th style="text-align:left">Note</th></tr></thead><tbody>${caps}</tbody></table></div>
         <div class="note"><b>Capitalised</b>: shown as a memo line below net profit and excluded from EBITDA (amortisation comes through D&amp;A). <b>Expensed</b>: inside Technology opex, reducing EBITDA. EBITDA before development is shown on every page regardless.</div></div>
     </div>
-    <div class="card" style="margin-top:16px"><p class="eyebrow">Invoicing adjustment · commission (old model)</p><h3 class="h3">PnL Sales − ROAS billing − ROAS spotted in merchant</h3>
+    <div class="card" style="margin-top:16px"><p class="eyebrow">Invoicing adjustment · commission</p><h3 class="h3">P&amp;L Sales − ROAS billing − commission tracked = Adjustment</h3>
       <div class="tblwrap">${adjTable}</div>
-      <div class="note">Isolates how much P&amp;L revenue is commission (old model) (after removing ROAS ladder billing and any ROAS clients still sitting in merchant tracking). The gap between this and the tracked Revenue-by-Merchant commission total is the pure commission invoicing difference. The memo rows are the Revenue-by-Merchant Adjustment line and the reconciliation of the export total (incl. Adjustment) to P&amp;L Sales — a non-zero cell means the export and the P&amp;L disagree for that month (Aug: the $117.6k adjustment takes the export above the published P&amp;L Sales; one of the two is not final). Built by the pipeline from the monthly data pack; ROAS billing to move to the live ladder.</div></div>
+      <div class="note">Computed, not read: the Adjustment is P&amp;L Sales less ROAS ladder billing less the commission revenue tracked by named merchant. It is the same Adjustment shown on the KPI, Financials and revenue-split views. The merchant export's own "Adjustment" line is ignored. ROAS billing to move to the live ladder.</div></div>
     <div class="grid g2" style="margin-top:16px">
       <div class="card"><p class="eyebrow">Review lists</p>
         <h3 class="h3">New or unknown merchant names</h3><ul class="plain">${newNames}</ul>
@@ -968,7 +941,7 @@ function renderControl() {
     </div></div>`;
   root.querySelectorAll('[data-conf]').forEach(b => b.addEventListener('click', () => { const m = b.dataset.conf; state.confirmed.has(m) ? state.confirmed.delete(m) : state.confirmed.add(m); LS('mm.confirmed', JSON.stringify([...state.confirmed])); mergeData(); renderAll(); }));
   root.querySelectorAll('[data-cap]').forEach(b => b.addEventListener('click', () => { state.cap[b.dataset.cap] = b.dataset.v; LS('mm.cap', JSON.stringify(state.cap)); renderAll(); }));
-  document.getElementById('export-ctl').addEventListener('click', () => { const out = JSON.parse(JSON.stringify(ctl)); out.ounass.confirmed_months = [...state.confirmed].sort(); out.capitalisation = state.cap; const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'control.json'; a.click(); });
+  document.getElementById('export-ctl').addEventListener('click', () => { const out = JSON.parse(JSON.stringify(ctl)); out.ounass.confirmed_months = [...state.confirmed].sort(); out.capitalisation = state.cap; out.cash = state.cash || {}; const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'control.json'; a.click(); });
   barChart(document.getElementById('ctl-plug'), { labels: S.months.map(m => fmt.month(m)), fullLabels: S.months.map(fmt.monthLong), series: [{ name: 'Adjustment', color: 'var(--c-plug)', values: S.rev_plug }], height: 170 });
 }
 
@@ -1053,6 +1026,27 @@ function renderSegmentation() {
     <div class="tblwrap"><table class="t">${head('Tier')}<tbody>${roasRows}${roasTot}</tbody></table></div>
     <div class="note">ARPA, LTV and the acquisition metrics are only available blended across ROAS, so they sit on the total row; per-tier they show —. Tier rule switches to the agreed CAC-payback definition in the pipeline step.</div></div>`;
 
+  // Unified size axis — ROAS brands carry E/G/SME too (pipeline/roas_segments.csv: Kareem's segmentation file + defaults)
+  const kStart = S.months.indexOf(sel.start), kEnd = S.months.indexOf(sel.end);
+  const ACTIVE = ['New', 'Existing', 'Reactivated'];
+  const roasBySeg = {}; LEG_SEGS.forEach(sg => roasBySeg[sg] = { rev: 0, active: 0, n: 0, low: 0 });
+  D.roas_brands.forEach(b => { if (b.other_pricing) return; const sg = roasBySeg[b.segment] ? b.segment : 'SME'; const o = roasBySeg[sg];
+    for (let k = kStart; k <= kEnd; k++) o.rev += (b.monthly[k] || 0);
+    if (ACTIVE.includes(b.status_monthly[kEnd])) { o.active++; if (b.segment_confidence === 'U.D') o.low++; } o.n++; });
+  const roasSegRows = LEG_SEGS.map(sg => `<tr><td><span class="sw" style="background:${SEG_C[sg]}"></span>${sg}${roasBySeg[sg].low ? ' <span class="muted small">(' + roasBySeg[sg].low + ' U.D)</span>' : ''}</td>`
+    + td(roasBySeg[sg].rev, money) + td(roasBySeg[sg].active, fmt.int) + dash + dash + dash + naCell + naCell + naCell + '</tr>').join('');
+  const roasSegTable = `<div class="card" style="margin-top:16px"><p class="eyebrow">ROAS · by size (Enterprise / Growth / SME)</p>
+    <div class="tblwrap"><table class="t">${head('Segment')}<tbody>${roasSegRows}${roasTot}</tbody></table></div>
+    <div class="note">Same size definitions as commission. Segments for ROAS brands come from Kareem's customer segmentation file where the brand is in it (12 brands); the rest are SME · U.D (undefined) until defined — the U.D count is shown per row.</div></div>`;
+  const bothRows = LEG_SEGS.map(sg => `<tr><td><span class="sw" style="background:${SEG_C[sg]}"></span>${sg}</td>`
+    + td((sel.rev.leg_seg[sg] || 0) + roasBySeg[sg].rev, money) + td((sel.active_end.leg_seg[sg] || 0) + roasBySeg[sg].active, fmt.int)
+    + td(sel.rev.leg_seg[sg], money) + td(roasBySeg[sg].rev, money) + td(sel.active_end.leg_seg[sg], fmt.int) + td(roasBySeg[sg].active, fmt.int) + '</tr>').join('');
+  const bothTot = `<tr class="tot"><td>All clients</td>` + td(sel.rev.legacy + sel.rev.roas, money) + td(sel.active_end.legacy + sel.active_end.roas, fmt.int)
+    + td(sel.rev.legacy, money) + td(sel.rev.roas, money) + td(sel.active_end.legacy, fmt.int) + td(sel.active_end.roas, fmt.int) + '</tr>';
+  const bothTable = `<div class="card" style="margin-top:16px"><p class="eyebrow">Both models · by size (one axis)</p>
+    <div class="tblwrap"><table class="t"><thead><tr><th style="text-align:left">Segment</th><th>Revenue</th><th>Active</th><th>Commission rev</th><th>ROAS rev</th><th>Commission active</th><th>ROAS active</th></tr></thead><tbody>${bothRows}${bothTot}</tbody></table></div>
+    <div class="note">Size (E/G/SME) and model (Commission/ROAS) are now independent for every client, so the two can be combined. Revenue for <b>${esc(sel.label)}</b>.</div></div>`;
+
   // Client list — model, segment/tier, revenue, ROAS level (standard ladder) and ROAS factor
   // Commission: L = latest-month commission (USD) / 1000; ROAS factor = GMV / commission.
   // ROAS: L = ladder level; ROAS factor = ROAS Target at that level from the mapping sheet (live).
@@ -1061,14 +1055,15 @@ function renderSegmentation() {
     if ((m.rev_ttm || 0) <= 0) return;
     const e = mtCommTTM(m.name);                         // TTM-window commission + GMV from the data pack
     const avgComm = (e && e.c && e.n) ? e.c / e.n : null; // average monthly commission (USD)
-    clients.push({ name: m.name, model: 'Commission', seg: m.segment, rev: m.rev_ttm,
+    clients.push({ name: m.name, model: 'Commission', seg: m.segment, segOnly: m.segment, rev: m.rev_ttm,
       level: avgComm ? Math.round(avgComm / 1000) : null,
       factor: (e && e.g && e.c) ? e.g / e.c : null });
   });
   D.roas_brands.forEach(b => {
     if (b.other_pricing || !['Existing', 'New', 'Reactivated'].includes(b.status)) return;
-    const Lnum = (typeof b.level === 'number') ? b.level : (parseInt(String(b.level).replace(/[^0-9]/g, ''), 10) || null);
-    clients.push({ name: b.name, model: 'ROAS', seg: b.tier, rev: b.paid_to_latest, level: Lnum,
+    const Lcur = (typeof b.level === 'number') ? b.level : (parseInt(String(b.level).replace(/[^0-9]/g, ''), 10) || null);
+    const Lnum = (b.level_monthly && b.level_monthly[kEnd] != null) ? b.level_monthly[kEnd] : Lcur;   // level reached by the period end
+    clients.push({ name: b.name, model: 'ROAS', seg: (b.segment || 'SME') + (b.segment_confidence === 'U.D' ? ' · U.D' : '') + ' · ' + (b.tier || '—'), segOnly: b.segment || 'SME', rev: b.paid_to_latest, level: Lnum,
       factor: mtRoasFactor(b.name, Lnum), migrated: b.migrated });
   });
   const show = clients.filter(c => model === 'all' || c.model.toLowerCase() === model).sort((a, b) => (b.rev || 0) - (a.rev || 0));
@@ -1079,12 +1074,13 @@ function renderSegmentation() {
   const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
   const roasCl = clients.filter(c => c.model === 'ROAS');
   const commCl = clients.filter(c => c.model === 'Commission');
-  const bySeg = s => commCl.filter(c => c.seg === s);
+  const bySeg = s => commCl.filter(c => c.segOnly === s);
   const megaRow = (label, cl, swv) => { const lv = cl.map(c => c.level).filter(v => v != null); const fa = cl.map(c => c.factor).filter(v => v != null);
     return `<tr><td style="text-align:left">${swv ? '<span class="sw" style="background:' + swv + '"></span>' : ''}${label}</td><td>${cl.length}</td><td>${avg(lv) == null ? '—' : 'L' + avg(lv).toFixed(1)}</td><td>${avg(fa) == null ? '<span class="muted">—</span>' : avg(fa).toFixed(1) + 'x'}</td></tr>`; };
   const megaTile = `<div class="card block" style="margin-top:16px"><p class="eyebrow">Ladder &amp; ROAS-factor overview</p><h3 class="h3">Average level and ROAS factor by model</h3>
     <div class="tblwrap"><table class="t fit"><thead><tr><th style="text-align:left">Group</th><th>Clients</th><th>Avg level</th><th>Avg ROAS factor</th></tr></thead><tbody>
       ${megaRow('ROAS clients', roasCl, 'var(--coral)')}
+      ${LEG_SEGS.map(sg => megaRow('&nbsp;&nbsp;ROAS · ' + sg, roasCl.filter(c => c.segOnly === sg), SEG_C[sg])).join('')}
       ${megaRow('Commission clients', commCl, 'var(--teal)')}
       ${LEG_SEGS.map(s => megaRow('&nbsp;&nbsp;Commission · ' + s, bySeg(s), SEG_C[s])).join('')}
     </tbody></table></div>
@@ -1094,18 +1090,19 @@ function renderSegmentation() {
   root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">03 · Client Segmentation</p><h1 class="h2">Two ways to slice the same clients</h1>
       <p>Model (Commission vs ROAS) and size are independent axes: pick a model to see only those clients, broken down by size, for <b>${esc(sel.label)}</b> (set the period in the header). Only the segmentable metrics show by segment; CAC, payback and LTV:CAC are not segmentable.</p></div>
       <div class="ctl" style="margin:0"><label>Model</label><div class="seg" id="seg-model">${mbtn('all', 'All')}${mbtn('commission', 'Commission')}${mbtn('roas', 'ROAS')}</div></div></div>
-    ${model !== 'roas' ? commTable : ''}
-      ${model !== 'commission' ? roasTable : ''}
+    ${model === 'all' ? bothTable.replace('style="margin-top:16px"', '') : ''}
+    ${model !== 'roas' ? commTable.replace('<div class="card">', '<div class="card" style="margin-top:16px">') : ''}
+      ${model !== 'commission' ? roasSegTable + roasTable : ''}
     ${megaTile}
     <div class="card" style="margin-top:16px"><p class="eyebrow">Clients · revenue (commission) / paid to date (ROAS)</p>
-      <div class="tblwrap" style="max-height:420px;overflow:auto"><table class="t dense fit"><thead><tr><th style="text-align:left">Client</th><th>Model</th><th>Segment / tier</th><th>Revenue / paid</th><th>ROAS level</th><th>ROAS factor</th></tr></thead><tbody>${clientRows}</tbody></table></div>
+      <div class="tblwrap" style="max-height:420px;overflow:auto"><table class="t dense fit"><thead><tr><th style="text-align:left">Client</th><th>Model</th><th>Size · tier</th><th>Revenue / paid</th><th>ROAS level</th><th>ROAS factor</th></tr></thead><tbody>${clientRows}</tbody></table></div>
       <div class="note">${show.length} clients. ROAS level — commission: avg monthly commission (TTM) ÷ $1,000; ROAS: ladder level. ROAS factor — ROAS clients: the client's ROAS Target at that level from the mapping sheet; commission clients: GMV ÷ commission (TTM). Commission figures use the latest data-pack exports. Migrated clients appear once under each model for the months they were on it.</div></div>
     <div class="card" style="margin-top:16px"><p class="eyebrow">Size definitions</p><div class="defs">
       <p><b>Enterprise:</b> spending above AED 1M annualised with us (exit below AED 500k).</p>
       <p><b>Growth:</b> the client's own company revenue above $50M (estimated) and spending below AED 1M with us.</p>
       <p><b>SME:</b> the client's own company revenue below $50M.</p>
       <p><b>ROAS Small / Medium / Large</b> (agreed rule, being wired in the pipeline): Small = CAC not yet paid back; Medium = around CAC; Large = exceeded CAC.</p>
-      <p class="muted small">E/G/SME is provisional (Enterprise is spend-based, Growth / SME potential-based). Commission uses E/G/SME and ROAS uses S/M/L; carrying one size axis across both models is a pipeline step so the two axes become fully combinable.</p>
+      <p class="muted small">E/G/SME applies to both models (source: Kareem's customer segmentation file; ROAS brands not in it are SME · U.D (undefined) until defined). ROAS S/M/L is an extra lens for ROAS brands only.</p>
     </div></div>`;
   root.querySelectorAll('#seg-model button').forEach(b => b.addEventListener('click', () => { state.segModel = b.dataset.sm; LS('mm.segmodel', state.segModel); renderSegmentation(); }));
 }

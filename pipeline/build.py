@@ -92,7 +92,7 @@ def build_dataset(E, ctl):
     leg_m = list(E.rev)                              # merchants
     brands = [b for b, v in E.lad.items() if not v['other_pricing']]
     other_b = [b for b, v in E.lad.items() if v['other_pricing']]
-    lvl = {b: ('L1' if E.lad[b]['level'] == 'L1' else 'L2+') for b in brands}
+    lvl = {b: ('L2+' if (str(E.lad[b]['level']).startswith('L') and str(E.lad[b]['level']) != 'L1') else 'L1') for b in brands}   # CPL (Jetour) grouped with L1
 
     # ---- merchant CAC since launch at each month (for the Small/Medium line)
     spend_to = []; new_to = []
@@ -545,10 +545,17 @@ def build_dataset(E, ctl):
                           'rev_2025': sum(leg_rev_usd(m, k) for k in range(12, 24)), 'rev_2024': sum(leg_rev_usd(m, k) for k in range(0, 12)),
                           'last_active': mo(last_act) if last_act is not None else None, 'master_status': E.master.get(m, {}).get('status'),
                           'monthly': [r2(leg_rev_usd(m, k), 0) for k in range(NF)], 'seg_monthly': E.seg[m][:NF]})
+    # unified size axis: E/G/SME for ROAS brands (pipeline/roas_segments.csv; Kareem's segmentation file + defaults)
+    rseg = {}
+    try:
+        for r in csv.DictReader(open(os.path.join(HERE, 'roas_segments.csv'))): rseg[r['brand']] = r
+    except FileNotFoundError: pass
     roas_tbl = []
     for b in brands + other_b:
-        v = E.lad[b]
-        roas_tbl.append({'name': b, 'since': mo(v['since']), 'level': v['level'], 'lvl_group': lvl.get(b, 'Other'), 'other_pricing': v['other_pricing'],
+        v = E.lad[b]; rs = rseg.get(b, {})
+        roas_tbl.append({'name': b, 'since': mo(v['since']), 'level': v['level'], 'segment': rs.get('segment', 'SME'),
+                         'segment_confidence': rs.get('confidence', 'U.D'), 'segment_source': rs.get('source', 'default'),
+                         'level_monthly': pack_loaders.level_monthly(b) if PACK else None, 'lvl_group': lvl.get(b, 'Other'), 'other_pricing': v['other_pricing'],
                          'status': E.rst[b][L + 1], 'churn_month': mo(v['churn']) if v['churn'] is not None else None,
                          'paid_total': sum(v['pay']), 'paid_to_latest': sum(v['pay'][:L + 2]), 'tier': tier[b][L + 1] if b in tier else None,
                          'tier_monthly': tier[b][:NM] if b in tier else None, 'migrated': b in migrated_brands,

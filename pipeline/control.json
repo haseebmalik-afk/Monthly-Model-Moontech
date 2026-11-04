@@ -4,8 +4,11 @@
   "ounass": {
     "merchant": "Ounass",
     "buffer_aed": 150000,
-    "provisional_months": ["2026-07", "2026-08"],
-    "confirmed_months": []
+    "provisional_months": [],
+    "confirmed_months": [
+      "2026-07",
+      "2026-08"
+    ]
   },
   "capitalisation": {
     "2024": "Split",

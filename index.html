@@ -306,6 +306,12 @@ const state = {
 };
 if (state.theme) document.documentElement.setAttribute('data-theme', state.theme);
 let RAW = null, D = null, S = null, P = null, M = null;
+/* per-merchant commission + GMV (USD), TTM window from the monthly data pack (Revenue by Merchant + Net Sales by Client); c=commission sum, g=GMV sum, n=active months. Interim bake — to move into the pipeline. */
+const MT_COMM_TTM = {"amazon":{"c":155,"n":1},"americaneagle":{"c":2,"n":1,"g":38},"bathbodyworks":{"c":1269,"n":8},"bloomingdales":{"c":145974,"n":7,"g":1701443},"gap":{"c":16,"n":2,"g":1206},"hm":{"c":8961,"n":8,"g":395456},"izil":{"c":11247,"n":8,"g":66166},"levelshoes":{"c":223164,"n":8,"g":743353},"mamaspapas":{"c":1341,"n":7,"g":26109},"mumzworld":{"c":29233,"n":8,"g":391066},"namshi":{"c":1169,"n":8,"g":41385},"nayomi":{"c":23621,"n":8,"g":137912},"newbalance":{"c":71,"n":8,"g":2362},"niceone":{"c":91,"n":3,"g":5311},"noon":{"c":4330,"n":8},"ontime":{"c":1031,"n":8,"g":8221},"ounass":{"c":1647982,"n":8,"g":21517395},"riva":{"c":62052,"n":8,"g":742605},"sephora":{"c":546396,"n":8,"g":7299671},"styli":{"c":643,"n":8,"g":6157},"sunsports":{"c":62,"n":5},"swarovski":{"c":253,"n":3,"g":2898},"vogacloset":{"c":43880,"n":8,"g":360762},"6thstreet":{"c":965,"n":3,"g":16000},"adidasrakuten":{"c":3,"n":1},"dkny":{"c":13945,"n":8,"g":26077},"eyewa":{"c":2085,"n":5,"g":9202},"farfetch":{"c":406,"n":3},"mothercare":{"c":158,"n":8,"g":8486},"trendyol":{"c":7593,"n":8},"victoriassecret":{"c":97,"n":8,"g":2265},"airalo":{"c":456,"n":5,"g":8151},"facesarabylinks":{"c":21209,"n":7,"g":305479},"colehaan":{"c":66,"n":4},"metrobrazil":{"c":11,"n":2},"charlottetilbury":{"c":95371,"n":8},"bananarepublic":{"c":0,"n":1},"toucheprive":{"c":142,"n":1,"g":284},"squatwolf":{"c":19,"n":3,"g":162},"cos":{"c":52,"n":6,"g":3340},"goldenscentmt":{"c":17478,"n":8,"g":62549},"ultabeauty":{"c":11678,"n":8,"g":117341},"allbirds":{"c":366,"n":3,"g":355},"anafasicmt":{"c":2242,"n":3},"kitopirightbitemt":{"c":4446,"n":3,"g":31084},"aizamt":{"c":1935,"n":2},"maisonsafqamt":{"c":2906,"n":1,"g":17387},"studioearthmt":{"c":917,"n":1,"g":1139},"justhypemt":{"c":875,"n":1,"g":2407}};
+let MT_ROAS_MAP = null;   // filled live from the ROAS-factor mapping sheet (gid 1342595245)
+const mtKey = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+function mtCommTTM(name) { const k = mtKey(name); let e = MT_COMM_TTM[k]; if (!e) { for (const gk in MT_COMM_TTM) { if (k && gk && (k.indexOf(gk) >= 0 || gk.indexOf(k) >= 0) && Math.min(k.length, gk.length) >= 5) { e = MT_COMM_TTM[gk]; break; } } } return e || null; }
+function mtRoasFactor(name, L) { if (!MT_ROAS_MAP) return null; const k = mtKey(name); let e = MT_ROAS_MAP[k]; if (!e) { for (const mk in MT_ROAS_MAP) { if (k && mk && (k.indexOf(mk) >= 0 || mk.indexOf(k) >= 0) && Math.min(k.length, mk.length) >= 5) { e = MT_ROAS_MAP[mk]; break; } } } return (e && e.levels[L]) ? e.levels[L].roas : null; }
 
 const SEG_C = { Enterprise: 'var(--teal)', Growth: 'var(--ochre)', SME: 'var(--violet)', Unassigned: 'var(--grey)' };
 const TIER_C = { Small: 'var(--ochre)', Medium: 'var(--coral)', Large: 'var(--deep)' };
@@ -1017,12 +1023,42 @@ function renderSegmentation() {
     <div class="tblwrap"><table class="t">${head('Tier')}<tbody>${roasRows}${roasTot}</tbody></table></div>
     <div class="note">ARPA, LTV and the acquisition metrics are only available blended across ROAS, so they sit on the total row; per-tier they show —. Tier rule switches to the agreed CAC-payback definition in the pipeline step.</div></div>`;
 
-  // Client list — all active clients, with model, segment/tier, revenue and ROAS level
+  // Client list — model, segment/tier, revenue, ROAS level (standard ladder) and ROAS factor
+  // Commission: L = latest-month commission (USD) / 1000; ROAS factor = GMV / commission.
+  // ROAS: L = ladder level; ROAS factor = ROAS Target at that level from the mapping sheet (live).
   const clients = [];
-  D.merchants.forEach(m => { if ((m.rev_ttm || 0) > 0) clients.push({ name: m.name, model: 'Commission', seg: m.segment, rev: m.rev_ttm, level: '—' }); });
-  D.roas_brands.forEach(b => { if (!b.other_pricing && ['Existing', 'New', 'Reactivated'].includes(b.status)) clients.push({ name: b.name, model: 'ROAS', seg: b.tier, rev: b.paid_to_latest, level: b.level, migrated: b.migrated }); });
+  D.merchants.forEach(m => {
+    if ((m.rev_ttm || 0) <= 0) return;
+    const e = mtCommTTM(m.name);                         // TTM-window commission + GMV from the data pack
+    const avgComm = (e && e.c && e.n) ? e.c / e.n : null; // average monthly commission (USD)
+    clients.push({ name: m.name, model: 'Commission', seg: m.segment, rev: m.rev_ttm,
+      level: avgComm ? Math.round(avgComm / 1000) : null,
+      factor: (e && e.g && e.c) ? e.g / e.c : null });
+  });
+  D.roas_brands.forEach(b => {
+    if (b.other_pricing || !['Existing', 'New', 'Reactivated'].includes(b.status)) return;
+    const Lnum = (typeof b.level === 'number') ? b.level : (parseInt(String(b.level).replace(/[^0-9]/g, ''), 10) || null);
+    clients.push({ name: b.name, model: 'ROAS', seg: b.tier, rev: b.paid_to_latest, level: Lnum,
+      factor: mtRoasFactor(b.name, Lnum), migrated: b.migrated });
+  });
   const show = clients.filter(c => model === 'all' || c.model.toLowerCase() === model).sort((a, b) => (b.rev || 0) - (a.rev || 0));
-  const clientRows = show.map(c => `<tr><td>${esc(c.name)}${c.migrated ? '<span class="tag">migrated</span>' : ''}</td><td>${c.model}</td><td>${c.seg || '—'}</td><td>${fmt.money(c.rev)}</td><td>${c.level || '—'}</td></tr>`).join('');
+  const facCell = f => f == null ? '<td class="muted">—</td>' : '<td>' + f.toFixed(1) + 'x</td>';
+  const clientRows = show.map(c => `<tr><td>${esc(c.name)}${c.migrated ? '<span class="tag">migrated</span>' : ''}</td><td>${c.model}</td><td>${c.seg || '—'}</td><td>${fmt.money(c.rev)}</td><td>${c.level == null ? '<span class="muted">—</span>' : 'L' + c.level}</td>${facCell(c.factor)}</tr>`).join('');
+
+  // Mega tile — average Level and average ROAS factor, ROAS clients and commission clients (split E/G/SME)
+  const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+  const roasCl = clients.filter(c => c.model === 'ROAS');
+  const commCl = clients.filter(c => c.model === 'Commission');
+  const bySeg = s => commCl.filter(c => c.seg === s);
+  const megaRow = (label, cl, swv) => { const lv = cl.map(c => c.level).filter(v => v != null); const fa = cl.map(c => c.factor).filter(v => v != null);
+    return `<tr><td style="text-align:left">${swv ? '<span class="sw" style="background:' + swv + '"></span>' : ''}${label}</td><td>${cl.length}</td><td>${avg(lv) == null ? '—' : 'L' + avg(lv).toFixed(1)}</td><td>${avg(fa) == null ? '<span class="muted">—</span>' : avg(fa).toFixed(1) + 'x'}</td></tr>`; };
+  const megaTile = `<div class="card block" style="margin-top:16px"><p class="eyebrow">Ladder &amp; ROAS-factor overview</p><h3 class="h3">Average level and ROAS factor by model</h3>
+    <div class="tblwrap"><table class="t fit"><thead><tr><th style="text-align:left">Group</th><th>Clients</th><th>Avg level</th><th>Avg ROAS factor</th></tr></thead><tbody>
+      ${megaRow('ROAS clients', roasCl, 'var(--coral)')}
+      ${megaRow('Commission clients', commCl, 'var(--teal)')}
+      ${LEG_SEGS.map(s => megaRow('&nbsp;&nbsp;Commission · ' + s, bySeg(s), SEG_C[s])).join('')}
+    </tbody></table></div>
+    <div class="note">ROAS level is the standard ladder (payment $1,000·L → GMV $1,000·L²). ROAS clients: level from the ladder, ROAS factor = the client's ROAS Target at that level from the mapping sheet${MT_ROAS_MAP ? '' : ' <b>(loading…)</b>'}. Commission clients (from the latest data-pack exports, TTM window): level = average monthly commission ÷ $1,000, ROAS factor = GMV ÷ commission.</div></div>`;
 
   const mbtn = (v, lab) => `<button data-sm="${v}" class="${model === v ? 'on' : ''}">${lab}</button>`;
   root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">03 · Client Segmentation</p><h1 class="h2">Two ways to slice the same clients</h1>
@@ -1030,9 +1066,10 @@ function renderSegmentation() {
       <div class="ctl" style="margin:0"><label>Model</label><div class="seg" id="seg-model">${mbtn('all', 'All')}${mbtn('commission', 'Commission')}${mbtn('roas', 'ROAS')}</div></div></div>
     ${model !== 'roas' ? commTable : ''}
       ${model !== 'commission' ? roasTable : ''}
+    ${megaTile}
     <div class="card" style="margin-top:16px"><p class="eyebrow">Clients · revenue (commission) / paid to date (ROAS)</p>
-      <div class="tblwrap" style="max-height:420px;overflow:auto"><table class="t dense fit"><thead><tr><th style="text-align:left">Client</th><th>Model</th><th>Segment / tier</th><th>Revenue / paid</th><th>ROAS level</th></tr></thead><tbody>${clientRows}</tbody></table></div>
-      <div class="note">${show.length} clients. ROAS “level” is the ladder tier (L1–L5) as a ROAS proxy; true per-brand monthly budget and ROAS come with the ladder detail. Migrated clients appear once under each model for the months they were on it.</div></div>
+      <div class="tblwrap" style="max-height:420px;overflow:auto"><table class="t dense fit"><thead><tr><th style="text-align:left">Client</th><th>Model</th><th>Segment / tier</th><th>Revenue / paid</th><th>ROAS level</th><th>ROAS factor</th></tr></thead><tbody>${clientRows}</tbody></table></div>
+      <div class="note">${show.length} clients. ROAS level — commission: avg monthly commission (TTM) ÷ $1,000; ROAS: ladder level. ROAS factor — ROAS clients: the client's ROAS Target at that level from the mapping sheet; commission clients: GMV ÷ commission (TTM). Commission figures use the latest data-pack exports. Migrated clients appear once under each model for the months they were on it.</div></div>
     <div class="card" style="margin-top:16px"><p class="eyebrow">Size definitions</p><div class="defs">
       <p><b>Enterprise:</b> spending above AED 1M annualised with us (exit below AED 500k).</p>
       <p><b>Growth:</b> the client's own company revenue above $50M (estimated) and spending below AED 1M with us.</p>
@@ -1424,6 +1461,37 @@ function renderSegmentation() {
     setMsg('<div class="loading">Loading the 2026 P&L from the live sheet…</div>');
     try { const res = await fetch(PNL_SOURCE); if (!res.ok) throw new Error('HTTP ' + res.status); render(parsePnl(parseCSV(await res.text()))); }
     catch (e) { setMsg('<b>Live data problem.</b> Could not load the 2026 Model P&L sheet (' + esc2(String(e && e.message || e)) + '). Open this page over the web (the published sheet must be reachable from the browser).'); }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+
+/* ============================================================ ROAS-factor mapping sheet (live; per-client ROAS Target by level) */
+(function () {
+  "use strict";
+  const MAP_SOURCE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSEEEIegwsvOyMt4ZKFffwcOyCaPVJhftkr8Wyns6u_32dUbyudrArqFFB3Ac6CjTsaEV3ui1RPoDg8/pub?gid=1342595245&single=true&output=csv";
+  function parseCSV(text) { const rows = []; let row = [], f = '', q = false;
+    for (let i = 0; i < text.length; i++) { const c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+      else { if (c === '"') q = true; else if (c === ',') { row.push(f); f = ''; } else if (c === '\n') { row.push(f); rows.push(row); row = []; f = ''; } else if (c === '\r') {} else f += c; } }
+    if (f.length || row.length) { row.push(f); rows.push(row); } return rows; }
+  const norm = s => String(s == null ? '' : s).trim().toLowerCase().replace(/\s+/g, ' ');
+  const ck = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const num = s => { if (s == null) return null; s = String(s).replace(/[$,xX\s]/g, '').trim(); if (!s) return null; const v = parseFloat(s); return isNaN(v) ? null : v; };
+  const mnum = s => { const m = String(s || '').match(/(\d+)/); return m ? +m[1] : null; };
+  function parseMap(rows) {
+    let h = -1; for (let i = 0; i < rows.length; i++) { const set = new Set(rows[i].map(norm)); if (set.has('client name') && set.has('roas target')) { h = i; break; } }
+    if (h < 0) throw new Error('mapping header not found');
+    const H = rows[h], col = n => H.findIndex(c => norm(c) === n);
+    const cC = col('client name'), cM = col('milestone'), cB = col('budget (usd)'), cT = col('roas target');
+    const map = {};
+    for (const r of rows.slice(h + 1)) { const name = r[cC]; if (!name || !String(name).trim()) continue; const L = mnum(r[cM]); if (!L) continue;
+      const k = ck(name); (map[k] = map[k] || { name: String(name).trim(), levels: {} }).levels[L] = { budget: num(r[cB]), roas: num(r[cT]) }; }
+    return map;
+  }
+  async function init() {
+    try { const res = await fetch(MAP_SOURCE); if (!res.ok) throw new Error('HTTP ' + res.status); MT_ROAS_MAP = parseMap(parseCSV(await res.text()));
+      if (typeof renderSegmentation === 'function' && document.getElementById('page-segmentation')) renderSegmentation(); }
+    catch (e) { /* leave MT_ROAS_MAP null; segmentation shows ROAS factor as — with a loading note */ }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

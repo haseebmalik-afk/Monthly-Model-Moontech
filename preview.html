@@ -555,8 +555,8 @@ function renderInvestor() {
   const months = S.months, lab = months.map(m => fmt.month(m));
   const chartCard = h`<div class="grid g32" style="margin-top:16px">
     <div class="card"><p class="eyebrow">Monthly revenue · P&amp;L sales split</p><h3 class="h3">Commission, ROAS and unallocated</h3><div class="chart" id="inv-rev"></div>
-      <div class="legend"><span><span class="sw legacy"></span>Named commission</span><span><span class="sw roas"></span>ROAS (ladder)</span><span><span class="sw other"></span>Other pricing</span><span><span class="sw plug"></span>Unallocated plug</span><span style="margin-left:auto"><span class="sw" style="background:var(--ink)"></span>Blended ARR ÷ 12</span></div>
-      <div class="note">Total always equals P&amp;L Sales. The plug is cash-vs-invoice timing plus any provisional Ounass gap${addbackActive() ? ' (AED 150k buffer added back to unconfirmed months)' : ''}.</div></div>
+      <div class="legend"><span><span class="sw legacy"></span>Named commission</span><span><span class="sw roas"></span>ROAS (ladder)</span><span><span class="sw other"></span>Other pricing</span><span><span class="sw plug"></span>Adjustment</span><span style="margin-left:auto"><span class="sw" style="background:var(--ink)"></span>Blended ARR ÷ 12</span></div>
+      <div class="note">Total always equals P&amp;L Sales. The Adjustment is P&amp;L Sales not assigned to a named client (invoicing timing plus any provisional Ounass gap)${addbackActive() ? ' (AED 150k buffer added back to unconfirmed months)' : ''}.</div></div>
     <div class="card"><p class="eyebrow">Revenue mix</p><h3 class="h3">ROAS share of revenue and of active clients</h3><div class="chart" id="inv-mix"></div>
       <div class="legend"><span><span class="sw roas"></span>ROAS % of revenue</span><span><span class="sw" style="background:var(--ink)"></span>ROAS % of active clients</span></div>
       <div class="note">${fmt.month(Lm)}: ROAS is ${fmt.pct(latest.rev.roas / latest.rev.total, 0)} of revenue and ${fmt.pct(latest.active_end.roas / latest.active_end.total, 0)} of active clients.</div></div></div>`;
@@ -665,7 +665,7 @@ function renderInvestor() {
 
   barChart(document.getElementById('inv-rev'), { labels: lab, fullLabels: months.map(fmt.monthLong), series: [
     { name: 'Named commission', color: 'var(--c-legacy)', values: S.rev_named }, { name: 'ROAS', color: 'var(--c-roas)', values: S.rev_roas },
-    { name: 'Other pricing', color: 'var(--c-other)', values: S.rev_other }, { name: 'Unallocated', color: 'var(--c-plug)', values: S.rev_plug }],
+    { name: 'Other pricing', color: 'var(--c-other)', values: S.rev_other }, { name: 'Adjustment', color: 'var(--c-plug)', values: S.rev_plug }],
     lines: [{ name: 'Blended ARR ÷ 12', color: 'var(--ink)', values: S.arr_blended.map(v => v == null ? null : v / 12) }], height: 240 });
   barChart(document.getElementById('inv-mix'), { labels: lab, fullLabels: months.map(fmt.monthLong), series: [], kind: 'pct', height: 240, lines: [
     { name: 'ROAS % revenue', color: 'var(--c-roas)', values: S.rev_total.map((t, i) => t ? S.rev_roas[i] / t : null) },
@@ -695,7 +695,7 @@ function renderAnnual() {
   LEG_SEGS.forEach(s => T += rr(s, p => p.rev.leg_seg[s], money, null, null, 'sub2'));
   T += rr('ROAS + other pricing', p => p.rev.roas + p.rev.other, money, A.roas, yoy(y => y.roas), 'sub');
   TIERS.forEach(s => T += rr(s, p => p.rev.roas_tier[s], money, null, null, 'sub2'));
-  T += rr('Unallocated plug', p => p.rev.plug, money, null, null, 'sub');
+  T += rr('Adjustment', p => p.rev.plug, money, null, null, 'sub');
   T += rr('Enterprise share of commission revenue', p => p.rev.named ? p.rev.leg_seg.Enterprise / p.rev.named : null, pct0, null, null);
   T += sec('Run-rate at year end', 5);
   T += rr('Blended ARR', p => p.arr.blended, money, null, null, 'tot');
@@ -775,7 +775,7 @@ function renderMonthly() {
   const pls = ps.map(pPL), pytd = pPL(ytd); const PR = (label, f, fm, klass = '') => row(label, [...pls.map(p => td(f(p), fm)), td(f(pytd), fm)], klass);
   let T = `<table class="t dense"><thead><tr><th>${y}</th>${hdrs}</tr></thead><tbody>`;
   T += sec('Financials', n);
-  T += R('Total revenue', p => p.rev.total, money, 'tot'); T += R('Commission (named)', p => p.rev.named, money, 'sub'); T += R('ROAS', p => p.rev.roas, money, 'sub'); T += R('Other pricing', p => p.rev.other, money, 'sub'); T += R('Unallocated plug', p => p.rev.plug, money, 'sub');
+  T += R('Total revenue', p => p.rev.total, money, 'tot'); T += R('Commission (named)', p => p.rev.named, money, 'sub'); T += R('ROAS', p => p.rev.roas, money, 'sub'); T += R('Other pricing', p => p.rev.other, money, 'sub'); T += R('Adjustment', p => p.rev.plug, money, 'sub');
   T += R('Blended ARR', p => p.arr.blended, money, 'tot', false); T += R('Commission run-rate', p => p.arr.legacy, money, 'sub', false); T += R('ROAS ARR', p => p.arr.roas, money, 'sub', false);
   T += PR('Contribution margin %', p => p.cm_pct, pct1); T += PR('Gross margin %', p => p.gm_pct, pct1); T += PR('EBITDA', p => p.ebitda, money); T += PR('EBITDA margin %', p => p.ebitda_pct, pct1);
   T += sec('Commission movement', n);
@@ -858,7 +858,7 @@ function renderActuals() {
   T += R('Active creators', cr.active, fmt.int, '', p => p.creators.active_end); T += R('Emerging creators', cr.emerging, fmt.int, '', p => p.creators.emerging_end);
   T += R('Net orders (incl. unattributed)', cr.orders_total, fmt.int); T += R('Unattributed orders', cr.orders_unatt, fmt.int, 'sub'); T += R('Closed ads', S.ads, fmt.int);
   T += sec('Revenue composition', total);
-  T += R('P&amp;L sales (total revenue)', S.rev_total, money, 'tot'); T += R('Named commission (Datos)', S.rev_named, money, 'sub'); T += R('ROAS (ladder)', S.rev_roas, money, 'sub'); T += R('Other pricing', S.rev_other, money, 'sub'); T += R('Unallocated plug', S.rev_plug, money, 'sub');
+  T += R('P&amp;L sales (total revenue)', S.rev_total, money, 'tot'); T += R('Named commission (Datos)', S.rev_named, money, 'sub'); T += R('ROAS (ladder)', S.rev_roas, money, 'sub'); T += R('Other pricing', S.rev_other, money, 'sub'); T += R('Adjustment', S.rev_plug, money, 'sub');
   T += R('Commission run-rate (ARR)', S.arr_legacy, money, '', false); T += R('ROAS ARR', S.arr_roas.slice(0, n), money, '', false); T += R('Blended ARR', S.arr_blended, money, 'tot', false);
   T += sec('Revenue by status (commission, 12-month cohort window)', total);
   ['Existing', 'New', 'Reactivated', 'Not active'].forEach(s => T += R(s, S.rev_leg_status[s], money, 'sub'));
@@ -904,7 +904,7 @@ function renderControl() {
     return `<tr><td>${fmt.month(m)}</td><td>${fmt.moneyFull(sys * M.fx).replace('$', 'AED ')}</td><td>${fmt.moneyFull(sys)}</td><td>${conf ? '<span class="muted">—</span>' : (addbackActive() ? '<span class="pos">+ AED ' + o.buffer_aed.toLocaleString() + ' added back</span>' : '<span class="muted">held (deducted)</span>')}</td>
       <td>${conf ? '<span class="tag ok">Confirmed · locked</span>' : '<span class="tag coral">Unconfirmed</span>'}</td><td><button class="btn ghost" data-conf="${m}" style="padding:4px 10px;font-size:12px">${conf ? 'Unconfirm' : 'Mark confirmed'}</button></td></tr>`; }).join('');
   const caps = Object.keys(state.cap).map(y => `<tr><td>${y}</td><td>${['Capitalised', 'Expensed', 'Split'].map(v => `<button class="btn ${state.cap[y] === v ? '' : 'ghost'}" data-cap="${y}" data-v="${v}" style="padding:4px 10px;font-size:12px;margin-right:6px">${v}</button>`).join('')}</td><td class="muted small">${y === '2024' ? 'Split = Jan–Jun capitalised, Jul–Dec expensed (spec default)' : y === '2025' ? 'Spec default: Capitalised ($100.5k)' : 'Spec default: Expensed; may be capitalised at year end'}</td></tr>`).join('');
-  const checks = M.checks.map(c => `<tr><td>${c.id}</td><td style="text-align:left;white-space:normal">${esc(c.metric.replace(/Legacy/g, 'Commission').replace(/legacy/g, 'commission'))} <span class="muted">· ${esc(c.period)}</span></td><td>${c.expected}</td><td>${c.got}</td><td>${c.pass ? '<span class="ok">pass</span>' : '<span class="neg">FAIL</span>'}</td></tr>`).join('');
+  const checks = M.checks.map(c => `<tr><td>${c.id}</td><td style="text-align:left;white-space:normal">${esc(c.metric.replace(/Legacy/g, 'Commission').replace(/legacy/g, 'commission').replace(/^Plug$/, 'Adjustment'))} <span class="muted">· ${esc(c.period)}</span></td><td>${c.expected}</td><td>${c.got}</td><td>${c.pass ? '<span class="ok">pass</span>' : '<span class="neg">FAIL</span>'}</td></tr>`).join('');
   const rv = D.review;
   const newNames = rv.new_names.length ? rv.new_names.map(r => `<li><b>${esc(r.extract_name)}</b> · ${esc(r.action.replace(/Legacy/g, 'Commission').replace(/legacy/g, 'commission'))} <span class="muted">(merchant match: ${r.merchant_match[0]} ${r.merchant_match[1] ? '→ ' + esc(r.merchant_match[1]) + ' ' + r.merchant_match[2] : ''}; ladder: ${r.ladder_match[0]})</span></li>`).join('') : '<li class="muted">none</li>';
   const idf = rv.creator_id_flags.length ? rv.creator_id_flags.map(f => `<li>${esc(f.join(' · '))}</li>`).join('') : '<li class="muted">none</li>';
@@ -927,7 +927,7 @@ function renderControl() {
     <div class="grid g2">
       <div class="card"><p class="eyebrow">Ounass provisional months</p><h3 class="h3">Buffer AED ${o.buffer_aed.toLocaleString()} · currently <b>${state.buffer === 'on' ? 'held' : 'added back'}</b></h3>
         <div class="tblwrap"><table class="t dense fit"><thead><tr><th>Month</th><th>System figure</th><th>USD</th><th>Buffer</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
-        <div class="note">The system figure for Ounass is an estimate until the confirmed extract arrives about two months after month end. A confirmed month is locked at its extract value and the buffer never touches it. Months older than two months still unconfirmed are flagged on load. The buffer toggle in the header switches the add-back on unconfirmed months; it moves revenue between the plug and Ounass, so total revenue does not change.</div></div>
+        <div class="note">The system figure for Ounass is an estimate until the confirmed extract arrives about two months after month end. A confirmed month is locked at its extract value and the buffer never touches it. Months older than two months still unconfirmed are flagged on load. The buffer toggle in the header switches the add-back on unconfirmed months; it moves revenue between the Adjustment and Ounass, so total revenue does not change.</div></div>
       <div class="card"><p class="eyebrow">Development cost treatment</p><h3 class="h3">One switch per year</h3>
         <div class="tblwrap"><table class="t dense fit"><thead><tr><th>Year</th><th style="text-align:left">Treatment</th><th style="text-align:left">Note</th></tr></thead><tbody>${caps}</tbody></table></div>
         <div class="note"><b>Capitalised</b>: shown as a memo line below net profit and excluded from EBITDA (amortisation comes through D&amp;A). <b>Expensed</b>: inside Technology opex, reducing EBITDA. EBITDA before development is shown on every page regardless.</div></div>
@@ -941,7 +941,7 @@ function renderControl() {
         <h3 class="h3" style="margin-top:12px">Creator ID flags</h3><ul class="plain">${idf}</ul>
         <h3 class="h3" style="margin-top:12px">ROAS brands churned by rule R2</h3><ul class="plain">${r2}</ul>
         <h3 class="h3" style="margin-top:12px">Commission merchants with proposed / low-confidence segment</h3><ul class="plain">${rv.low_confidence.length ? rv.low_confidence.map(esc).join(', ') : '<li class="muted">none</li>'}</ul></div>
-      <div class="card"><p class="eyebrow">Reconciliation</p><h3 class="h3">Unallocated plug by month (P&amp;L sales − named commission − ROAS − other)</h3><div class="chart" id="ctl-plug"></div>
+      <div class="card"><p class="eyebrow">Reconciliation</p><h3 class="h3">Adjustment by month (P&amp;L Sales − named commission − ROAS − other)</h3><div class="chart" id="ctl-plug"></div>
         <div class="note">Negative months are cash-vs-invoice timing on ROAS. Large positive months are provisional Datos figures below the P&amp;L (Ounass). Mapped cost of sales and EBITDA tie to the P&amp;L within AED 0.01.</div>
         <div class="hairline"></div><p class="eyebrow">Load log</p>
         <dl class="kv"><dt>Built</dt><dd>${M.built}</dd><dt>Latest full month</dt><dd>${fmt.monthLong(Lm)} (Datos + P&amp;L)</dd><dt>ROAS ladder</dt><dd>${M.ladder_file} (to Oct-26, Sep used as latest ROAS month)</dd><dt>Merchants / ROAS brands</dt><dd>${D.merchants.length} / ${D.roas_brands.length}</dd><dt>FX</dt><dd>AED ${M.fx} per USD</dd><dt>Cash report (S10)</dt><dd class="muted">not loaded</dd><dt>Plan / budget (S11)</dt><dd class="muted">not loaded</dd><dt>Net order history (T1)</dt><dd class="muted">pending · order metrics flagged</dd></dl></div>
@@ -968,7 +968,7 @@ function renderControl() {
   root.querySelectorAll('[data-conf]').forEach(b => b.addEventListener('click', () => { const m = b.dataset.conf; state.confirmed.has(m) ? state.confirmed.delete(m) : state.confirmed.add(m); LS('mm.confirmed', JSON.stringify([...state.confirmed])); mergeData(); renderAll(); }));
   root.querySelectorAll('[data-cap]').forEach(b => b.addEventListener('click', () => { state.cap[b.dataset.cap] = b.dataset.v; LS('mm.cap', JSON.stringify(state.cap)); renderAll(); }));
   document.getElementById('export-ctl').addEventListener('click', () => { const out = JSON.parse(JSON.stringify(ctl)); out.ounass.confirmed_months = [...state.confirmed].sort(); out.capitalisation = state.cap; const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'control.json'; a.click(); });
-  barChart(document.getElementById('ctl-plug'), { labels: S.months.map(m => fmt.month(m)), fullLabels: S.months.map(fmt.monthLong), series: [{ name: 'Unallocated plug', color: 'var(--c-plug)', values: S.rev_plug }], height: 170 });
+  barChart(document.getElementById('ctl-plug'), { labels: S.months.map(m => fmt.month(m)), fullLabels: S.months.map(fmt.monthLong), series: [{ name: 'Adjustment', color: 'var(--c-plug)', values: S.rev_plug }], height: 170 });
 }
 
 /* ============================================================ PAGE: KPIs (phase 1 shell) */

@@ -82,20 +82,29 @@ def _churn_ym(s):
     mi = mon.index(m.group(1)[:3].lower()) + 1; y = int(m.group(2)); y = y + 2000 if y < 100 else y
     return '%d-%02d' % (y, mi)
 
+def cut_k():
+    """Model update date (control.json latest_month) as a month index: nothing after it enters the model, even when a live
+    sheet already has later months."""
+    ctl = json.load(open(os.path.join(HERE, 'control.json'))); y, m = map(int, ctl['latest_month'].split('-')); return kidx(y, m)
+
 def load_ladder(kit, cfg):
     lvl_re = re.compile(cfg['roas_status']['other_pricing_levels_not_matching'])
     include = set(cfg['roas_status'].get('include_as_roas', []))
-    rows, _ = _ladder_rows(); lad = {}
+    rows, _ = _ladder_rows(); lad = {}; CUT = cut_k()
     for b in rows:
         if not b.get('since'): continue
         y, m = map(int, str(b['since'])[:7].split('-'))
+        if kidx(y, m) > CUT: continue                                  # signed after the update date: not in the model yet
         pay = [0.0] * NM
-        for k, v in enumerate(b['monthly'][:NM]): pay[k] = float(v or 0)
+        for k, v in enumerate(b['monthly'][:NM]): pay[k] = float(v or 0) if k <= CUT else 0.0
         ch = b.get('churn_month'); churn = None
         if ch:
             try: cy, cm = map(int, str(ch)[:7].split('-')); churn = kidx(cy, cm)
             except Exception: churn = None
+            if churn is not None and churn > CUT: churn = None          # churn after the update date is not yet known
         level = b['level']
+        lm = level_monthly(b['name'])
+        if lm is not None and lm[CUT] is not None and str(level).startswith('L'): level = 'L%d' % lm[CUT]   # level reached by the update date
         other = (bool(b.get('other_pricing')) or not lvl_re.match(str(level))) and b['name'] not in include
         lad[b['name']] = {'since': kidx(y, m), 'pay': pay, 'churn': churn, 'level': level, 'other_pricing': other}
     return lad

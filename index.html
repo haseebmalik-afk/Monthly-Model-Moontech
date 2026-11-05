@@ -306,6 +306,9 @@ const state = {
 };
 if (state.theme) document.documentElement.setAttribute('data-theme', state.theme);
 let RAW = null, D = null, S = null, P = null, M = null;
+let MT_CUT = null;   // model update date 'YYYY-MM' (control latest_month): every live source is cut here too, even when the sheet has later months
+function mtCutKey() { return MT_CUT ? (+MT_CUT.slice(0, 4)) * 12 + (+MT_CUT.slice(5, 7) - 1) : null; }
+function mtWaitCut(ms = 15000) { return new Promise(res => { const t0 = Date.now(); (function tick() { if (MT_CUT || Date.now() - t0 > ms) res(MT_CUT); else setTimeout(tick, 100); })(); }); }
 /* per-merchant commission + GMV (USD), TTM window from the monthly data pack (Revenue by Merchant + Net Sales by Client); c=commission sum, g=GMV sum, n=active months. Interim bake — to move into the pipeline. */
 let MT_COMM_TTM = {"amazon":{"c":155,"n":1},"americaneagle":{"c":2,"n":1,"g":38},"bathbodyworks":{"c":1269,"n":8},"bloomingdales":{"c":145974,"n":7,"g":1701443},"gap":{"c":16,"n":2,"g":1206},"hm":{"c":8961,"n":8,"g":395456},"izil":{"c":11247,"n":8,"g":66166},"levelshoes":{"c":223164,"n":8,"g":743353},"mamaspapas":{"c":1341,"n":7,"g":26109},"mumzworld":{"c":29233,"n":8,"g":391066},"namshi":{"c":1169,"n":8,"g":41385},"nayomi":{"c":23621,"n":8,"g":137912},"newbalance":{"c":71,"n":8,"g":2362},"niceone":{"c":91,"n":3,"g":5311},"noon":{"c":4330,"n":8},"ontime":{"c":1031,"n":8,"g":8221},"ounass":{"c":1647982,"n":8,"g":21517395},"riva":{"c":62052,"n":8,"g":742605},"sephora":{"c":546396,"n":8,"g":7299671},"styli":{"c":643,"n":8,"g":6157},"sunsports":{"c":62,"n":5},"swarovski":{"c":253,"n":3,"g":2898},"vogacloset":{"c":43880,"n":8,"g":360762},"6thstreet":{"c":965,"n":3,"g":16000},"adidasrakuten":{"c":3,"n":1},"dkny":{"c":13945,"n":8,"g":26077},"eyewa":{"c":2085,"n":5,"g":9202},"farfetch":{"c":406,"n":3},"mothercare":{"c":158,"n":8,"g":8486},"trendyol":{"c":7593,"n":8},"victoriassecret":{"c":97,"n":8,"g":2265},"airalo":{"c":456,"n":5,"g":8151},"facesarabylinks":{"c":21209,"n":7,"g":305479},"colehaan":{"c":66,"n":4},"metrobrazil":{"c":11,"n":2},"charlottetilbury":{"c":95371,"n":8},"bananarepublic":{"c":0,"n":1},"toucheprive":{"c":142,"n":1,"g":284},"squatwolf":{"c":19,"n":3,"g":162},"cos":{"c":52,"n":6,"g":3340},"goldenscentmt":{"c":17478,"n":8,"g":62549},"ultabeauty":{"c":11678,"n":8,"g":117341},"allbirds":{"c":366,"n":3,"g":355},"anafasicmt":{"c":2242,"n":3},"kitopirightbitemt":{"c":4446,"n":3,"g":31084},"aizamt":{"c":1935,"n":2},"maisonsafqamt":{"c":2906,"n":1,"g":17387},"studioearthmt":{"c":917,"n":1,"g":1139},"justhypemt":{"c":875,"n":1,"g":2407}};
 let MT_ROAS_MAP = null;   // filled live from the ROAS-factor mapping sheet (gid 1342595245)
@@ -331,7 +334,7 @@ async function boot() {
     if (inline) RAW = JSON.parse(inline.textContent);
     else { const r = await fetch('data.json', { cache: 'no-store' }); RAW = await r.json(); }
   } catch (e) { document.getElementById('loading').textContent = 'Could not load data.json. Serve this folder over http (GitHub Pages) rather than opening the file directly.'; return; }
-  M = RAW.meta;
+  M = RAW.meta; MT_CUT = M.latest_month;
   // pipeline-built segmentation / control inputs (data pack); the inline constants above are the fallback
   if (RAW.base && RAW.base.series) { if (RAW.base.series.comm_ttm) MT_COMM_TTM = RAW.base.series.comm_ttm; if (RAW.base.series.adj_indicator) MT_ADJ = RAW.base.series.adj_indicator; }
   const ctl = M.control;
@@ -1142,9 +1145,10 @@ function renderSegmentation() {
   function trackerHeaderRow(rows) { for (let i = 0; i < rows.length; i++) { const set = new Set(rows[i].map(lNorm)); if (set.has('brandname') && set.has('status')) return i; } return 0; }
   function parseTracker(rows) { if (!rows.length) return { churned: new Map(), onHold: new Set() }; const hh = trackerHeaderRow(rows); const get = colGetter(rows[hh]); const churned = new Map(), onHold = new Set(); for (const r of rows.slice(hh + 1)) { const b = String(get(r, 'Brand Name') || '').trim(); if (!b || brandKey(b) === 'average') continue; const st = String(get(r, 'Status') || ''); if (/churn/i.test(st)) churned.set(brandKey(b), { name: b, month: parseChurnMonth(get(r, 'Churn Date', 'Churn Month', 'Churned Month', 'Churn date')) }); else if (/on hold/i.test(st)) onHold.add(brandKey(b)); } return { churned, onHold }; }
 
-  function buildLadder(recvRows, trackerRows) {
+  function buildLadder(recvRows, trackerRows, cutKey) {
     const header = recvRows[0], get = colGetter(header);
-    const today = sheetToday(header, recvRows.slice(1), get);
+    let today = sheetToday(header, recvRows.slice(1), get);
+    if (cutKey != null) { const cy = Math.floor(cutKey / 12), cm = cutKey % 12; today = new Date(Date.UTC(cy, cm + 1, 0)); }   // last day of the update month
     const months = gridMonths(today);
     const gridStartDate = new Date(Date.UTC(GRID_START.y, GRID_START.m - 1, 1));
     const elapsed = Math.round((today - gridStartDate) / 86400000 / 30);
@@ -1160,9 +1164,11 @@ function renderSegmentation() {
       let gross = usd != null ? usd : (aed != null ? aed / AED_PER_USD : 0);
       if (/included/i.test(vat)) gross = gross / (1 + VAT_RATE);
       const net = Math.max(0, gross - refund);
+      if (cutKey != null) { const d = pdt || idate; if (d && ym(d) > cutKey) continue; }   // nothing after the update date
       if (!brands.has(brand)) brands.set(brand, []); brands.get(brand).push({ status, ms, idate, pdt, net });
     }
     const { churned, onHold } = parseTracker(trackerRows);
+    if (cutKey != null) for (const [k, c] of [...churned]) { if (c.month && c.month.key != null && c.month.key > cutKey) churned.delete(k); }   // churn after the update date is not yet known
     const rowsOut = [];
     for (const [brand, invs] of brands) {
       const paid = invs.filter(i => i.status === 'Paid'); if (!paid.length) continue;
@@ -1247,7 +1253,7 @@ function renderSegmentation() {
     });
     t += '</tbody></table></div>';
     root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">05 · ROAS Ladder</p><h1 class="h2">ROAS clients, live from receivables + tracker</h1>'
-      + '<p>Paid invoices drive activation, milestone movement, the monthly grid and ARPA (M1–M2 = spend to date, M3+ = latest paid × 12). Churn comes only from the ROAS tracker. As of ' + built.today.toISOString().slice(0, 10) + '.</p></div></div>'
+      + '<p>Paid invoices drive activation, milestone movement, the monthly grid and ARPA (M1–M2 = spend to date, M3+ = latest paid × 12). Churn comes only from the ROAS tracker. Cut at the model update date, ' + built.today.toISOString().slice(0, 10) + ' — later payments and churn in the sheets are not counted until the next data pack.</p></div></div>'
       + '<div class="grid g4">'
       + '<div class="card block"><p class="eyebrow">Fleet ARPA</p><div class="hero">' + money(built.fleetARPA) + '</div><div class="muted small">across ' + built.counts.brands + ' qualifying brands</div></div>'
       + '<div class="card"><p class="eyebrow">Brands on ladder</p><div class="hero">' + built.counts.brands + '</div><div class="muted small">≥1 paid ROAS invoice</div></div>'
@@ -1265,7 +1271,7 @@ function renderSegmentation() {
 
   async function initLadder() {
     setLadderMsg('<div class="loading">Loading the ROAS ladder from the live sheets…</div>');
-    try { const src = await fetchLadderSources(); BUILT = buildLadder(src.recvRows, src.trackerRows); BUILT.trackerError = src.trackerError; renderLadder(); }
+    try { const src = await fetchLadderSources(); await mtWaitCut(); BUILT = buildLadder(src.recvRows, src.trackerRows, mtCutKey()); BUILT.trackerError = src.trackerError; renderLadder(); }
     catch (e) { setLadderMsg('<b>Live data problem.</b> Could not load the receivables sheet (' + esc2(String(e && e.message || e)) + '). The ladder is not shown rather than shown stale. Open this page over the web (the published Google Sheets must be reachable from the browser).'); }
   }
   // kick off once the DOM is ready; independent of the main data build
@@ -1295,7 +1301,7 @@ function renderSegmentation() {
     const norm = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
     const hIdx = rows.findIndex(r => r.length && norm(r[0]) === 'category'); if (hIdx < 0) throw new Error('CAC sheet: header row ("Category") not found');
     const header = rows[hIdx]; const monthCols = [];
-    header.forEach((h, i) => { const pm = parseMonthHeader(h); if (pm) monthCols.push({ col: i, ...pm }); });
+    header.forEach((h, i) => { const pm = parseMonthHeader(h); if (pm && (mtCutKey() == null || pm.y * 12 + (pm.m - 1) <= mtCutKey())) monthCols.push({ col: i, ...pm }); });   // nothing after the update date
     if (!monthCols.length) throw new Error('CAC sheet: no month columns found');
     const months = monthCols.map(c => ({ y: c.y, m: c.m }));
     const vals = r => monthCols.map(c => c.col < r.length ? cnum(r[c.col]) : null);
@@ -1384,7 +1390,7 @@ function renderSegmentation() {
   async function initCac() {
     setCacMsg('<div class="loading">Loading CAC from the live sheet…</div>');
     try {
-      PARSED = await fetchCacSheet();
+      await mtWaitCut(); PARSED = await fetchCacSheet();
       const yrs = [...new Set(PARSED.months.map(mm => mm.y))].sort();
       let saved = null; try { saved = +localStorage.getItem('mm.cacYear') || null; } catch (e) {}
       cacYear = (saved && yrs.includes(saved)) ? saved : (yrs.includes(2026) ? 2026 : yrs[yrs.length - 1]);
@@ -1450,6 +1456,9 @@ function renderSegmentation() {
       if (mc.length >= 3) { hdr = i; monthCols = mc; break; }
     }
     if (hdr < 0) throw new Error('P&L header row (month names) not found');
+    // nothing after the model update date (the sheet year is in its first rows; default 2026)
+    let sheetYear = 2026; for (let i = 0; i < Math.min(3, rows.length); i++) for (const c of rows[i]) { const mm = String(c || '').trim().match(/^(20\d\d)$/); if (mm) { sheetYear = +mm[1]; break; } }
+    if (mtCutKey() != null) monthCols = monthCols.filter(mc => sheetYear * 12 + mc.m <= mtCutKey());
     const lines = []; let pos = hdr + 1;
     for (const [match, disp, style] of TPL) {
       let found = -1;
@@ -1491,7 +1500,7 @@ function renderSegmentation() {
 
   async function init() {
     setMsg('<div class="loading">Loading the 2026 P&L from the live sheet…</div>');
-    try { const res = await fetch(PNL_SOURCE); if (!res.ok) throw new Error('HTTP ' + res.status); render(parsePnl(parseCSV(await res.text()))); }
+    try { const res = await fetch(PNL_SOURCE); if (!res.ok) throw new Error('HTTP ' + res.status); const txt = await res.text(); await mtWaitCut(); render(parsePnl(parseCSV(txt))); }
     catch (e) { setMsg('<b>Live data problem.</b> Could not load the 2026 Model P&L sheet (' + esc2(String(e && e.message || e)) + '). Open this page over the web (the published sheet must be reachable from the browser).'); }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

@@ -15,28 +15,28 @@ CF13,§7,Active merchants (legacy rule only),Aug-26,Datos merchants,25,25,count,
 CF14,§7 counting,Active legacy merchants,Aug-26,Legacy,23,23,count,0,
 CF15,§7 counting,Active ROAS brands (incl. Jetour),Aug-26,ROAS,23,23,count,0,Jetour moves to Other pricing from Jun-26
 CF16,§7 counting,Total active merchants,Aug-26,Total,46,46,count,0,
-CF17,§7,ROAS brands signed (incl. Jetour),Nov-25 to Sep-26,ROAS,39,39,count,0,Pack shows 37 (excludes Touche Prive) | re-baselined 2026-11-05: live ROAS ladder snapshot (incl. Jetour)
-CF18,§7,Active ROAS brands (excl. Jetour),Sep-26,ROAS,28,28,count,0,
+CF17,§7,ROAS brands signed (incl. Jetour),Nov-25 to Sep-26,ROAS,30,30,count,0,Pack shows 37 (excludes Touche Prive) | re-baselined 2026-11-05: live ROAS ladder snapshot (incl. Jetour) | re-baselined 2026-11-05: model cut at the Aug-26 update date (no data after it)
+CF18,§7,Active ROAS brands (excl. Jetour),Sep-26,ROAS,22,22,count,0,re-baselined 2026-11-05: model cut at the Aug-26 update date (no data after it)
 CF19,§8,Active creators,Aug-26,Creators,254,254,count,0,Re-run when net history arrives
 CF20,§8,Emerging creators,Aug-26,Creators,803,803,count,0,Recently churned creators who ordered in the last 6 months count as Emerging (spec §8). Corrected from 773
 CF21,§6,Major creators (annualised rule),Aug-26,Creators,20,20,count,0,
 CF22,§S4,Total net orders incl. Unattributed,Aug-26,Total,17780.88,17780.88,count,0.5,17149 + 96 unattributed | re-baselined 2026-11-04: monthly data pack rebuild
-CF23,§10.1,ROAS ARR,Sep-26,ROAS,226676.0,226676.0,USD,1,Matches VC pack | re-baselined 2026-11-05: live ROAS ladder snapshot (incl. Jetour)
+CF23,§10.1,ROAS ARR,Sep-26,ROAS,150676.0,150676.0,USD,1,Matches VC pack | re-baselined 2026-11-05: live ROAS ladder snapshot (incl. Jetour) | re-baselined 2026-11-05: model cut at the Aug-26 update date (no data after it)
 CF24,§10.1,Legacy run-rate (3m seasonality-adj),Jul-26,Legacy,5.05,5.05,USD M,0.02,
 CF25,§10.1,Legacy run-rate (3m seasonality-adj),Aug-26,Legacy,4.13,4.13,USD M,0.02,Provisional Ounass | re-baselined 2026-11-04: monthly data pack rebuild
 CF26,§10.2,ARPA,Jul-26,Enterprise,1.31,1.31,USD M,0.01,Depends on Ounass Jul-26: system value applies until the updated extract is loaded | re-baselined 2026-11-04: monthly data pack rebuild
 CF27,§10.2,ARPA,Jul-26,Growth,51.0,51.0,USD k,0.5,re-baselined 2026-11-04: monthly data pack rebuild
-CF28,§10.2,ARPA (avg active),Q3-26,ROAS,9444.8,9444.8,USD,10,Pack uses end-of-period: 7961 | re-baselined 2026-11-05: live ROAS ladder snapshot (incl. Jetour)
+CF28,§10.2,ARPA (avg active),Q3-26,ROAS,6848.9,6848.9,USD,10,Pack uses end-of-period: 7961 | re-baselined 2026-11-05: live ROAS ladder snapshot (incl. Jetour) | re-baselined 2026-11-05: model cut at the Aug-26 update date (no data after it)
 CF29,§10.3,Legacy unique churned,TTM Aug-26,Legacy,15,15,count,0,
 CF30,§10.3,Legacy average active,TTM Aug-26,Legacy,26.8,26.8,count,0.1,
-CF31,§10.3,ROAS churned (incl. Lawni),Nov-25 to Sep-26,ROAS,11,11,count,0,9 L1 + 1 L2+ (Golden Scent) | re-baselined 2026-11-05: live ROAS ladder snapshot (incl. Jetour)
+CF31,§10.3,ROAS churned (incl. Lawni),Nov-25 to Sep-26,ROAS,8,8,count,0,9 L1 + 1 L2+ (Golden Scent) | re-baselined 2026-11-05: live ROAS ladder snapshot (incl. Jetour) | re-baselined 2026-11-05: model cut at the Aug-26 update date (no data after it)
 CF32,§10.4,NRR rolling 12m,Aug-26,Legacy,143.9,143.9,%,1,Depends on Ounass Jul-26: system value applies until the updated extract is loaded | re-baselined 2026-11-04: monthly data pack rebuild
 CF33,§10.4,GRR rolling 12m,Aug-26,Legacy,96,96,%,1,
 CF34,§10.4,NRR QoQ,Q2-26 vs Q1-26,ROAS,44,44,%,1,Matches pack
-CF35,§10.4,NRR QoQ,Q3-26 vs Q2-26,ROAS,137.1,137.1,%,1,Matches pack | re-baselined 2026-11-05: live ROAS ladder snapshot (incl. Jetour)
+CF35,§10.4,NRR QoQ,Q3-26 vs Q2-26,ROAS,113.7,113.7,%,1,Matches pack | re-baselined 2026-11-05: live ROAS ladder snapshot (incl. Jetour) | re-baselined 2026-11-05: model cut at the Aug-26 update date (no data after it)
 CF36,§10.5,CAC (pack basis: 37 brands; Sep spend assumed 8500),Nov-25 to Sep-26,ROAS,1984,1984,USD,1,Dashboard must NOT assume Sep spend; this check only validates the formula
 CF37,§10.5,CAC,Q2-26,ROAS,2045.4,2045.4,USD,1,re-baselined 2026-11-05: live ROAS ladder snapshot (incl. Jetour)
-CF38,§10.6,LTV (blended),Q3-26,ROAS,4293.1,4293.1,USD,25,ARPA 9895; monthly churn 8.5%; margin 50% | re-baselined 2026-11-05: live ROAS ladder snapshot (incl. Jetour)
+CF38,§10.6,LTV (blended),Q3-26,ROAS,4066.5,4066.5,USD,25,ARPA 9895; monthly churn 8.5%; margin 50% | re-baselined 2026-11-05: live ROAS ladder snapshot (incl. Jetour) | re-baselined 2026-11-05: model cut at the Aug-26 update date (no data after it)
 CF39,§10.6,LTV (revenue churn basis),Jul-26,Legacy Growth & SME,98.9,98.9,USD k,1,"Legacy margin = TTM contribution margin (54.4%), spec §10.6 | re-baselined 2026-11-04: monthly data pack rebuild"
 CF40,§10.9,Concentration top 1,TTM Aug-26,Total,56.2,56.2,%,1,Ounass; Depends on Ounass Jul-26: system value applies until the updated extract is loaded | re-baselined 2026-11-04: monthly data pack rebuild
 CF41,§10.9,Concentration top 5,TTM Aug-26,Total,90.5,90.5,%,1,Depends on Ounass Jul-26: system value applies until the updated extract is loaded | re-baselined 2026-11-04: monthly data pack rebuild

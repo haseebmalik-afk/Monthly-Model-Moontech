@@ -306,6 +306,8 @@ const state = {
 };
 if (state.theme) document.documentElement.setAttribute('data-theme', state.theme);
 let RAW = null, D = null, S = null, P = null, M = null;
+const MT_LIVE = {};   // live-source status for the Control checklist: ladder / cac / pnl / map -> {ok, err, ...}
+function mtLiveReport(key, val) { MT_LIVE[key] = val; try { if (M && D && typeof renderControl === 'function') renderControl(); } catch (e) {} }
 let MT_CUT = null;   // model update date 'YYYY-MM' (control latest_month): every live source is cut here too, even when the sheet has later months
 function mtCutKey() { return MT_CUT ? (+MT_CUT.slice(0, 4)) * 12 + (+MT_CUT.slice(5, 7) - 1) : null; }
 function mtWaitCut(ms = 15000) { return new Promise(res => { const t0 = Date.now(); (function tick() { if (MT_CUT || Date.now() - t0 > ms) res(MT_CUT); else setTimeout(tick, 100); })(); }); }
@@ -899,8 +901,52 @@ function renderControl() {
     + (MT_ADJ.tracked ? adjRow('= Adjustment', MT_ADJ.adj, 'tot') : '')
     + `<tr class="sub2"><td style="text-align:left" class="muted">memo: ROAS brands still in merchant tracking (not counted as commission)</td>${MT_ADJ.spotted.map(v => '<td class="muted">' + fmt.money(v) + '</td>').join('')}<td class="muted">${fmt.money(MT_ADJ.spotted.reduce((a, b) => a + b, 0))}</td></tr>`
     + '</tbody></table>';
+  // ---- health checklist: build-time flags (pipeline) + live-source checks (browser)
+  const Lk_ = L();
+  const items = (M.health || []).slice();
+  const live = (key, pending) => { const v = MT_LIVE[key]; if (!v) items.push({ id: 'live_' + key, level: 'info', title: pending, detail: 'Waiting for the live sheet…' }); return v; };
+  const lad = live('ladder', 'ROAS ladder (live): loading');
+  if (lad) {
+    if (!lad.ok) items.push({ id: 'live_ladder', level: 'bad', title: 'ROAS ladder sheets unreachable', detail: lad.err + ' — the receivables/tracker publish link may have changed.' });
+    else {
+      const baked = D.roas_brands.filter(b => !b.other_pricing || true); const bakedPaid = baked.reduce((a, b) => a + (b.paid_to_latest || 0), 0);
+      const diff = Math.abs(bakedPaid - lad.paid) > 50 || baked.length !== lad.brands;
+      items.push({ id: 'live_ladder', level: diff ? 'warn' : 'ok', title: diff ? 'Ladder snapshot in the pack differs from the live ladder' : 'Ladder snapshot matches the live ladder', detail: `Live (cut at ${fmt.month(Lm)}): ${lad.brands} brands, ${fmt.money(lad.paid)} paid. Pack snapshot: ${baked.length} brands, ${fmt.money(bakedPaid)}.` + (diff ? ' Re-pull the ladder with the next data pack.' : '') });
+      if (lad.trackerError) items.push({ id: 'live_tracker', level: 'warn', title: 'ROAS tracker unreachable', detail: lad.trackerError });
+      if (lad.unmatched && lad.unmatched.length) items.push({ id: 'live_unmatched', level: 'warn', title: 'Churned in tracker but not in receivables', detail: lad.unmatched.join(', ') });
+    }
+  }
+  const cac = live('cac', 'CAC sheet (live): loading');
+  if (cac) {
+    if (!cac.ok) items.push({ id: 'live_cac', level: 'bad', title: 'CAC sheet unreachable', detail: cac.err + ' — LTV:CAC and payback fall back to the baked CAC.' });
+    else { const lm = cac.lastMonth; const reach = lm && (lm.y * 12 + lm.m - 1) >= mtCutKey();
+      items.push({ id: 'live_cac', level: reach ? 'ok' : 'warn', title: reach ? `CAC sheet covers ${fmt.month(Lm)}` : `CAC sheet has no ${fmt.month(Lm)} column yet`, detail: `Live blended merchant CAC ${MT_LIVE_CAC ? fmt.money(MT_LIVE_CAC.cac) : '—'} (${cac.n} new clients, ${fmt.money(cac.cost)} spend, ${Lm.slice(0, 4)} to ${fmt.month(Lm)}).` }); }
+  }
+  const pn = live('pnl', '2026 P&L sheet (live): loading');
+  if (pn) {
+    if (!pn.ok) items.push({ id: 'live_pnl', level: 'bad', title: '2026 P&L sheet unreachable', detail: pn.err });
+    else { const baked = S.rev_total[Lk_]; const tie = pn.salesLatest != null && Math.abs(pn.salesLatest - baked) < 1;
+      items.push({ id: 'live_pnl', level: tie ? 'ok' : 'bad', title: tie ? `Live P&L ties to the pack for ${fmt.month(Lm)}` : `Live P&L differs from the pack for ${fmt.month(Lm)}`, detail: `Sales ${fmt.month(Lm)}: live ${fmt.moneyFull ? fmt.moneyFull(pn.salesLatest) : fmt.money(pn.salesLatest)} vs pack ${fmt.moneyFull ? fmt.moneyFull(baked) : fmt.money(baked)}.` + (tie ? '' : ' The published P&L changed after the pack was built — rebuild with a fresh pull.') }); }
+  }
+  const mp = live('map', 'ROAS-factor mapping sheet (live): loading');
+  if (mp) {
+    if (!mp.ok) items.push({ id: 'live_map', level: 'bad', title: 'ROAS-factor mapping sheet unreachable', detail: mp.err + ' — ROAS factor shows — on Segmentation.' });
+    else { const act = D.roas_brands.filter(b => ['New', 'Existing', 'Reactivated'].includes(b.status)); const miss = act.filter(b => { const Lv = (b.level_monthly && b.level_monthly[Lk_] != null) ? b.level_monthly[Lk_] : parseInt(String(b.level).replace(/[^0-9]/g, ''), 10); return Lv && mtRoasFactor(b.name, Lv) == null; }).map(b => b.name);
+      items.push({ id: 'live_map', level: miss.length ? 'warn' : 'ok', title: miss.length ? `${miss.length} active ROAS clients with no ROAS-factor mapping` : 'ROAS-factor mapping covers all active ROAS clients', detail: miss.length ? miss.join(', ') + ' — add them to the CSM mapping sheet.' : `${mp.clients} clients mapped.` }); }
+  }
+  const order = { bad: 0, warn: 1, info: 2, ok: 3 };
+  items.sort((a, b) => order[a.level] - order[b.level]);
+  const nBad = items.filter(i => i.level === 'bad').length, nWarn = items.filter(i => i.level === 'warn').length;
+  const ico = { bad: '<span class="neg">●</span>', warn: '<span style="color:var(--coral)">●</span>', info: '<span class="muted">●</span>', ok: '<span class="ok">●</span>' };
+  const healthRows = items.map(i => `<tr><td style="width:18px">${ico[i.level]}</td><td style="text-align:left;white-space:normal"><b>${i.title}</b>${i.detail ? '<div class="muted small">' + i.detail + '</div>' : ''}</td></tr>`).join('');
+  const healthCard = `<div class="card" style="margin-bottom:16px"><p class="eyebrow">Checklist · update date ${fmt.month(Lm)}</p>
+    <h3 class="h3">${nBad ? '<span class="neg">' + nBad + ' red flag' + (nBad > 1 ? 's' : '') + '</span>' : 'No red flags'}${nWarn ? ' · ' + nWarn + ' to watch' : ''} · ${items.filter(i => i.level === 'ok').length} OK</h3>
+    <div class="tblwrap"><table class="t dense"><tbody>${healthRows}</tbody></table></div>
+    <div class="note">Re-computed on every build and every page load: pack completeness and coverage of the update month, ladder snapshot freshness, client segmentation (commission and ROAS), unknown merchant names, Adjustment size, check figures, creator IDs, Ounass confirmations, cash inputs, and the four live sheets (reachable, in step with the pack, mapping coverage). Red = fix before publishing; coral = watch.</div></div>`;
+
   root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">05 · Control &amp; data quality</p><h1 class="h2">Finance controls and the monthly load check</h1><p>Nothing here changes a number by hand. Confirmations and switches set status; every figure is recomputed from the extracts. Changes are kept in this browser until you export <code>control.json</code> and commit it with the next monthly build.</p></div>
       <button class="btn" id="export-ctl">Export control.json</button></div>
+    ${healthCard}
     <div class="grid g2">
       <div class="card"><p class="eyebrow">Ounass provisional months</p><h3 class="h3">Buffer AED ${o.buffer_aed.toLocaleString()} · currently <b>${state.buffer === 'on' ? 'held' : 'added back'}</b></h3>
         <div class="tblwrap"><table class="t dense fit"><thead><tr><th>Month</th><th>System figure</th><th>USD</th><th>Buffer</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
@@ -1271,8 +1317,9 @@ function renderSegmentation() {
 
   async function initLadder() {
     setLadderMsg('<div class="loading">Loading the ROAS ladder from the live sheets…</div>');
-    try { const src = await fetchLadderSources(); await mtWaitCut(); BUILT = buildLadder(src.recvRows, src.trackerRows, mtCutKey()); BUILT.trackerError = src.trackerError; renderLadder(); }
-    catch (e) { setLadderMsg('<b>Live data problem.</b> Could not load the receivables sheet (' + esc2(String(e && e.message || e)) + '). The ladder is not shown rather than shown stale. Open this page over the web (the published Google Sheets must be reachable from the browser).'); }
+    try { const src = await fetchLadderSources(); await mtWaitCut(); BUILT = buildLadder(src.recvRows, src.trackerRows, mtCutKey()); BUILT.trackerError = src.trackerError; renderLadder();
+      mtLiveReport('ladder', { ok: true, brands: BUILT.rows.length, paid: BUILT.rows.reduce((a, r) => a + r.total, 0), churned: BUILT.counts.dropped, trackerError: src.trackerError, unmatched: BUILT.unmatchedChurn }); }
+    catch (e) { mtLiveReport('ladder', { ok: false, err: String(e && e.message || e) }); setLadderMsg('<b>Live data problem.</b> Could not load the receivables sheet (' + esc2(String(e && e.message || e)) + '). The ladder is not shown rather than shown stale. Open this page over the web (the published Google Sheets must be reachable from the browser).'); }
   }
   // kick off once the DOM is ready; independent of the main data build
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initLadder); else initLadder();
@@ -1398,9 +1445,10 @@ function renderSegmentation() {
       // publish live blended merchant CAC (current year YTD) for LTV:CAC on KPIs / Investor / Segmentation
       try { const C = cacForYear(PARSED, cacYear); const s = C.merchant; let cost = 0, n = 0;
         s.cost.forEach((v, m) => { if (v != null) { cost += v; if (s.count[m] != null) n += s.count[m]; } });
+        mtLiveReport('cac', { ok: true, lastMonth: PARSED.months.length ? PARSED.months[PARSED.months.length - 1] : null, n, cost });
         if (n > 0) { MT_LIVE_CAC = { cac: cost / n, cost, n, year: cacYear };
           ['renderKpis', 'renderInvestor', 'renderSegmentation'].forEach(f => { try { if (typeof window[f] === 'function') window[f](); } catch (e) {} }); } } catch (e) {}
-    } catch (e) { setCacMsg('<b>Live data problem.</b> Could not load the CAC sheet (' + esc2(String(e && e.message || e)) + '). Open this page over the web (the published Google Sheet must be reachable from the browser).'); }
+    } catch (e) { mtLiveReport('cac', { ok: false, err: String(e && e.message || e) }); setCacMsg('<b>Live data problem.</b> Could not load the CAC sheet (' + esc2(String(e && e.message || e)) + '). Open this page over the web (the published Google Sheet must be reachable from the browser).'); }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initCac); else initCac();
 })();
@@ -1500,8 +1548,9 @@ function renderSegmentation() {
 
   async function init() {
     setMsg('<div class="loading">Loading the 2026 P&L from the live sheet…</div>');
-    try { const res = await fetch(PNL_SOURCE); if (!res.ok) throw new Error('HTTP ' + res.status); const txt = await res.text(); await mtWaitCut(); render(parsePnl(parseCSV(txt))); }
-    catch (e) { setMsg('<b>Live data problem.</b> Could not load the 2026 Model P&L sheet (' + esc2(String(e && e.message || e)) + '). Open this page over the web (the published sheet must be reachable from the browser).'); }
+    try { const res = await fetch(PNL_SOURCE); if (!res.ok) throw new Error('HTTP ' + res.status); const txt = await res.text(); await mtWaitCut(); const parsed = parsePnl(parseCSV(txt)); render(parsed);
+      const sales = parsed.lines.find(l => /^sales$/i.test(l.label)); const vals = sales ? sales.values.filter(v => v != null) : []; mtLiveReport('pnl', { ok: true, months: parsed.months.length, salesLatest: vals.length ? vals[vals.length - 1] : null }); }
+    catch (e) { mtLiveReport('pnl', { ok: false, err: String(e && e.message || e) }); setMsg('<b>Live data problem.</b> Could not load the 2026 Model P&L sheet (' + esc2(String(e && e.message || e)) + '). Open this page over the web (the published sheet must be reachable from the browser).'); }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
@@ -1531,8 +1580,8 @@ function renderSegmentation() {
   }
   async function init() {
     try { const res = await fetch(MAP_SOURCE); if (!res.ok) throw new Error('HTTP ' + res.status); MT_ROAS_MAP = parseMap(parseCSV(await res.text()));
-      if (typeof renderSegmentation === 'function' && document.getElementById('page-segmentation')) renderSegmentation(); }
-    catch (e) { /* leave MT_ROAS_MAP null; segmentation shows ROAS factor as — with a loading note */ }
+      if (typeof renderSegmentation === 'function' && document.getElementById('page-segmentation')) renderSegmentation(); mtLiveReport('map', { ok: true, clients: Object.keys(MT_ROAS_MAP).length }); }
+    catch (e) { mtLiveReport('map', { ok: false, err: String(e && e.message || e) }); /* leave MT_ROAS_MAP null; segmentation shows ROAS factor as — */ }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

@@ -22,7 +22,7 @@ migrated/overlap clients (DKNY, Izil, ...) stay in commission and the engine spl
 import os, re, csv, json, datetime as dt
 import openpyxl
 import moontech_ref as R
-from moontech_ref import kidx, NM
+from moontech_ref import kidx, NM, mo
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -402,3 +402,61 @@ def level_monthly(brand):
         if k in byk: cur = max(cur or 0, byk[k])
         out[k] = cur
     return out
+
+# ----------------------------------------------------------------------------- health checklist (Control page)
+def health(E, ds, ctl, checks):
+    """Red flags / warnings / info for the Control page, computed at build time. Each item: id, level (bad|warn|ok|info), title, detail."""
+    H = []; add = lambda id_, level, title, detail='': H.append({'id': id_, 'level': level, 'title': title, 'detail': detail})
+    CUT = cut_k(); cut_label = ctl['latest_month']; fx = E.fx
+    # 1. pack files
+    need = {'net_sales_by_client.xlsx': 'Net Sales & Orders by Client', 'orders_by_creator.xlsx': 'Orders by Creator', 'ads_by_creator.xlsx': 'Ads by Creator',
+            'revenue_by_merchant.xlsx': 'Revenue by Merchant', '2026_model_pnl.csv': '2026 Model P&L', 'ladder.json': 'ROAS ladder snapshot', 'ladder_milestones.json': 'ROAS level history'}
+    missing = [v for f, v in need.items() if not os.path.exists(os.path.join(PACK, f))]
+    add('pack_files', 'bad' if missing else 'ok', 'Data pack complete' if not missing else 'Data pack incomplete', ('Missing: ' + ', '.join(missing)) if missing else 'All 7 pack files present (update date %s).' % cut_label)
+    # 2. coverage of the update month in each export
+    def cover(name, ok, detail): add('cover_' + name, 'ok' if ok else 'bad', ('%s covers %s' % (name, cut_label)) if ok else ('%s does not reach %s' % (name, cut_label)), detail)
+    try:
+        gmv, ads = load_gmv_ads(None); cover('GMV (client net sales)', bool(gmv[CUT]), 'latest month GMV $%s' % format(round(gmv[CUT] or 0), ',')); cover('Closed ads', bool(ads[CUT]), '%s ads in %s' % (format(round(ads[CUT] or 0), ','), cut_label))
+    except Exception as e: add('cover_gmv', 'bad', 'GMV / ads export could not be read', str(e))
+    try: cover('Net orders (creators)', bool(sum(E.orders[i][CUT] for i in E.orders) + E.unatt[CUT]), '%s net orders in %s' % (format(round(sum(E.orders[i][CUT] for i in E.orders) + E.unatt[CUT]), ','), cut_label))
+    except Exception as e: add('cover_orders', 'bad', 'Orders export could not be read', str(e))
+    cover('Revenue by Merchant', bool(sum(v[CUT] for v in E.rev.values())), '$%s commission tracked in %s' % (format(round(sum(v[CUT] for v in E.rev.values()) / fx), ','), cut_label))
+    cover('P&L', bool(E.pl['sales'][CUT]), 'P&L Sales %s = $%s' % (cut_label, format(round(E.pl['sales'][CUT] / fx), ',')))
+    # 3. ladder snapshot
+    rows, today = _ladder_rows()
+    if today:
+        ty, tm = int(today[:4]), int(today[5:7]); fresh = kidx(ty, tm) >= CUT
+        waiting = [b['name'] for b in rows if b.get('since') and kidx(*map(int, str(b['since'])[:7].split('-'))) > CUT]
+        add('ladder_snapshot', 'ok' if fresh else 'bad', 'ROAS ladder snapshot %s' % ('is current' if fresh else 'is older than the update date'), 'Pulled %s from the live sheets. %d brands in the model to %s; %d signed later, waiting for the next update date (%s).' % (today, sum(1 for b in rows if b.get('since') and kidx(*map(int, str(b['since'])[:7].split('-'))) <= CUT), cut_label, len(waiting), ', '.join(waiting[:8]) + ('…' if len(waiting) > 8 else '')))
+    else: add('ladder_snapshot', 'warn', 'ROAS ladder from the previous build', 'No ladder.json in the pack; the ladder is the previous build\'s snapshot.')
+    # 4. segments
+    ud = [b['name'] for b in ds['roas_brands'] if b.get('segment_confidence') == 'U.D']
+    add('roas_segments', 'bad' if ud else 'ok', 'ROAS client segmentation complete' if not ud else '%d ROAS clients without a segment (SME · U.D)' % len(ud), ', '.join(ud) if ud else 'Every ROAS brand in the model has an E/G/SME segment (Kareem\'s segmentation file).')
+    pending_seg = [b['name'] for b in rows if b.get('since') and kidx(*map(int, str(b['since'])[:7].split('-'))) > CUT and not _segment_known(b['name'])]
+    if pending_seg: add('roas_segments_next', 'warn', '%d brands signed after %s have no segment yet' % (len(pending_seg), cut_label), 'They will show as SME · U.D when the update date moves: ' + ', '.join(pending_seg))
+    un = [m['name'] for m in ds['merchants'] if m.get('segment') in (None, 'Unassigned')]
+    add('merchant_segments', 'warn' if un else 'ok', 'Commission client segmentation complete' if not un else '%d commission clients unassigned' % len(un), ', '.join(un))
+    # 5. merchant names not in the master
+    nn = [r['extract_name'] for r in ds['review']['new_names']]
+    add('new_names', 'warn' if nn else 'ok', 'All merchant names recognised' if not nn else '%d new merchant names in the export' % len(nn), (', '.join(nn) + ' — add to merchant_master_seed.csv (alias or new client).') if nn else 'Every name in Revenue by Merchant matched the master list.')
+    sp = ds['series'].get('adj_indicator', {}).get('spotted', [])
+    if sp and sum(sp): add('roas_in_merchant', 'info', 'ROAS brands still invoiced through merchant tracking', '$%s in 2026 to %s, discounted from commission (part of the Adjustment).' % (format(round(sum(sp)), ','), cut_label))
+    # 6. adjustment size
+    big = [(mo(k), E.plug[k], E.plug[k] / E.total[k]) for k in range(24, CUT + 1) if E.total[k] and abs(E.plug[k] / E.total[k]) > 0.05]
+    add('adjustment', 'warn' if big else 'ok', 'Adjustment within 5% of P&L Sales every month' if not big else 'Adjustment above 5%% of P&L Sales in %d month(s)' % len(big), '; '.join('%s $%s (%.0f%%)' % (m, format(round(v), ','), p * 100) for m, v, p in big))
+    # 7. checks, creator ids, ounass
+    npass = sum(1 for c in checks if c['pass']); add('checks', 'ok' if npass == len(checks) else 'bad', 'Check figures %d/%d' % (npass, len(checks)), '' if npass == len(checks) else 'Failing: ' + ', '.join(c['id'] for c in checks if not c['pass']))
+    idf = ds['review']['creator_id_flags']; add('creator_ids', 'warn' if idf else 'ok', 'Creator IDs clean' if not idf else '%d creator-ID rows rejected' % len(idf), '' if not idf else 'See Creator-ID flags below.')
+    prov = [m for m in ctl['ounass']['provisional_months'] if m not in ctl['ounass']['confirmed_months']]
+    add('ounass', 'warn' if prov else 'ok', 'Ounass months confirmed' if not prov else 'Ounass provisional: ' + ', '.join(prov), '')
+    # 8. cash inputs
+    cash = ctl.get('cash') or {}
+    if not all(cash.get(k) not in (None, '') for k in ('balance_usd', 'monthly_burn_usd')): add('cash', 'warn', 'Cash inputs missing', 'Cash at month end and monthly burn are typed on the Investor page (then export control.json).')
+    return H
+
+def _segment_known(brand):
+    try:
+        for r in csv.DictReader(open(os.path.join(HERE, 'roas_segments.csv'))):
+            if r['brand'] == brand and r.get('confidence') != 'U.D' and r.get('source') != 'default': return True
+    except FileNotFoundError: pass
+    return False

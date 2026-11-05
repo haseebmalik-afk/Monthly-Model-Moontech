@@ -271,7 +271,10 @@ footer{border-top:1px solid var(--rule);padding:18px 0 40px;font-size:11.5px;col
 <main class="wrap">
   <div class="controls" id="controls">
     <div class="ctl"><label>View</label><div class="seg" id="ctl-view"><button data-v="seg" class="on">Segmented</button><button data-v="co">Company-wide</button></div></div>
-    <div class="ctl"><label>Period</label><select class="sel" id="ctl-period"></select></div>
+    <div class="ctl" id="ctl-periodwrap"><label>Period</label><div class="seg" id="ctl-ptype"><button data-v="FY">Year</button><button data-v="Q">Quarter</button><button data-v="M">Month</button><button data-v="TTM">TTM</button><button data-v="C">Custom</button></div>
+      <select class="sel" id="ctl-pyear" title="Year"></select><select class="sel" id="ctl-pval" title="Quarter / month"></select>
+      <span id="ctl-pcustom"><select class="sel" id="ctl-pfrom" title="From"></select><span class="muted small"> to </span><select class="sel" id="ctl-pto" title="To"></select></span>
+      <select id="ctl-period" style="display:none"></select></div>
     <div class="ctl" id="ctl-finwrap"><label>Detail</label><div class="seg" id="ctl-finview"><button data-v="pnl2026">2026 P&amp;L (live)</button><button data-v="annual" class="on">Annual</button><button data-v="monthly">Monthly</button><button data-v="actuals">Full grid</button></div></div>
     <div class="ctl"><label>Ounass buffer</label><div class="seg" id="ctl-buffer"><button data-v="on" class="on">On · held</button><button data-v="off">Off · added back</button></div></div>
     <div class="ctl"><label>Year</label><select class="sel" id="ctl-year"></select></div>
@@ -358,6 +361,15 @@ const HAS_OTHER = () => !!(S && S.rev_other && S.rev_other.some(v => v));   // '
 function mergeData() {
   const key = scenarioKey(); D = Object.assign({}, RAW.base, RAW.scenarios[key] || {});
   S = D.series; P = D.periods;
+  // readable period labels (the pipeline's keys stay as they are)
+  const mon3 = m => fmt.month(m).slice(0, 3);
+  Object.keys(P).forEach(k => { const p = P[k]; if (!p || !p.start) return;
+    if (k.startsWith('M:')) p.label = fmt.month(p.end);
+    else if (k.startsWith('Q:')) p.label = k.slice(-2) + '-' + k.slice(2, 6).slice(2) + ' (' + mon3(p.start) + '–' + mon3(p.end) + (p.complete ? '' : ', to date') + ')';
+    else if (k.startsWith('FY:')) p.label = 'FY ' + k.slice(3);
+    else if (k.startsWith('YTD:')) p.label = k.slice(4) + ' YTD (' + mon3(p.start) + '–' + mon3(p.end) + ')';
+    else if (k.startsWith('TTM:')) p.label = '12 months to ' + fmt.month(p.end);
+    else if (k === 'SL') p.label = 'Since ROAS launch (' + fmt.month(p.start) + '–' + fmt.month(p.end) + ')'; });
 }
 function addbackActive() { return scenarioKey() !== 'none'; }
 
@@ -409,6 +421,69 @@ function annualisedPL() { // 10.19 annualised with capitalisation setting of 202
   o.cm_pct = o.cm / rev; o.gm_pct = o.gp / rev; o.ebitda_pct = o.ebitda / rev; o.np_pct = o.np_tp / rev; return o;
 }
 
+/* ============================================================ periods: custom ranges built from the monthly periods */
+function addDeep(a, b) { if (typeof a === 'number' && typeof b === 'number') return a + b; if (a && b && typeof a === 'object' && typeof b === 'object') { const o = {}; new Set([...Object.keys(a), ...Object.keys(b)]).forEach(k => o[k] = addDeep(a[k], b[k])); return o; } return a == null ? b : a; }
+function scaleDeep(a, f) { if (typeof a === 'number') return a * f; if (a && typeof a === 'object') { const o = {}; Object.keys(a).forEach(k => o[k] = scaleDeep(a[k], f)); return o; } return a; }
+function customPeriod(sm, em) {
+  const ks = []; for (let k = sm; k <= em; k++) ks.push(k);
+  const Ms = ks.map(k => P['M:' + S.months[k]]).filter(Boolean); if (!Ms.length) return null;
+  const sumB = key => Ms.map(m => m[key]).reduce((a, b) => addDeep(a, b));
+  const end = Ms[Ms.length - 1];
+  const cr = sumB('creators'); ['active_end', 'emerging_end', 'major_end'].forEach(f => cr[f] = end.creators[f]);
+  cr.avg_active = Ms.reduce((a, m) => a + (m.creators.avg_active || 0), 0) / Ms.length; cr.orders_per_active = cr.avg_active ? cr.orders_active / cr.avg_active : null;
+  // concentration over the range from client monthly revenue (USD)
+  const rows = []; D.merchants.forEach(m => { const v = ks.reduce((a, k) => a + (m.monthly[k] || 0), 0); if (v > 0) rows.push({ name: m.name, rev: v }); });
+  D.roas_brands.forEach(b => { const v = ks.reduce((a, k) => a + (b.monthly[k] || 0), 0); if (v > 0) rows.push({ name: b.name, rev: v }); });
+  rows.sort((a, b) => b.rev - a.rev); const tot = rows.reduce((a, r) => a + r.rev, 0) || 1;
+  const conc = { top1: rows[0] ? rows[0].rev / tot : null, top1_name: rows[0] ? rows[0].name : null, top5: rows.slice(0, 5).reduce((a, r) => a + r.rev, 0) / tot, top10: rows.slice(0, 10).reduce((a, r) => a + r.rev, 0) / tot, hhi: rows.reduce((a, r) => a + Math.pow(r.rev / tot * 100, 2), 0), top: rows.slice(0, 10).map(r => ({ name: r.name, share: r.rev / tot, rev: r.rev })) };
+  const rev = sumB('rev');
+  let yoy = null; if (sm - 12 >= 0) { const prev = customPeriod.raw(sm - 12, em - 12); if (prev) yoy = { total: prev.rev.total ? rev.total / prev.rev.total - 1 : null, legacy: prev.rev.legacy ? rev.legacy / prev.rev.legacy - 1 : null, roas: prev.rev.roas ? rev.roas / prev.rev.roas - 1 : null }; }
+  return { label: fmt.month(S.months[sm]) + ' – ' + fmt.month(S.months[em]), kind: 'custom', start: S.months[sm], end: S.months[em], months: ks.length, complete: true,
+    rev, yoy, active_end: end.active_end, active_avg: scaleDeep(sumB('active_avg'), 1 / Ms.length), events: sumB('events'), pl: sumB('pl'), gmv: sumB('gmv'), ads: sumB('ads'), creators: cr,
+    arr: end.arr, concentration: conc, churn: null, retention: null, cac: null, creator_cac: null, ltv: null, arpa: null, arpa_n: null, legacy_margin_ttm: null, ounass_flag: false };
+}
+customPeriod.raw = (sm, em) => { const ks = []; for (let k = sm; k <= em; k++) ks.push(k); const Ms = ks.map(k => P['M:' + S.months[k]]).filter(Boolean); return Ms.length ? { rev: Ms.map(m => m.rev).reduce((a, b) => addDeep(a, b)) } : null; };
+function ensurePeriod(key) {
+  if (P[key]) return P[key];
+  const m = /^C:(\d{4}-\d{2}):(\d{4}-\d{2})$/.exec(key || '');
+  if (m) { const sm = S.months.indexOf(m[1]), em = S.months.indexOf(m[2]); if (sm >= 0 && em >= sm) { const c = customPeriod(sm, em); if (c) { P[key] = c; return c; } } }
+  return null;
+}
+function parsePeriodKey(key) {
+  let m;
+  if ((m = /^M:(\d{4})-(\d{2})$/.exec(key))) return { type: 'M', year: m[1], val: m[1] + '-' + m[2] };
+  if ((m = /^Q:(\d{4})-(Q\d)$/.exec(key))) return { type: 'Q', year: m[1], val: m[2] };
+  if ((m = /^FY:(\d{4})$/.exec(key))) return { type: 'FY', year: m[1] };
+  if ((m = /^YTD:(\d{4})$/.exec(key))) return { type: 'FY', year: m[1] };
+  if ((m = /^TTM:(\d{4})-(\d{2})$/.exec(key))) return { type: 'TTM', year: m[1], val: m[1] + '-' + m[2] };
+  if ((m = /^C:(\d{4}-\d{2}):(\d{4}-\d{2})$/.exec(key))) return { type: 'C', from: m[1], to: m[2] };
+  if (key === 'SL') return { type: 'C', from: '2025-11', to: M.latest_month };
+  return { type: 'TTM', year: M.latest_month.slice(0, 4), val: M.latest_month };
+}
+function buildPeriodPicker() {
+  const L_ = M.latest_month, years = [...new Set(S.months.map(m => m.slice(0, 4)))].reverse();
+  const pp = parsePeriodKey(state.period); const type = pp.type;
+  document.querySelectorAll('#ctl-ptype button').forEach(b => b.classList.toggle('on', b.dataset.v === type));
+  const ys = document.getElementById('ctl-pyear'), vs = document.getElementById('ctl-pval'), cs = document.getElementById('ctl-pcustom');
+  ys.style.display = type === 'C' ? 'none' : ''; vs.style.display = (type === 'Q' || type === 'M' || type === 'TTM') ? '' : 'none'; cs.style.display = type === 'C' ? '' : 'none';
+  const yr = pp.year || L_.slice(0, 4);
+  ys.innerHTML = years.map(y => `<option value="${y}">${y}${y === L_.slice(0, 4) && type === 'FY' ? ' YTD (Jan–' + fmt.month(L_).slice(0, 3) + ')' : ''}</option>`).join(''); ys.value = yr;
+  if (type === 'Q') { const qs = Object.keys(P).filter(k => k.startsWith('Q:' + yr + '-')); vs.innerHTML = qs.map(k => `<option value="${k.slice(-2)}">${k.slice(-2)}${P[k].complete ? '' : ' (to ' + fmt.month(P[k].end) + ')'}</option>`).join(''); vs.value = pp.val && qs.includes('Q:' + yr + '-' + pp.val) ? pp.val : (qs.length ? qs[qs.length - 1].slice(-2) : ''); }
+  if (type === 'M' || type === 'TTM') { const ms = S.months.filter(m => m.startsWith(yr) && (type === 'M' || P['TTM:' + m])); vs.innerHTML = ms.map(m => `<option value="${m}">${type === 'TTM' ? '12 months to ' : ''}${fmt.month(m)}</option>`).join(''); vs.value = pp.val && ms.includes(pp.val) ? pp.val : (ms.length ? ms[ms.length - 1] : ''); }
+  if (type === 'C') { const fs = document.getElementById('ctl-pfrom'), ts = document.getElementById('ctl-pto'); const opts = S.months.map(m => `<option value="${m}">${fmt.month(m)}</option>`).join(''); fs.innerHTML = opts; ts.innerHTML = opts; fs.value = pp.from || S.months[Math.max(0, S.months.length - 6)]; ts.value = pp.to || L_; }
+}
+function buildPeriodPickerFor(type, year) { const L_ = M.latest_month; const yr = year || L_.slice(0, 4); const fake = type === 'FY' ? (P['FY:' + yr] ? 'FY:' + yr : 'YTD:' + yr) : type === 'Q' ? 'Q:' + yr + '-Q9' : type === 'M' ? 'M:' + yr + '-99' : type === 'TTM' ? 'TTM:' + yr + '-99' : 'C:' + S.months[Math.max(0, S.months.length - 6)] + ':' + L_; const keep = state.period; state.period = fake; buildPeriodPicker(); state.period = keep; }
+function periodKeyFromPicker(type) {
+  const L_ = M.latest_month; const yr = document.getElementById('ctl-pyear').value || L_.slice(0, 4); const val = document.getElementById('ctl-pval').value;
+  if (type === 'FY') return P['FY:' + yr] ? 'FY:' + yr : (P['YTD:' + yr] ? 'YTD:' + yr : 'TTM:' + L_);
+  if (type === 'Q') { const qs = Object.keys(P).filter(k => k.startsWith('Q:' + yr + '-')); return qs.includes('Q:' + yr + '-' + val) ? 'Q:' + yr + '-' + val : (qs[qs.length - 1] || 'TTM:' + L_); }
+  if (type === 'M') { const ms = S.months.filter(m => m.startsWith(yr)); return 'M:' + (ms.includes(val) ? val : ms[ms.length - 1]); }
+  if (type === 'TTM') { const ms = S.months.filter(m => m.startsWith(yr) && P['TTM:' + m]); return ms.length ? 'TTM:' + (ms.includes(val) ? val : ms[ms.length - 1]) : 'TTM:' + L_; }
+  if (type === 'C') { let f = document.getElementById('ctl-pfrom').value, t = document.getElementById('ctl-pto').value; if (S.months.indexOf(f) > S.months.indexOf(t)) [f, t] = [t, f]; return 'C:' + f + ':' + t; }
+  return 'TTM:' + L_;
+}
+function setPeriod(key) { state.period = key; ensurePeriod(key); LS('mm.period', key); buildPeriodPicker(); renderAll(); }
+
 /* ============================================================ controls */
 function buildControls() {
   const sel = document.getElementById('ctl-period'); const L_ = M.latest_month; const opts = [];
@@ -417,7 +492,8 @@ function buildControls() {
   ['FY:2025', 'FY:2024'].forEach(k => opts.push([k, P[k].label]));
   S.months.slice().reverse().forEach(m => opts.push(['M:' + m, fmt.month(m)]));
   sel.innerHTML = opts.map(([k, l]) => `<option value="${k}">${l}</option>`).join('');
-  if (!P[state.period]) state.period = 'TTM:' + L_; sel.value = state.period;
+  if (!ensurePeriod(state.period)) state.period = 'TTM:' + L_; sel.value = P[state.period] && !state.period.startsWith('C:') ? state.period : 'TTM:' + L_;
+  buildPeriodPicker();
   const ys = document.getElementById('ctl-year'); const years = [...new Set(S.months.map(m => m.slice(0, 4)))].reverse();
   ys.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join(''); ys.value = state.year;
   document.querySelectorAll('#ctl-view button').forEach(b => b.classList.toggle('on', b.dataset.v === state.view));
@@ -426,14 +502,16 @@ function buildControls() {
   document.getElementById('pill-latest').querySelector('b').textContent = fmt.month(L_);
   document.getElementById('pill-checks').querySelector('b').textContent = M.checks_pass + '/' + M.checks.length;
   document.getElementById('pill-checks').querySelector('b').className = M.checks_pass === M.checks.length ? 'ok' : 'neg';
-  document.getElementById('foot-l').textContent = `MoonTech Monthly Model · spec ${M.spec_version} · built ${M.built} · ladder ${M.ladder_file}`;
+  document.getElementById('foot-l').textContent = `MoonTech Monthly Model · spec ${M.spec_version} · built ${M.built} · update date ${fmt.month(M.latest_month)} · source: ${M.source || 'data pack'}`;
 }
 function bindUI() {
   document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', () => { state.page = b.dataset.page; LS('mm.page', state.page); showPage(); }));
   document.querySelectorAll('#ctl-view button').forEach(b => b.addEventListener('click', () => { state.view = b.dataset.v; LS('mm.view', state.view); document.querySelectorAll('#ctl-view button').forEach(x => x.classList.toggle('on', x === b)); renderAll(); }));
   document.querySelectorAll('#ctl-buffer button').forEach(b => b.addEventListener('click', () => { state.buffer = b.dataset.v; LS('mm.buffer', state.buffer); document.querySelectorAll('#ctl-buffer button').forEach(x => x.classList.toggle('on', x === b)); mergeData(); renderAll(); }));
   document.querySelectorAll('#ctl-finview button').forEach(b => b.addEventListener('click', () => { state.finView = b.dataset.v; LS('mm.finview', state.finView); document.querySelectorAll('#ctl-finview button').forEach(x => x.classList.toggle('on', x === b)); showPage(); }));
-  document.getElementById('ctl-period').addEventListener('change', e => { state.period = e.target.value; LS('mm.period', state.period); renderAll(); });
+  document.getElementById('ctl-period').addEventListener('change', e => setPeriod(e.target.value));
+  document.querySelectorAll('#ctl-ptype button').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('#ctl-ptype button').forEach(x => x.classList.toggle('on', x === b)); const pp = parsePeriodKey(state.period); if (b.dataset.v !== pp.type) { state.period = '__' + b.dataset.v; buildPeriodPickerFor(b.dataset.v, document.getElementById('ctl-pyear').value || pp.year); } setPeriod(periodKeyFromPicker(b.dataset.v)); }));
+  ['ctl-pyear', 'ctl-pval', 'ctl-pfrom', 'ctl-pto'].forEach(id => document.getElementById(id).addEventListener('change', () => { const type = document.querySelector('#ctl-ptype button.on').dataset.v; if (id === 'ctl-pyear') { state.period = '__' + type; buildPeriodPickerFor(type, document.getElementById('ctl-pyear').value); } setPeriod(periodKeyFromPicker(type)); }));
   document.getElementById('ctl-year').addEventListener('change', e => { state.year = e.target.value; LS('mm.year', state.year); renderAll(); });
   document.getElementById('theme').addEventListener('click', () => { const cur = document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); const nx = cur === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', nx); LS('mm.theme', nx); renderAll(); });
   showPage();
@@ -449,19 +527,19 @@ function showPage() {
   const onFin = state.page === 'financials';
   ctl.querySelector('#ctl-finwrap').style.display = onFin ? '' : 'none';
   ctl.querySelector('#ctl-year').parentElement.style.display = (onFin && state.finView === 'monthly') ? '' : 'none';
-  ctl.querySelector('#ctl-period').parentElement.style.display = (state.page === 'investor' || state.page === 'kpis' || state.page === 'segmentation') ? '' : 'none';
+  ctl.querySelector('#ctl-periodwrap').style.display = (state.page === 'kpis' || state.page === 'segmentation') ? '' : 'none';
   if (onFin) ['pnl2026', 'annual', 'monthly', 'actuals'].forEach(v => { const el = document.getElementById('fin-' + v); if (el) el.style.display = v === state.finView ? '' : 'none'; });
   window.scrollTo({ top: 0 });
 }
 function renderFlags() {
   const f = []; const prov = M.control.ounass.provisional_months.filter(m => !state.confirmed.has(m));
   if (prov.length) f.push(`<span class="flag ${addbackActive() ? 'coral' : ''}"><i>P</i> Ounass provisional: ${prov.map(fmt.month).join(', ')} · ${addbackActive() ? 'AED 150k added back (buffer off)' : 'buffer held (−AED 150k)'}</span>`);
-  f.push(`<span class="flag"><i>B</i> Orders, GMV, AOV: basis under review (net history pending)</span>`);
+  f.push(`<span class="flag"><i>N</i> Orders and GMV on a net basis (locked 4 Nov)</span>`);
   f.push(`<span class="flag"><i>M</i> Churn in the last 6 months is still maturing</span>`);
   f.push(`<span class="flag teal"><i>C</i> Development: ${Object.entries(state.cap).map(([y, v]) => y + ' ' + v).join(' · ')}</span>`);
   document.getElementById('flagbar').innerHTML = f.join('');
 }
-function renderAll() { document.querySelectorAll("section.page").forEach(x => x.dataset.view = state.view); renderFlags(); renderKpis(); renderInvestor(); renderAnnual(); renderMonthly(); renderActuals(); renderSegmentation(); renderControl(); }
+function renderAll() { if (!ensurePeriod(state.period)) state.period = 'TTM:' + M.latest_month; document.querySelectorAll("section.page").forEach(x => x.dataset.view = state.view); renderFlags(); renderKpis(); renderInvestor(); renderAnnual(); renderMonthly(); renderActuals(); renderSegmentation(); renderControl(); }
 
 /* ============================================================ charts (inline SVG) */
 const tipEl = document.getElementById('tip');
@@ -528,8 +606,8 @@ function row(label, cells, klass = '') { return `<tr class="${klass}"><td>${labe
 function sec(label, n) { return `<tr class="sec"><td colspan="${n + 1}">${label}</td></tr>`; }
 
 /* ============================================================ PAGE 1: investor */
-function renderInvestor() {
-  const root = document.getElementById('page-investor'); const Lm = M.latest_month, Lk = L();
+function computeInvestor() {
+  const Lm = M.latest_month, Lk = L();
   const ttm = P['TTM:' + Lm], ytd = P['YTD:' + Lm.slice(0, 4)], latest = P['M:' + Lm], sl = P['SL'];
   const ttmPrev = P['TTM:' + S.months[Lk - 12]], ytdPrev = P['YTD:' + S.months[Lk - 12].slice(0, 4)];
   const money = v => fmt.money(v), pct0 = v => fmt.pct(v, 0), pct1 = v => fmt.pct(v, 1);
@@ -598,13 +676,20 @@ function renderInvestor() {
   const proForma = cashBal != null ? cashBal + (cashFund || 0) : null;
   const runway = (proForma != null && burn) ? proForma / burn : null;
 
+  return { ttm, ytd, latest, sl, ttmPrev, ytdPrev, money, pct0, pct1, ACTIVE, NM_MARGIN, BLENDED_CHURN, sum, win, cur3, prev3, ytdK, ytdPrevK, g, pts, nm, nmRev, sinceK, churnK, paidBy, churnedBy, activeAt, nmArrCur, nmArrPrev, nmActive, nmActivePrev, nmSigned, nmSignedCur, nmSignedPrev, monthsYtd, nmChurned, nmPaid, nmLogoChurn, nmLogoChurnPrev, nmRet, nmNrr, nmNrrPrev, upgrade, nmUp, nmUpPrev, spendK, cacSL, cacCur, cacPrev, nmArpa, nmArpaPrev, nmLtv, nmLtvPrev, nmLtvCac, nmPayback, nmPaybackPrev, blArr, blArrPrev, blActive, blActivePrev, blArpa, blArpaPrev, margin, marginPrev, blLtv, blLtvPrev, blLtvCac, legNewPrev, repeat, repNow, repPrev, nrr, nrrPrev, top1, top1Prev, cash, cashNum, cashBal, cashFund, burn, proForma, runway };
+}
+
+function renderInvestor() {
+  const root = document.getElementById('page-investor'); const Lm = M.latest_month, Lk = L();
+  const I = computeInvestor(); const { ttm, ytd, latest, sl, ttmPrev, ytdPrev, money, pct0, pct1, ACTIVE, NM_MARGIN, BLENDED_CHURN, sum, win, cur3, prev3, ytdK, ytdPrevK, g, pts, nm, nmRev, sinceK, churnK, paidBy, churnedBy, activeAt, nmArrCur, nmArrPrev, nmActive, nmActivePrev, nmSigned, nmSignedCur, nmSignedPrev, monthsYtd, nmChurned, nmPaid, nmLogoChurn, nmLogoChurnPrev, nmRet, nmNrr, nmNrrPrev, upgrade, nmUp, nmUpPrev, spendK, cacSL, cacCur, cacPrev, nmArpa, nmArpaPrev, nmLtv, nmLtvPrev, nmLtvCac, nmPayback, nmPaybackPrev, blArr, blArrPrev, blActive, blActivePrev, blArpa, blArpaPrev, margin, marginPrev, blLtv, blLtvPrev, blLtvCac, legNewPrev, repeat, repNow, repPrev, nrr, nrrPrev, top1, top1Prev, cash, cashNum, cashBal, cashFund, burn, proForma, runway } = I;
   // ---- table
-  const gc = (v, kind) => v == null ? '<td class="na">—</td>' : kind === 'pts' ? `<td class="${v >= 0 ? 'pos' : 'neg'}">${(v * 100 >= 0 ? '+' : '') + (v * 100).toFixed(1)} pts</td>` : growthCell(v);
+  const gc = (v, kind, lowerBetter) => { if (v == null) return '<td class="na">—</td>'; const good = lowerBetter ? v <= 0 : v >= 0; const txt = kind === 'pts' ? (v * 100 >= 0 ? '+' : '') + (v * 100).toFixed(1) + ' pts' : fmt.pctS(v); return `<td class="${good ? 'pos' : 'neg'}">${txt}</td>`; };
   const na = '<td class="na">n/a</td>';
-  const R = (metric, blv, blg, blKind, nmv, nmg, nmKind, def, fm = money) => `<tr><td>${metric}</td>${blv === 'na' ? na : td(blv, fm)}${blv === 'na' ? na : gc(blg, blKind)}${nmv === 'na' ? na : td(nmv, fm)}${nmv === 'na' ? na : gc(nmg, nmKind)}<td class="muted small" style="text-align:left;white-space:normal;min-width:260px">${def}</td></tr>`;
+  const LOWER = /churn|^CAC|Payback|Top client|burn/i;
+  const R = (metric, blv, blg, blKind, nmv, nmg, nmKind, def, fm = money) => { const lb = LOWER.test(metric.replace(/<[^>]+>/g, '')); return `<tr><td>${metric}</td>${blv === 'na' ? na : td(blv, fm)}${blv === 'na' ? na : gc(blg, blKind, lb)}${nmv === 'na' ? na : td(nmv, fm)}${nmv === 'na' ? na : gc(nmg, nmKind, lb)}<td class="muted small" style="text-align:left;white-space:normal;min-width:260px">${def}</td></tr>`; };
   const S6 = label => `<tr class="sec"><td colspan="6">${label}</td></tr>`;
   const asOf = fmt.month(Lm), q = fmt.month(S.months[cur3[0]]) + '–' + asOf, qp = fmt.month(S.months[prev3[0]]) + '–' + fmt.month(S.months[prev3[2]]);
-  let T = `<table class="t"><thead><tr><th style="text-align:left">Metric</th><th>Blended</th><th>Growth<br><span class="muted small">YoY</span></th><th>New Model</th><th>Growth<br><span class="muted small">${q} vs ${qp}</span></th><th style="text-align:left">Definition</th></tr></thead><tbody>`;
+  let T = `<table class="t"><thead><tr><th style="text-align:left">Metric</th><th>Blended</th><th>Growth<br><span class="muted small">YoY</span></th><th>New Model</th><th>Growth<br><span class="muted small">last 3 mo vs prior 3</span></th><th style="text-align:left">Definition</th></tr></thead><tbody>`;
   T += S6('Revenue');
   T += R('ARR', blArr, g(blArr, blArrPrev), 'g', nmArrCur, g(nmArrCur, nmArrPrev), 'g', `Blended: 3-month run-rate to ${asOf}, commission seasonality-adjusted + ROAS × 4; vs the same at ${fmt.month(S.months[Lk - 12])}. New Model: ${q} revenue × 4; vs ${qp} × 4.`);
   T += R('TTM revenue', ttm.rev.total, ttm.yoy ? ttm.yoy.total : null, 'g', 'na', null, null, `Revenue ${fmt.month(S.months[Lk - 11])} to ${asOf} vs the 12 months before.`);
@@ -652,7 +737,7 @@ function renderInvestor() {
       <label class="small">As of (e.g. Aug-26)<br><input id="cash-asof" type="text" value="${cash.as_of ?? ''}" style="width:110px"></label>
     </div></div>`;
   root.innerHTML = hdr + heroes + `<div class="card" style="margin-top:16px"><p class="eyebrow">Investor metrics</p><h3 class="h3">Blended and New Model, with growth and definitions</h3><div class="tblwrap">${T}</div>
-    <div class="note">Growth for Blended is year on year; for New Model it is the last 3 months (${q}) against the 3 before (${qp}), since the model is less than a year old. YE 2026 and Y5 projection columns come once Q3 is complete (September pack).</div></div>` + cashCard;
+    <div class="note">Growth for Blended is year on year. For New Model (launched Jan 2026, so no year-on-year yet) growth is the last 3 months (${q}) against the 3 months before (${qp}). YE 2026 and Y5 projection columns come once Q3 is complete (September pack).</div></div>` + cashCard;
   root.querySelectorAll('#cash-bal,#cash-fund,#cash-burn,#cash-asof').forEach(el => el.addEventListener('change', () => {
     state.cash = { balance_usd: document.getElementById('cash-bal').value, secured_funding_usd: document.getElementById('cash-fund').value, monthly_burn_usd: document.getElementById('cash-burn').value, as_of: document.getElementById('cash-asof').value };
     LS('mm.cash', JSON.stringify(state.cash)); renderInvestor(); }));
@@ -673,7 +758,7 @@ function renderAnnual() {
   T += rr('Total revenue', p => p.rev.total, money, A.total, yoy(y => y.total), 'tot');
   T += rr('Commission', p => p.rev.legacy, money, A.legacy, yoy(y => y.legacy), 'sub');
   LEG_SEGS.forEach(s => T += rr(s, p => p.rev.leg_seg[s], money, null, null, 'sub2'));
-  T += rr('ROAS + other pricing', p => p.rev.roas + p.rev.other, money, A.roas, yoy(y => y.roas), 'sub');
+  T += rr(HAS_OTHER() ? 'ROAS + other pricing' : 'ROAS', p => p.rev.roas + p.rev.other, money, A.roas, yoy(y => y.roas), 'sub');
   TIERS.forEach(s => T += rr(s, p => p.rev.roas_tier[s], money, null, null, 'sub2'));
   T += rr('Adjustment', p => p.rev.plug, money, null, null, 'sub');
   T += rr('Enterprise share of commission revenue', p => p.rev.named ? p.rev.leg_seg.Enterprise / p.rev.named : null, pct0, null, null);
@@ -945,7 +1030,7 @@ function renderControl() {
     <div class="tblwrap"><table class="t dense"><tbody>${healthRows}</tbody></table></div>
     <div class="note">Re-computed on every build and every page load: pack completeness and coverage of the update month, ladder snapshot freshness, client segmentation (commission and ROAS), unknown merchant names, Adjustment size, check figures, creator IDs, Ounass confirmations, cash inputs, and the four live sheets (reachable, in step with the pack, mapping coverage). Red = fix before publishing; coral = watch.</div></div>`;
 
-  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">05 · Control &amp; data quality</p><h1 class="h2">Finance controls and the monthly load check</h1><p>Nothing here changes a number by hand. Confirmations and switches set status; every figure is recomputed from the extracts. Changes are kept in this browser until you export <code>control.json</code> and commit it with the next monthly build.</p></div>
+  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">07 · Control &amp; data quality</p><h1 class="h2">Finance controls and the monthly load check</h1><p>Nothing here changes a number by hand. Confirmations and switches set status; every figure is recomputed from the extracts. Changes are kept in this browser until you export <code>control.json</code> and commit it with the next monthly build.</p></div>
       <button class="btn" id="export-ctl">Export control.json</button></div>
     ${healthCard}
     <div class="grid g2">
@@ -958,15 +1043,15 @@ function renderControl() {
     </div>
     <div class="card" style="margin-top:16px"><p class="eyebrow">Invoicing adjustment · commission</p><h3 class="h3">P&amp;L Sales − ROAS billing − commission tracked = Adjustment</h3>
       <div class="tblwrap">${adjTable}</div>
-      <div class="note">Computed, not read: the Adjustment is P&amp;L Sales less ROAS ladder billing less the commission revenue tracked by named merchant. It is the same Adjustment shown on the KPI, Financials and revenue-split views. The merchant export's own "Adjustment" line is ignored. ROAS billing to move to the live ladder.</div></div>
+      <div class="note">Computed, not read: the Adjustment is P&amp;L Sales less ROAS ladder billing less the commission revenue tracked by named merchant. It is the same Adjustment shown on the KPI, Financials and revenue-split views. The merchant export's own "Adjustment" line is ignored.</div></div>
     <div class="grid g2" style="margin-top:16px">
       <div class="card"><p class="eyebrow">Review lists</p>
         <h3 class="h3">New or unknown merchant names</h3><ul class="plain">${newNames}</ul>
         <h3 class="h3" style="margin-top:12px">Creator ID flags</h3><ul class="plain">${idf}</ul>
         <h3 class="h3" style="margin-top:12px">ROAS brands churned by rule R2</h3><ul class="plain">${r2}</ul>
         <h3 class="h3" style="margin-top:12px">Commission merchants with proposed / low-confidence segment</h3><ul class="plain">${rv.low_confidence.length ? rv.low_confidence.map(esc).join(', ') : '<li class="muted">none</li>'}</ul></div>
-      <div class="card"><p class="eyebrow">Reconciliation</p><h3 class="h3">Adjustment by month (P&amp;L Sales − named commission − ROAS − other)</h3><div class="chart" id="ctl-plug"></div>
-        <div class="note">Negative months are cash-vs-invoice timing on ROAS. Large positive months are provisional Datos figures below the P&amp;L (Ounass). Mapped cost of sales and EBITDA tie to the P&amp;L within AED 0.01.</div>
+      <div class="card"><p class="eyebrow">Reconciliation</p><h3 class="h3">Adjustment by month (P&amp;L Sales − commission tracked − ROAS billing)</h3><div class="chart" id="ctl-plug"></div>
+        <div class="note">Negative months: merchant tracking shows more than the P&amp;L (invoicing timing). Positive months: P&amp;L revenue not yet visible by client. Mapped cost of sales and EBITDA tie to the P&amp;L within AED 0.01.</div>
         <div class="hairline"></div><p class="eyebrow">Load log</p>
         <dl class="kv"><dt>Built</dt><dd>${M.built}</dd><dt>Latest full month</dt><dd>${fmt.monthLong(Lm)} (Datos + P&amp;L)</dd><dt>ROAS ladder</dt><dd>${M.ladder_file} (to Oct-26, Sep used as latest ROAS month)</dd><dt>Merchants / ROAS brands</dt><dd>${D.merchants.length} / ${D.roas_brands.length}</dd><dt>FX</dt><dd>AED ${M.fx} per USD</dd><dt>Cash report (S10)</dt><dd class="muted">not loaded</dd><dt>Plan / budget (S11)</dt><dd class="muted">not loaded</dd><dt>Net order history (T1)</dt><dd class="muted">pending · order metrics flagged</dd></dl></div>
     </div>
@@ -1002,14 +1087,15 @@ function renderKpis() {
   const sel = P[state.period] || P['TTM:' + Lm], latest = P['M:' + Lm], sl = P['SL'], ttm = P['TTM:' + Lm];
   const co = state.view === 'co';
   const arr = latest.arr;
-  const arpaB = (S.arpa && S.arpa.blended) ? S.arpa.blended[Lk] : null;
-  const econ = (sl && sl.ltv) ? sl.ltv.ROAS : null, cac = sl ? sl.cac : null;
+  const I = computeInvestor();   // one definition per metric across the model: the Investor Metrics set
+  const arpaB = I.blArpa;
+  const cac = sl ? sl.cac : null;
   const nrr = (sel.retention && sel.retention.legacy_12m) || ttm.retention.legacy_12m;
   const ev = sel.events;
   const card = (eyebrow, hero, sub) => `<div class="card"><p class="eyebrow">${eyebrow}</p><div class="hero">${hero}</div>${sub || ''}</div>`;
   const split2 = (aLab, a, bLab, b) => co ? '' : `<div class="split"><div class="it"><span class="sw legacy"></span><span class="k">${aLab}</span><b>${a}</b></div><div class="it"><span class="sw roas"></span><span class="k">${bLab}</span><b>${b}</b></div></div>`;
   root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">01 · KPIs</p><h1 class="h2">Key metrics at a glance</h1>
-      <p>The headline numbers management tracks. Revenue, ARR, ARPA and retention follow the selected period; economics (LTV, CAC, payback) are cumulative since ROAS launch. Targets vs actual, and a query box, come later in the build.</p></div>
+      <p>The headline numbers management tracks. Revenue, active clients and new ROAS signed follow the selected period; ARR, ARPA, retention and the unit economics (LTV, CAC, payback) are as at the update date and use the same definitions as the Investor Dashboard.</p></div>
       <div class="muted small">Period: <b>${esc(sel.label)}</b></div></div>
     <div class="grid g4">
       <div class="card block"><p class="eyebrow">Revenue · ${esc(sel.label)}</p><div class="hero">${fmt.money(sel.rev.total)}</div>
@@ -1017,14 +1103,14 @@ function renderKpis() {
         ${split2('Commission', fmt.money(sel.rev.legacy), 'ROAS', fmt.money(sel.rev.roas))}</div>
       <div class="card block"><p class="eyebrow">Blended ARR · ${fmt.month(Lm)}</p><div class="hero">${fmt.money(arr.blended)}</div>
         ${split2('Commission run-rate', fmt.money(arr.legacy), 'ROAS ARR', fmt.money(arr.roas))}</div>
-      ${card('ARPA · blended', fmt.money(arpaB), '<div class="muted small">per active account · latest month</div>')}
+      ${card('ARPA · blended', fmt.money(arpaB), '<div class="muted small">TTM revenue ÷ active brands at ' + fmt.month(Lm) + '</div>')}
       ${card('Commission NRR · rolling 12m', fmt.pct(nrr && nrr.nrr, 0), '<div class="muted small">GRR ' + fmt.pct(nrr && nrr.grr, 0) + '</div>')}
     </div>
     <div class="grid g4" style="margin-top:14px">
-      ${card('LTV · ROAS (since launch)', fmt.money(econ && econ.ltv), '')}
-      ${card('LTV / CAC · ROAS' + mtCacTag(), fmt.x(mtLtvCac(econ && econ.ltv, econ && econ.ltv_cac)), MT_LIVE_CAC ? '<div class="muted small">LTV ÷ live blended merchant CAC (' + MT_LIVE_CAC.year + ' YTD)</div>' : '')}
-      ${card('Payback · ROAS' + mtCacTag(), fmt.mo(mtPayback(econ)), '')}
-      ${card('Merchant CAC' + (MT_LIVE_CAC ? ' (live, ' + MT_LIVE_CAC.year + ' YTD)' : ' (since launch)'), fmt.money(mtCacUse(cac && cac.cac)), '')}
+      ${card('LTV · ROAS', fmt.money(I.nmLtv), '<div class="muted small">ARPA × 50% ÷ annualised logo churn ' + fmt.pct(I.nmLogoChurn, 0) + '</div>')}
+      ${card('LTV / CAC · ROAS' + mtCacTag(), fmt.x(I.nmLtvCac), MT_LIVE_CAC ? '<div class="muted small">LTV ÷ live blended merchant CAC</div>' : '')}
+      ${card('Payback · ROAS' + mtCacTag(), fmt.mo(I.nmPayback), '<div class="muted small">CAC ÷ monthly gross profit per brand</div>')}
+      ${card('Merchant CAC' + (MT_LIVE_CAC ? ' (live)' : ' (since launch)'), fmt.money(I.cacSL), '<div class="muted small">spend since launch ÷ brands that paid</div>')}
     </div>
     <div class="grid g4" style="margin-top:14px">
       ${card('Active clients · ' + esc(sel.label), fmt.int(sel.active_end.total), split2('Commission', sel.active_end.legacy, 'ROAS', sel.active_end.roas))}
@@ -1032,7 +1118,7 @@ function renderKpis() {
       ${card('ROAS share of revenue', fmt.pct(sel.rev.total ? sel.rev.roas / sel.rev.total : null, 0), '')}
       ${card('Revenue YoY', sel.yoy ? fmt.pctS(sel.yoy.total) : '—', '')}
     </div>
-    <div class="note" style="margin-top:14px">Targets vs actual for each KPI, and a free-text query box to pull any metric, are planned as a later step.</div>`;
+`;
 }
 
 /* ============================================================ PAGE: Client Segmentation (two-axis) */
@@ -1046,7 +1132,7 @@ function renderSegmentation() {
   const naCell = '<td class="na" title="not segmentable">n/a</td>';
   const dash = '<td class="na">—</td>';
   const chTd = c => `<td>${churnTxt(c)}</td>`;
-  const head = lead => `<thead><tr><th style="text-align:left">${lead}</th><th>Revenue</th><th>Active</th><th>ARPA</th><th>LTV</th><th>Logo churn 12m</th><th>CAC</th><th>Payback</th><th>LTV:CAC</th></tr></thead>`;
+  const head = (lead, churnLab = 'Logo churn 12m') => `<thead><tr><th style="text-align:left">${lead}</th><th>Revenue</th><th>Active</th><th>ARPA</th><th>LTV</th><th>${churnLab}</th><th>CAC</th><th>Payback</th><th>LTV:CAC</th></tr></thead>`;
 
   // Commission block — rows E / G / SME (segmentable: revenue, active, ARPA, LTV, churn)
   const commRows = LEG_SEGS.map(s => {
@@ -1057,24 +1143,28 @@ function renderSegmentation() {
       + td(lv && lv.ltv, money) + chTd(ch) + naCell + naCell + naCell + '</tr>';
   }).join('');
   const commTot = `<tr class="tot"><td>All commission</td>`
-    + td(sel.rev.legacy, money) + td(sel.active_end.legacy, fmt.int) + td(arpaOf('blended'), money)
+    + td(sel.rev.legacy, money) + td(sel.active_end.legacy, fmt.int) + td(computeInvestor().blArpa, money)
     + dash + chTd(sel.churn && sel.churn.legacy) + naCell + naCell + naCell + '</tr>';
   const commTable = `<div class="card"><p class="eyebrow">Commission · by size (Enterprise / Growth / SME)</p>
     <div class="tblwrap"><table class="t">${head('Segment')}<tbody>${commRows}${commTot}</tbody></table></div>
     <div class="note">LTV and logo churn for Growth &amp; SME are measured together. CAC, payback and LTV:CAC don't break down by segment — there is no segment-level acquisition cost — so they show n/a.</div></div>`;
 
+  const I = computeInvestor();   // ROAS unit economics: same definitions as the Investor Dashboard (as at the update date)
+  const nmChurnOf = pred => { const paid = D.roas_brands.filter(b => pred(b) && I.sinceK(b) >= 0 && I.sinceK(b) <= Lk); const ch = paid.filter(b => I.churnK(b) >= 0 && I.churnK(b) <= Lk); return paid.length ? { r: ch.length / paid.length * (12 / I.monthsYtd), n: ch.length, p: paid.length } : null; };
+  // churned brands carry no tier in the pipeline: apply the same CAC-payback rule to what they paid (50% margin)
+  const tierOf = b => (b.tier && ['Small', 'Medium', 'Large'].includes(b.tier)) ? b.tier : (I.cacSL ? ((b.paid_to_latest || 0) * 0.5 / I.cacSL < 1 ? 'Small' : (b.paid_to_latest || 0) * 0.5 / I.cacSL < 2 ? 'Medium' : 'Large') : null);
+  const nmChurnTd = c => c ? `<td>${fmt.pct(c.r, 0)} <span class="muted small">${c.n}/${c.p}${c.p < 5 ? '<span class="f" title="fewer than 5 brands">n&lt;5</span>' : ''}</span></td>` : '<td class="na">—</td>';
   // ROAS block — rows S / M / L (CAC/payback/LTV:CAC available at the ROAS total only)
   const roasRows = TIERS.map(s => `<tr><td><span class="sw" style="background:${TIER_C[s]}"></span>${s}</td>`
     + td(sel.rev.roas_tier[s], money) + td(sel.active_end.roas_tier[s], fmt.int) + dash + dash
-    + chTd(sel.churn && sel.churn[s]) + naCell + naCell + naCell + '</tr>').join('');
-  const re = sel.ltv && sel.ltv.ROAS, rc = sel.cac;
+    + nmChurnTd(nmChurnOf(b => tierOf(b) === s)) + naCell + naCell + naCell + '</tr>').join('');
   const roasTot = `<tr class="tot"><td>All ROAS</td>`
-    + td(sel.rev.roas, money) + td(sel.active_end.roas, fmt.int) + td(arpaOf('ROAS'), money)
-    + td(re && re.ltv, money) + chTd(sel.churn && sel.churn.ROAS)
-    + td(mtCacUse(rc && rc.cac), money) + td(mtPayback(re), fmt.mo) + td(mtLtvCac(re && re.ltv, re && re.ltv_cac), fmt.x) + '</tr>';
+    + td(sel.rev.roas, money) + td(sel.active_end.roas, fmt.int) + td(I.nmArpa, money)
+    + td(I.nmLtv, money) + nmChurnTd(nmChurnOf(() => true))
+    + td(I.cacSL, money) + td(I.nmPayback, fmt.mo) + td(I.nmLtvCac, fmt.x) + '</tr>';
   const roasTable = `<div class="card" style="margin-top:16px"><p class="eyebrow">ROAS · by tier (Small / Medium / Large)</p>
-    <div class="tblwrap"><table class="t">${head('Tier')}<tbody>${roasRows}${roasTot}</tbody></table></div>
-    <div class="note">ARPA, LTV and the acquisition metrics are only available blended across ROAS, so they sit on the total row; per-tier they show —. Tier rule switches to the agreed CAC-payback definition in the pipeline step.</div></div>`;
+    <div class="tblwrap"><table class="t">${head('Tier', 'Logo churn (annualised)')}<tbody>${roasRows}${roasTot}</tbody></table></div>
+    <div class="note">Tiers follow the agreed CAC-payback rule: margin on what the brand has paid ÷ CAC — below 1× Small, 1–2× Medium, above 2× Large. ARPA, LTV, CAC, payback and LTV:CAC are only available for ROAS as a whole (total row, Investor definitions); per tier they show —.</div></div>`;
 
   // Unified size axis — ROAS brands carry E/G/SME too (pipeline/roas_segments.csv: Kareem's segmentation file + defaults)
   const kStart = S.months.indexOf(sel.start), kEnd = S.months.indexOf(sel.end);
@@ -1084,10 +1174,10 @@ function renderSegmentation() {
     for (let k = kStart; k <= kEnd; k++) o.rev += (b.monthly[k] || 0);
     if (ACTIVE.includes(b.status_monthly[kEnd])) { o.active++; if (b.segment_confidence === 'U.D') o.low++; } o.n++; });
   const roasSegRows = LEG_SEGS.map(sg => `<tr><td><span class="sw" style="background:${SEG_C[sg]}"></span>${sg}${roasBySeg[sg].low ? ' <span class="muted small">(' + roasBySeg[sg].low + ' U.D)</span>' : ''}</td>`
-    + td(roasBySeg[sg].rev, money) + td(roasBySeg[sg].active, fmt.int) + dash + dash + dash + naCell + naCell + naCell + '</tr>').join('');
+    + td(roasBySeg[sg].rev, money) + td(roasBySeg[sg].active, fmt.int) + dash + dash + nmChurnTd(nmChurnOf(b => (b.segment || 'SME') === sg)) + naCell + naCell + naCell + '</tr>').join('');
   const roasSegTable = `<div class="card" style="margin-top:16px"><p class="eyebrow">ROAS · by size (Enterprise / Growth / SME)</p>
-    <div class="tblwrap"><table class="t">${head('Segment')}<tbody>${roasSegRows}${roasTot}</tbody></table></div>
-    <div class="note">Same size definitions as commission. Segments for ROAS brands come from Kareem's customer segmentation file where the brand is in it (12 brands); the rest are SME · U.D (undefined) until defined — the U.D count is shown per row.</div></div>`;
+    <div class="tblwrap"><table class="t">${head('Segment', 'Logo churn (annualised)')}<tbody>${roasSegRows}${roasTot}</tbody></table></div>
+    <div class="note">Same size definitions as commission. Segments for ROAS brands come from Kareem's customer segmentation file (v2, 5 Nov); a brand not in it would show as SME · U.D (undefined) with a count per row.</div></div>`;
   const bothRows = LEG_SEGS.map(sg => `<tr><td><span class="sw" style="background:${SEG_C[sg]}"></span>${sg}</td>`
     + td((sel.rev.leg_seg[sg] || 0) + roasBySeg[sg].rev, money) + td((sel.active_end.leg_seg[sg] || 0) + roasBySeg[sg].active, fmt.int)
     + td(sel.rev.leg_seg[sg], money) + td(roasBySeg[sg].rev, money) + td(sel.active_end.leg_seg[sg], fmt.int) + td(roasBySeg[sg].active, fmt.int) + '</tr>').join('');
@@ -1110,7 +1200,7 @@ function renderSegmentation() {
       factor: (e && e.g && e.c) ? e.g / e.c : null });
   });
   D.roas_brands.forEach(b => {
-    if (b.other_pricing || !['Existing', 'New', 'Reactivated'].includes(b.status)) return;
+    if (!['Existing', 'New', 'Reactivated'].includes(b.status_monthly ? b.status_monthly[kEnd] : b.status)) return;
     const Lcur = (typeof b.level === 'number') ? b.level : (parseInt(String(b.level).replace(/[^0-9]/g, ''), 10) || null);
     const Lnum = (b.level_monthly && b.level_monthly[kEnd] != null) ? b.level_monthly[kEnd] : Lcur;   // level reached by the period end
     clients.push({ name: b.name, model: 'ROAS', seg: (b.segment || 'SME') + (b.segment_confidence === 'U.D' ? ' · U.D' : '') + ' · ' + (b.tier || '—'), segOnly: b.segment || 'SME', rev: b.paid_to_latest, level: Lnum,
@@ -1118,23 +1208,23 @@ function renderSegmentation() {
   });
   const show = clients.filter(c => model === 'all' || c.model.toLowerCase() === model).sort((a, b) => (b.rev || 0) - (a.rev || 0));
   const facCell = f => f == null ? '<td class="muted">—</td>' : '<td>' + f.toFixed(1) + 'x</td>';
-  const clientRows = show.map(c => `<tr><td>${esc(c.name)}${c.migrated ? '<span class="tag">migrated</span>' : ''}</td><td>${c.model}</td><td>${c.seg || '—'}</td><td>${fmt.money(c.rev)}</td><td>${c.level == null ? '<span class="muted">—</span>' : 'L' + c.level}</td>${facCell(c.factor)}</tr>`).join('');
+  const clientRows = show.map(c => `<tr><td>${esc(c.name)}${c.migrated ? '<span class="tag">migrated</span>' : ''}</td><td>${c.model}</td><td>${c.seg || '—'}</td><td>${fmt.money(c.rev)}</td>${facCell(c.factor)}</tr>`).join('');
 
   // Mega tile — average Level and average ROAS factor, ROAS clients and commission clients (split E/G/SME)
   const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
   const roasCl = clients.filter(c => c.model === 'ROAS');
   const commCl = clients.filter(c => c.model === 'Commission');
   const bySeg = s => commCl.filter(c => c.segOnly === s);
-  const megaRow = (label, cl, swv) => { const lv = cl.map(c => c.level).filter(v => v != null); const fa = cl.map(c => c.factor).filter(v => v != null);
-    return `<tr><td style="text-align:left">${swv ? '<span class="sw" style="background:' + swv + '"></span>' : ''}${label}</td><td>${cl.length}</td><td>${avg(lv) == null ? '—' : 'L' + avg(lv).toFixed(1)}</td><td>${avg(fa) == null ? '<span class="muted">—</span>' : avg(fa).toFixed(1) + 'x'}</td></tr>`; };
-  const megaTile = `<div class="card block" style="margin-top:16px"><p class="eyebrow">Ladder &amp; ROAS-factor overview</p><h3 class="h3">Average level and ROAS factor by model</h3>
-    <div class="tblwrap"><table class="t fit"><thead><tr><th style="text-align:left">Group</th><th>Clients</th><th>Avg level</th><th>Avg ROAS factor</th></tr></thead><tbody>
+  const megaRow = (label, cl, swv) => { const fa = cl.map(c => c.factor).filter(v => v != null); const wsum = cl.reduce((a, c) => a + (c.factor != null && c.rev ? c.rev : 0), 0); const wavg = wsum ? cl.reduce((a, c) => a + (c.factor != null && c.rev ? c.factor * c.rev : 0), 0) / wsum : null;
+    return `<tr><td style="text-align:left">${swv ? '<span class="sw" style="background:' + swv + '"></span>' : ''}${label}</td><td>${cl.length}</td><td>${fa.length}</td><td>${avg(fa) == null ? '<span class="muted">—</span>' : avg(fa).toFixed(1) + 'x'}</td><td>${wavg == null ? '<span class="muted">—</span>' : wavg.toFixed(1) + 'x'}</td></tr>`; };
+  const megaTile = `<div class="card" style="margin-top:16px"><p class="eyebrow">ROAS factor by group</p><h3 class="h3">What clients get back per $1 paid to Moontech (GMV ÷ paid)</h3>
+    <div class="tblwrap"><table class="t fit"><thead><tr><th style="text-align:left">Group</th><th>Clients</th><th>With a factor</th><th>Avg ROAS factor</th><th>Revenue-weighted</th></tr></thead><tbody>
       ${megaRow('ROAS clients', roasCl, 'var(--coral)')}
       ${LEG_SEGS.map(sg => megaRow('&nbsp;&nbsp;ROAS · ' + sg, roasCl.filter(c => c.segOnly === sg), SEG_C[sg])).join('')}
       ${megaRow('Commission clients', commCl, 'var(--teal)')}
       ${LEG_SEGS.map(s => megaRow('&nbsp;&nbsp;Commission · ' + s, bySeg(s), SEG_C[s])).join('')}
     </tbody></table></div>
-    <div class="note">ROAS level is the standard ladder (payment $1,000·L → GMV $1,000·L²). ROAS clients: level from the ladder, ROAS factor = the client's ROAS Target at that level from the mapping sheet${MT_ROAS_MAP ? '' : ' <b>(loading…)</b>'}. Commission clients (from the latest data-pack exports, TTM window): level = average monthly commission ÷ $1,000, ROAS factor = GMV ÷ commission.</div></div>`;
+    <div class="note">ROAS clients: factor = the client's ROAS target at its current ladder level, from the CSM mapping sheet (live)${MT_ROAS_MAP ? '' : ' <b>(loading…)</b>'}. Commission clients: factor = GMV ÷ commission paid over the TTM window, from the data pack; counts include every client with revenue in the window. Revenue-weighted = weighted by what the client paid.</div></div>`;
 
   const mbtn = (v, lab) => `<button data-sm="${v}" class="${model === v ? 'on' : ''}">${lab}</button>`;
   root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">03 · Client Segmentation</p><h1 class="h2">Two ways to slice the same clients</h1>
@@ -1145,14 +1235,14 @@ function renderSegmentation() {
       ${model !== 'commission' ? roasSegTable + roasTable : ''}
     ${megaTile}
     <div class="card" style="margin-top:16px"><p class="eyebrow">Clients · revenue (commission) / paid to date (ROAS)</p>
-      <div class="tblwrap" style="max-height:420px;overflow:auto"><table class="t dense fit"><thead><tr><th style="text-align:left">Client</th><th>Model</th><th>Size · tier</th><th>Revenue / paid</th><th>ROAS level</th><th>ROAS factor</th></tr></thead><tbody>${clientRows}</tbody></table></div>
-      <div class="note">${show.length} clients. ROAS level — commission: avg monthly commission (TTM) ÷ $1,000; ROAS: ladder level. ROAS factor — ROAS clients: the client's ROAS Target at that level from the mapping sheet; commission clients: GMV ÷ commission (TTM). Commission figures use the latest data-pack exports. Migrated clients appear once under each model for the months they were on it.</div></div>
+      <div class="tblwrap" style="max-height:420px;overflow:auto"><table class="t dense fit"><thead><tr><th style="text-align:left">Client</th><th>Model</th><th>Size · tier</th><th>Revenue / paid</th><th>ROAS factor</th></tr></thead><tbody>${clientRows}</tbody></table></div>
+      <div class="note">${show.length} clients. ROAS factor — ROAS clients: the client's ROAS target at its ladder level from the CSM mapping sheet; commission clients: GMV ÷ commission over the TTM window (data pack). Migrated clients appear once under each model for the months they were on it.</div></div>
     <div class="card" style="margin-top:16px"><p class="eyebrow">Size definitions</p><div class="defs">
-      <p><b>Enterprise:</b> spending above AED 1M annualised with us (exit below AED 500k).</p>
-      <p><b>Growth:</b> the client's own company revenue above $50M (estimated) and spending below AED 1M with us.</p>
+      <p><b>Enterprise:</b> over AED 1M Moontech revenue in any single year (actuals).</p>
+      <p><b>Growth:</b> the client's own company revenue above $50M (group revenue where the brand sits in a group) and below the Enterprise test.</p>
       <p><b>SME:</b> the client's own company revenue below $50M.</p>
-      <p><b>ROAS Small / Medium / Large</b> (agreed rule, being wired in the pipeline): Small = CAC not yet paid back; Medium = around CAC; Large = exceeded CAC.</p>
-      <p class="muted small">E/G/SME applies to both models (source: Kareem's customer segmentation file; ROAS brands not in it are SME · U.D (undefined) until defined). ROAS S/M/L is an extra lens for ROAS brands only.</p>
+      <p><b>ROAS Small / Medium / Large</b> (agreed rule): margin on what the brand has paid ÷ CAC — below 1× Small (CAC not yet paid back), 1–2× Medium, above 2× Large.</p>
+      <p class="muted small">E/G/SME applies to both models (source: Kareem's customer segmentation file v2). ROAS S/M/L is an extra lens for ROAS brands only.</p>
     </div></div>`;
   root.querySelectorAll('#seg-model button').forEach(b => b.addEventListener('click', () => { state.segModel = b.dataset.sm; LS('mm.segmodel', state.segModel); renderSegmentation(); }));
 }

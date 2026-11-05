@@ -1,41 +1,48 @@
 brand,segment,confidence,source,note
-Right Bite,Growth,Medium,Kareem segmentation file,Kitopi group (Kareem file: Kitopi - Rightbite MT)
-DKNY,Growth,High,Kareem segmentation file,Kareem file
-Maison Safka,SME,High,Kareem segmentation file,Kareem file (Maison Safqa - MT)
-Blanco,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Golden Scent,Growth,Medium,Kareem segmentation file,Kareem file (Goldenscent MT)
-Izil,SME,High,Kareem segmentation file,Kareem file
-Aiza,SME,High,Kareem segmentation file,Kareem file (Aiza - MT)
-Nysaa Beauty,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Joli,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Anfasik Dokhoon,SME,High,Kareem segmentation file,Kareem file (Anafasic MT)
-Bond,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-JustHype,SME,High,Kareem segmentation file,Kareem file (Just hype - MT)
-Touche Prive,SME,High,Kareem segmentation file,Kareem file
-Sahseh,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Lawni,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Studio Earth,SME,High,Kareem segmentation file,Kareem file (Studio Earth - MT)
-Oneshot,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-All Birds,Growth,High,Kareem segmentation file,Kareem file (Allbirds)
-Kizik,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Arte Madrid,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Reefi,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Avantcha,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Alma Home,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Under 500,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Ejalo Beauty,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Transformative,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Metro Brazil,SME,High,Kareem segmentation file,Kareem file (Metrobrazil)
-Laurus Aroma,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Skinora,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-HQtelecom,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-SuLinda,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-SHAYA,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Wheels Bikes,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Breth,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Rite,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Book My Pet,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Numero,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Pure N Bio,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Jetour,SME,U.D,default,Not in Kareem segmentation file - SME · U.D (undefined) until defined
-Maison Safqa,SME,High,Kareem segmentation file,Kareem file (Maison Safqa - MT) (ladder spelling)
+JustHype,SME,High,Kareem segmentation file v2 (5 Nov 2026),file name: Just hype - MT
+Touche Prive,SME,High,Kareem segmentation file v2 (5 Nov 2026),file name: Touche prive
+Anfasik Dokhoon,SME,High,Kareem segmentation file v2 (5 Nov 2026),file name: Anafasic MT
+Right Bite,Growth,Medium,Kareem segmentation file v2 (5 Nov 2026),file name: Kitopi - Rightbite MT
+Golden Scent,Growth,Medium,Kareem segmentation file v2 (5 Nov 2026),file name: Goldenscent MT
+Sahseh,SME,Medium,Kareem segmentation file v2 (5 Nov 2026),file name: Sahseh
+Book My Pet,SME,High,Kareem segmentation file v2 (5 Nov 2026),file name: Book My Pet
+Lawni,SME,Confirmed (Kareem),Kareem segmentation file v2 (5 Nov 2026),file name: Lawni
+Studio Earth,SME,High,Kareem segmentation file v2 (5 Nov 2026),file name: Studio Earth - MT
+Numero,SME,Confirmed (Kareem),Kareem segmentation file v2 (5 Nov 2026),file name: Numero
+Pure N Bio,SME,Medium,Kareem segmentation file v2 (5 Nov 2026),file name: Pure N Bio
+Oneshot,SME,Medium,Kareem segmentation file v2 (5 Nov 2026),file name: Oneshot
+DKNY,Growth,High,Kareem segmentation file v2 (5 Nov 2026),file name: DKNY
+All Birds,Growth,High,Kareem segmentation file v2 (5 Nov 2026),file name: Allbirds
+Kizik,Growth,Medium,Kareem segmentation file v2 (5 Nov 2026),file name: Kizik
+Izil,SME,High,Kareem segmentation file v2 (5 Nov 2026),file name: Izil
+Aiza,SME,High,Kareem segmentation file v2 (5 Nov 2026),file name: Aiza - MT
+Jetour,Growth,High,Kareem segmentation file v2 (5 Nov 2026),file name: Jetour
+Maison Safqa,SME,High,Kareem segmentation file v2 (5 Nov 2026),file name: Maison Safqa - MT
+Arte Madrid,SME,Low,Kareem segmentation file v2 (5 Nov 2026),file name: Arte Madrid
+Reefi,SME,Medium,Kareem segmentation file v2 (5 Nov 2026),file name: Reefi
+Avantcha,SME,High,Kareem segmentation file v2 (5 Nov 2026),file name: Avantcha
+Alma Home,SME,Confirmed (Kareem),Kareem segmentation file v2 (5 Nov 2026),file name: Alma Home
+Nysaa Beauty,Growth,High,Kareem segmentation file v2 (5 Nov 2026),file name: Nysaa Beauty
+Joli,SME,Confirmed (Kareem),Kareem segmentation file v2 (5 Nov 2026),file name: Joli
+Under 500,SME,Medium,Kareem segmentation file v2 (5 Nov 2026),file name: Under 500
+Ejalo Beauty,SME,Confirmed (Kareem),Kareem segmentation file v2 (5 Nov 2026),file name: Ejalo Beauty
+Transformative,SME,Confirmed (Kareem),Kareem segmentation file v2 (5 Nov 2026),file name: Transformative
+Metro Brazil,SME,High,Kareem segmentation file v2 (5 Nov 2026),file name: Metrobrazil
+Laurus Aroma,SME,High,Kareem segmentation file v2 (5 Nov 2026),file name: Laurus Aroma
+Blanco,SME,Medium,Kareem segmentation file v2 (5 Nov 2026),file name: Blanco
+Skinora,SME,Confirmed (Kareem),Kareem segmentation file v2 (5 Nov 2026),file name: Skinora
+HQtelecom,SME,Confirmed (Kareem),Kareem segmentation file v2 (5 Nov 2026),file name: HQtelecom
+SuLinda,SME,Medium,Kareem segmentation file v2 (5 Nov 2026),file name: SuLinda
+SHAYA,SME,Low,Kareem segmentation file v2 (5 Nov 2026),file name: SHAYA
+Wheels Bikes,SME,Medium,Kareem segmentation file v2 (5 Nov 2026),file name: Wheels Bikes
+Bond,SME,Confirmed (Kareem),Kareem segmentation file v2 (5 Nov 2026),file name: Bond
+Breth,SME,Confirmed (Kareem),Kareem segmentation file v2 (5 Nov 2026),file name: Breth
+Rite,SME,Medium,Kareem segmentation file v2 (5 Nov 2026),file name: Rite
+Granroselle,SME,Confirmed (Kareem),Kareem segmentation file v2 (5 Nov 2026),file name: Granroselle
+RJ,SME,Confirmed (Kareem),Kareem segmentation file v2 (5 Nov 2026),file name: RJ
+Sobysora,SME,Confirmed (Kareem),Kareem segmentation file v2 (5 Nov 2026),file name: Sobysora
+Waterdrop,Growth,Medium,Kareem segmentation file v2 (5 Nov 2026),file name: Waterdrop
+Nutrili,SME,High,Kareem segmentation file v2 (5 Nov 2026),file name: Nutrili
+Slope Roastery,SME,Confirmed (Kareem),Kareem segmentation file v2 (5 Nov 2026),file name: Slope Roastery
+Claragroup,SME,Confirmed (Kareem),Kareem segmentation file v2 (5 Nov 2026),file name: Claragroup
+Maison Safka,SME,High,Kareem segmentation file v2 (5 Nov 2026),alias of Maison Safqa

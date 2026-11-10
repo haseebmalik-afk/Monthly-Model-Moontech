@@ -484,8 +484,6 @@ def health(E, ds, ctl, checks):
     # 4. segments
     ud = [b['name'] for b in ds['roas_brands'] if b.get('segment_confidence') == 'U.D']
     add('roas_segments', 'bad' if ud else 'ok', 'ROAS client segmentation complete' if not ud else '%d ROAS clients without a segment (SME · U.D)' % len(ud), ', '.join(ud) if ud else 'Every ROAS brand in the model has an E/G/SME segment (Kareem\'s segmentation file).')
-    pending_seg = [b['name'] for b in rows if b.get('since') and kidx(*map(int, str(b['since'])[:7].split('-'))) > CUT and not _segment_known(b['name'])]
-    if pending_seg: add('roas_segments_next', 'warn', '%d brands signed after %s have no segment yet' % (len(pending_seg), cut_label), 'They will show as SME · U.D when the update date moves: ' + ', '.join(pending_seg))
     un = [m['name'] for m in ds['merchants'] if m.get('segment') in (None, 'Unassigned')]
     add('merchant_segments', 'warn' if un else 'ok', 'Commission client segmentation complete' if not un else '%d commission clients unassigned' % len(un), ', '.join(un))
     # 5. merchant names not in the master
@@ -511,7 +509,7 @@ def health(E, ds, ctl, checks):
         add('perf_commission', 'bad' if gaps else 'ok', 'Performance commission listed for all fixed-fee clients to %s' % cut_label if not gaps else 'Performance commission missing for a fixed-fee client', ('Needed each month for: ' + '; '.join(gaps)) if gaps else 'Clients with fixed-fee campaigns (ROAS factor on performance commission only): ' + ', '.join(perf.keys()) + '. Add the new month to pipeline/performance_commission.csv with every data pack.')
     # 9. creator status history
     H_N = len(hist()['creators']['active'])
-    if NF > H_N: add('creator_history', 'bad', 'Creator status metrics stop at %s' % mo(H_N - 1), 'Active / emerging / major / new / churned creators need per-creator order history back to 2024; the pack holds 2026 only. Months after %s show — for these (net orders are unaffected). Fix once: add the 2024–25 Orders by Creator export to the pack.' % mo(H_N - 1))
+    if NF > H_N: add('creator_history', 'bad', 'Creator status metrics stop at %s' % mo(H_N - 1), '2024 and 2025 totals are locked and not affected. The active / new / churned / emerging / major rules look back 12 months per creator, so %s needs each creator\'s 2025 orders, which the pack does not hold. Months after %s show — for these (net orders are unaffected). One-time fix: an Orders by Creator export for 2025 (2024 too if easy) added to the pack.' % (mo(NF - 1), mo(H_N - 1)))
     # 10. cash inputs
     cash = ctl.get('cash') or {}
     if not all(cash.get(k) not in (None, '') for k in ('balance_usd', 'monthly_burn_usd')): add('cash', 'warn', 'Cash inputs missing', 'Cash at month end and monthly burn are typed on the Investor page (then export control.json).')
@@ -530,7 +528,7 @@ def next_update(E, ctl):
     rows, today = _ladder_rows()
     waiting = sorted([b['name'] for b in rows if b.get('since') and kidx(*map(int, str(b['since'])[:7].split('-'))) == CUT + 1])
     later = sorted([b['name'] for b in rows if b.get('since') and kidx(*map(int, str(b['since'])[:7].split('-'))) > CUT + 1])
-    unseg = [n for n in waiting + later if not _segment_known(n)]
+    unseg = [n for n in waiting if not _segment_known(n)]            # only brands that enter the model at the next update date
     perf = performance_commission()
     return {'month': nxt, 'cut': ctl['latest_month'], 'ladder_pulled': today,
             'uploads': [

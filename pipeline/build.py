@@ -584,6 +584,33 @@ def make_engine(kit, ctl, addback):
     E = Engine(kit, 'system'); E.kit = kit
     return E
 
+def check_static_2024_25(ds):
+    """2024 and 2025 are static by agreement: every monthly value for Jan-24..Dec-25 (and the FY2024/FY2025 periods) must equal
+    the frozen snapshot in pipeline/static_2024_25.json. Returns True, or a message naming what moved (and the build fails)."""
+    path = os.path.join(HERE, 'static_2024_25.json')
+    if not os.path.exists(path): return 'pipeline/static_2024_25.json is missing'
+    snap = json.load(open(path))
+    def clean(o):                                   # same normalisation as the data.json writer (NaN -> null)
+        if isinstance(o, float): return None if o != o else round(o, 6)
+        if isinstance(o, dict): return {k: clean(v) for k, v in o.items()}
+        if isinstance(o, (list, tuple)): return [clean(v) for v in o]
+        return o
+    ds = clean(ds)
+    def walk(o, p=''):
+        if isinstance(o, dict):
+            for k, v in o.items(): yield from walk(v, p + '/' + k)
+        elif isinstance(o, list) and len(o) >= 32 and all(x is None or isinstance(x, (int, float)) for x in o): yield p, o
+    now = {p: [None if x is None else round(x, 4) for x in o[:24]] for p, o in walk(ds['series'])}
+    moved = [p for p, v in snap['series'].items() if now.get(p) != v]
+    for pk, pv in snap['periods'].items():
+        if json.dumps(ds['periods'].get(pk), sort_keys=True, default=str) != json.dumps(pv, sort_keys=True, default=str): moved.append('periods/' + pk)
+    if moved:
+        msg = '2024–25 values changed in %d place(s): %s' % (len(moved), ', '.join(moved[:8]) + ('…' if len(moved) > 8 else ''))
+        print('STATIC CHECK FAILED: ' + msg, file=sys.stderr)
+        if not os.environ.get('MM_ALLOW_STATIC_CHANGE'): raise SystemExit(2)
+        return msg
+    return True
+
 def main():
     kit = ROOT
     # Engine expects kit/data/*, kit/config.yaml, kit/merchant_master_seed.csv
@@ -600,7 +627,10 @@ def main():
             scen[key] = build_dataset(E, ctl)
             print('scenario', key, 'built', file=sys.stderr)
     checks = run_checks(base_E, kit, scen['none'])
+    static_ok = check_static_2024_25(scen['none'])
     health = pack_loaders.health(base_E, scen['none'], ctl, checks) if PACK else []
+    if PACK: health.insert(0, {'id': 'static_2024_25', 'level': 'ok' if static_ok is True else 'bad', 'title': '2024–25 locked' if static_ok is True else '2024–25 values moved',
+                               'detail': 'Every 2024 and 2025 monthly value matches the frozen snapshot (pipeline/static_2024_25.json). Only 2026 changes with a data pack.' if static_ok is True else static_ok})
     next_update = pack_loaders.next_update(base_E, ctl) if PACK else None
     npass = sum(1 for c in checks if c['pass'])
     print('check figures: %d/%d pass' % (npass, len(checks)), file=sys.stderr)

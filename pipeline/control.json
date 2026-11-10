@@ -1,10 +1,12 @@
 {
   "_comment": "Finance control file. Edit here (or export from the dashboard Control page) and re-run build.py.",
-  "latest_month": "2026-08",
+  "latest_month": "2026-09",
   "ounass": {
     "merchant": "Ounass",
     "buffer_aed": 150000,
-    "provisional_months": [],
+    "provisional_months": [
+      "2026-09"
+    ],
     "confirmed_months": [
       "2026-07",
       "2026-08"

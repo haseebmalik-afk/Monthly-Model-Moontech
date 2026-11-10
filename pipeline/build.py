@@ -13,7 +13,7 @@ import moontech_ref as R
 from moontech_ref import Engine, ACT, kidx, mo, NM
 import openpyxl
 
-NF = 32                       # full months with Datos + P&L: Jan-24 .. Aug-26
+NF = (lambda: (lambda y, m: (y - 2024) * 12 + m)(*map(int, json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'control.json')))['latest_month'].split('-'))))()   # months Jan-24 .. update month (control.json latest_month)
 LAUNCH = kidx(2025, 11)       # first ROAS signing
 LEG_SEGS = ['Enterprise', 'Growth', 'SME']
 TIERS = ['Small', 'Medium', 'Large']
@@ -479,7 +479,7 @@ def build_dataset(E, ctl):
     periods['YTD:2025'] = period(range(12, 12 + NF - 24), '2025 YTD (Jan-Aug)', 'ytd')
     for k in range(11, NF): periods['TTM:' + mo(k)] = period(range(k - 11, k + 1), 'TTM ' + mo(k), 'ttm')
     periods['SL'] = period(range(LAUNCH, NF), 'Since launch (Nov-25)', 'since_launch')
-    if PACK: pack_loaders.patch_creator_periods(periods)
+    if PACK: pack_loaders.patch_creator_periods(periods); pack_loaders.blank_creator_series(S['creators'])
 
     # ---- annualised view (10.19)
     elapsed = NF - 24; share = sum(E.w[:elapsed])
@@ -572,7 +572,8 @@ def run_checks(E, kit, ds=None):
         # creator status history is not in the pack (to-do #17): the dashboard carries it from history_base,
         # so the status checks are read from the published series rather than the pack-only engine.
         cr = ds['series']['creators']
-        res['CF19'] = cr['active'][NF - 1]; res['CF20'] = cr['emerging'][NF - 1]; res['CF21'] = cr['major'][NF - 1]
+        lastk = max([k for k in range(NF) if cr['active'][k] is not None] or [NF - 1])   # last month with creator status history
+        res['CF19'] = cr['active'][lastk]; res['CF20'] = cr['emerging'][lastk]; res['CF21'] = cr['major'][lastk]
     for c in csv.DictReader(open(os.path.join(HERE, 'check_figures.csv'))):
         got = res.get(c['id']); exp = float(c['expected_spec_ingestion'])
         out.append({'id': c['id'], 'metric': c['metric'], 'period': c['period'], 'expected': exp, 'got': r2(got, 3), 'pass': got is not None and abs(got - exp) <= float(c['tolerance']) + 1e-9})

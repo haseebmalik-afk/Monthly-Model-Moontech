@@ -11,7 +11,15 @@ Run:  python moontech_ref.py <kit_dir> [--merchant-source system|model]
 import sys, re, csv, json, difflib, datetime, os
 import openpyxl, yaml
 
-NM = 34
+# Update month: the model runs Jan-24 .. control.json latest_month (NF months). The reference engine was written for a
+# fixed Aug-26 cut (32 months); NF replaces that literal so each monthly data pack moves the cut by one month. Logic unchanged.
+def _nf_from_control():
+    try:
+        ctl = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'control.json')))
+        y, m = map(int, ctl['latest_month'].split('-')); return (y - 2024) * 12 + m
+    except Exception: return 32
+NF = _nf_from_control()
+NM = max(34, NF + 2)
 def mo(k): return '%d-%02d' % (2024 + k // 12, k % 12 + 1)
 def kidx(y, m): return (y - 2024) * 12 + m - 1
 
@@ -89,15 +97,15 @@ def load_merchant_revenue(kit, master, lad, cfg, source='system'):
     D = os.path.join(kit, 'data')
     model = openpyxl.load_workbook(os.path.join(D, 'MoonTech_Monthly_Model_6.xlsx'), data_only=True)
     rbm = model['Revenue By Merchant  Month']
-    rev = {}; adj = [0.0] * 32; review = []
+    rev = {}; adj = [0.0] * NF; review = []
     for r in range(2, 285):
         n = rbm.cell(r, 2).value
         if not n: continue
         vals = [(rbm.cell(r, c).value or 0) for c in range(6, 38)]
         vals = [v if isinstance(v, (int, float)) else 0 for v in vals]
         if n == 'Adjustment': adj = vals; continue
-        last = 32 if source == 'model' else 21          # S2 history = Jan-24..Sep-25
-        rev[n] = [vals[k] if k < last else 0.0 for k in range(32)]
+        last = NF if source == 'model' else 21          # S2 history = Jan-24..Sep-25
+        rev[n] = [vals[k] if k < last else 0.0 for k in range(NF)]
     if source == 'system':
         up = openpyxl.load_workbook(os.path.join(D, 'Moontech-_Data_updates_2025_1.xlsx'), data_only=True)
         ex = up['Revenue by Merchant']
@@ -123,7 +131,7 @@ def load_merchant_revenue(kit, master, lad, cfg, source='system'):
                         master.setdefault(n, {'aliases': [], 'source': 'Datos', 'roas': cand2 if t2 != 'none' else None,
                                               'size_class': 'Unassigned', 'status': 'Proposed'})
                     alias[n] = m
-                rev.setdefault(m, [0.0] * 32)
+                rev.setdefault(m, [0.0] * NF)
                 for c, k in zip(vcols, ks):
                     v = ex.cell(r, c).value
                     if isinstance(v, (int, float)): rev[m][k] += v
@@ -142,7 +150,7 @@ def load_pl(kit, cfg):
     ma_rows = {'creator_payouts': [26], 'materials': [27], 'freelancers': [28], 'bd_salaries': [35], 'digital_marketing': [36],
                'marketing_events': [37], 'account_mgmt': [38], 'c_suite': [42], 'ops_salaries': [43], 'advisory': [44],
                'development': [48, 64], 'system_expenses': [49], 'ga': [52], 'da': [57], 'finance_cost': [60], 'tax': [61]}
-    pl = {l: [0.0] * 32 for l in lines}
+    pl = {l: [0.0] * NF for l in lines}
     for l, rs in lines.items():
         for j in range(8):
             pl[l][24 + j] = sum((fin.cell(r, 2 + j).value or 0) for r in rs)
@@ -156,7 +164,7 @@ def load_creators(kit, cfg):
     D = os.path.join(kit, 'data')
     model = openpyxl.load_workbook(os.path.join(D, 'MoonTech_Monthly_Model_6.xlsx'), data_only=True)
     ob = model['Orders by Creator  Month']
-    orders = {}; unatt = [0.0] * 32; flags = []
+    orders = {}; unatt = [0.0] * NF; flags = []
     valid = set(cfg['creator_id_checks']['valid_lengths'])
     def norm_id(v):
         if v in (None, '', 0, '0'): return None
@@ -170,7 +178,7 @@ def load_creators(kit, cfg):
             if ob.cell(r, 1).value == 0:
                 for k in range(24): unatt[k] += vals[k]
             continue
-        orders.setdefault(i, [0.0] * 32)
+        orders.setdefault(i, [0.0] * NF)
         for k in range(24): orders[i][k] += vals[k]
     up = openpyxl.load_workbook(os.path.join(D, 'Moontech-_Data_updates_2025_1.xlsx'), data_only=True)
     st = up['Orders by Creator']
@@ -189,7 +197,7 @@ def load_creators(kit, cfg):
                 for ex in list(orders):
                     if len(ex) >= 10 and any(int(i) == round(int(ex), -(len(ex) - s)) for s in cfg['creator_id_checks']['rounding_match_sig_figs'] if len(ex) > s):
                         flags.append(('rounding_match_reassigned', i, ex)); i = ex; break
-                orders.setdefault(i, [0.0] * 32)
+                orders.setdefault(i, [0.0] * NF)
             orders[i][k] += round(v + 1e-9)
     return orders, unatt, flags
 
@@ -215,7 +223,7 @@ def legacy_status(x_aed, cfg, stop=None):
     fx = cfg['fx']['aed_per_usd']; ms = cfg['merchant_status']
     T = ms['active_min_annualised_usd'] * fx; Q = ms['quiet_month_threshold_usd'] * fx; NQ = ms['quiet_months_to_churn']
     out = ['-'] * NM; start = None; state = False; churned_before = False
-    for k in range(32):
+    for k in range(NF):
         if stop is not None and k >= stop: break
         if start is None and x_aed[k] > 1: start = k
         if start is None: continue
@@ -252,8 +260,8 @@ def roas_status(b, cfg):
 
 def creator_status(x, cfg):
     cs = cfg['creator_status']; thr = cs['active_min_avg_net_orders_per_month']; W = cs['activity_window_months']
-    out = ['-'] * 32; start = None; state = False; churned = False
-    for k in range(32):
+    out = ['-'] * NF; start = None; state = False; churned = False
+    for k in range(NF):
         if start is None and x[k] >= 1: start = k
         recent = any(v >= 1 for v in x[max(0, k - W + 1):k + 1])
         act = False
@@ -274,7 +282,8 @@ def annualised(x, k):
     t = k - f + 1
     return sum(x[max(f, k - 11):k + 1]) if t >= 12 else sum(x[f:k + 1]) * 12 / t
 
-def hysteresis(x, enter, exit_, n=32):
+def hysteresis(x, enter, exit_, n=None):
+    n = NF if n is None else n
     st = False; out = []
     for k in range(n):
         a = annualised(x, k)
@@ -305,10 +314,10 @@ class Engine:
         # revenue composition (USD)
         self.roas = [sum(v['pay'][k] for v in self.lad.values() if not v['other_pricing']) for k in range(NM)]
         self.other = [sum(v['pay'][k] for v in self.lad.values() if v['other_pricing']) for k in range(NM)]
-        self.named = [sum(x[k] for m, x in self.rev.items() if m not in self.since or k < self.since[m]) / fx for k in range(32)]
-        self.total = [(self.pl['sales'][k] / fx) if k >= 24 else (sum(x[k] for x in self.rev.values()) + self.adj[k]) / fx for k in range(32)]
-        self.plug = [self.total[k] - self.named[k] - self.roas[k] - self.other[k] for k in range(32)]
-        self.legacy = [self.total[k] - self.roas[k] - self.other[k] for k in range(32)]
+        self.named = [sum(x[k] for m, x in self.rev.items() if m not in self.since or k < self.since[m]) / fx for k in range(NF)]
+        self.total = [(self.pl['sales'][k] / fx) if k >= 24 else (sum(x[k] for x in self.rev.values()) + self.adj[k]) / fx for k in range(NF)]
+        self.plug = [self.total[k] - self.named[k] - self.roas[k] - self.other[k] for k in range(NF)]
+        self.legacy = [self.total[k] - self.roas[k] - self.other[k] for k in range(NF)]
         # seasonality weights (rule): avg monthly share of legacy revenue over last 2 full years (2024-25)
         tot = sum(self.legacy[:24])
         self.w = [(self.legacy[i] + self.legacy[12 + i]) / tot for i in range(12)]
@@ -319,10 +328,10 @@ class Engine:
             rep = list(x)
             if m in self.since:
                 b = self.link[m]
-                rep = [x[k] if k < self.since[m] else self.lad[b]['pay'][k] * fx for k in range(32)]
+                rep = [x[k] if k < self.since[m] else self.lad[b]['pay'][k] * fx for k in range(NF)]
             ent = hysteresis(rep, sg['enterprise_enter_annualised_aed'], sg['enterprise_exit_annualised_aed'])
             base = self.master.get(m, {}).get('size_class', 'Unassigned')
-            self.seg[m] = ['Enterprise' if ent[k] else base for k in range(32)]
+            self.seg[m] = ['Enterprise' if ent[k] else base for k in range(NF)]
         self.major = {i: hysteresis(x, sg['major_creator_enter_annualised_orders'], sg['major_creator_exit_annualised_orders'])
                       for i, x in self.orders.items()}
 
@@ -353,7 +362,7 @@ class Engine:
         out = {}
         for m, x in self.rev.items():
             if segfilter and self.seg[m][at] not in segfilter: continue
-            out[m] = [x[k] / self.fx if (m not in self.since or k < self.since[m]) else 0.0 for k in range(32)]
+            out[m] = [x[k] / self.fx if (m not in self.since or k < self.since[m]) else 0.0 for k in range(NF)]
         return out
     def roas_series(self): return {b: v['pay'] for b, v in self.lad.items() if not v['other_pricing']}
 
@@ -363,7 +372,7 @@ class Engine:
         J, A, Ju, Au = kidx(2026, 1), kidx(2026, 4), kidx(2026, 7), kidx(2026, 8)
         r['CF01'] = self.total[J] / 1e3; r['CF02'] = self.named[J] / 1e3; r['CF03'] = self.roas[J] / 1e3
         r['CF04'] = self.plug[J] / 1e3; r['CF05'] = self.plug[A] / 1e3; r['CF06'] = self.plug[Ju] / 1e3; r['CF07'] = self.plug[Au] / 1e3
-        ytd = range(24, 32)
+        ytd = range(24, NF)
         S = lambda l: sum(pl[l][k] for k in ytd) / fx
         rev = S('sales'); cp = S('creator_payouts'); cos = cp + S('materials') + S('other_cos') + S('freelancers')
         opex = sum(S(l) for l in ['bd_salaries', 'digital_marketing', 'marketing_events', 'account_mgmt', 'c_suite', 'ops_salaries',
@@ -427,9 +436,9 @@ class Engine:
             if b not in self.link.values(): acc['ROAS:' + b] = sum(v['pay'][k] for k in ttm)
         top = sorted(acc.values(), reverse=True); T = sum(self.total[k] for k in ttm)
         r['CF40'] = top[0] / T * 100; r['CF41'] = sum(top[:5]) / T * 100
-        r['CF42'] = (sum(self.total[24:32]) / sum(self.total[12:20]) - 1) * 100
-        legytd = sum(self.legacy[24:32]); share = sum(self.w[:8])
-        roas_ytd = sum(self.roas[24:32]) + sum(self.other[24:32])
+        r['CF42'] = (sum(self.total[24:NF]) / sum(self.total[12:12 + NF - 24]) - 1) * 100
+        legytd = sum(self.legacy[24:NF]); share = sum(self.w[:NF - 24])
+        roas_ytd = sum(self.roas[24:NF]) + sum(self.other[24:NF])
         r['CF43'] = (legytd / share + roas_ytd + self.roas_arr(Au) * 4 / 12) / 1e6
         r['_CF43_parts'] = {'legacy': legytd / share / 1e6, 'roas': (roas_ytd + self.roas_arr(Au) * 4 / 12) / 1e6,
                             'roas_simple_x12_8': roas_ytd * 12 / 8 / 1e6}

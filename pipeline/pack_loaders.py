@@ -27,8 +27,13 @@ from moontech_ref import kidx, NM, mo
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 PACK = os.path.join(ROOT, 'data', 'pack')
-NF = 32                                  # Jan-24 .. Aug-26
-K26 = {m: kidx(2026, m) for m in range(1, 9)}   # 2026-01..08 -> 24..31
+def _cut_from_control():
+    try:
+        ctl = json.load(open(os.path.join(HERE, 'control.json'))); y, m = map(int, ctl['latest_month'].split('-')); return y, m
+    except Exception: return 2026, 8
+_CY, _CM = _cut_from_control()
+NF = kidx(_CY, _CM) + 1                   # Jan-24 .. update month (control.json latest_month)
+K26 = {m: kidx(2026, m) for m in range(1, (_CM if _CY == 2026 else 12) + 1)}   # 2026 months up to the update month -> k
 
 def available(): return os.path.isdir(PACK) and os.path.exists(os.path.join(PACK, 'revenue_by_merchant.xlsx'))
 
@@ -139,10 +144,10 @@ def _is_pure_roas(name, pure):
 # ----------------------------------------------------------------------------- merchant revenue (AED per merchant per month)
 def load_merchant_revenue(kit, master, lad, cfg, source='system'):
     fx = cfg['fx']['aed_per_usd']; H = hist()
-    rev = {}; adj = [0.0] * 32; review = []
+    rev = {}; adj = [0.0] * NF; review = []
     # 2024-25 from the baked build (USD -> AED), untouched
     for m in H['merchants']:
-        rev[m['name']] = [float(m['monthly'][k] or 0) * fx if k < 24 else 0.0 for k in range(32)]
+        rev[m['name']] = [float(m['monthly'][k] or 0) * fx if k < 24 else 0.0 for k in range(NF)]
     for k in range(24):
         adj[k] = (float(H['rev_total'][k] or 0) - sum(float(m['monthly'][k] or 0) for m in H['merchants'])) * fx
     # 2026 from the pack
@@ -178,7 +183,7 @@ def load_merchant_revenue(kit, master, lad, cfg, source='system'):
                 master.setdefault(n, {'aliases': [], 'source': 'Datos', 'roas': cand2 if t2 != 'none' else None,
                                       'size_class': 'Unassigned', 'status': 'Proposed'})
             alias[n] = m
-        rev.setdefault(m, [0.0] * 32)
+        rev.setdefault(m, [0.0] * NF)
         for i, k in cols.items():
             v = _num(_g(r, i))
             if v is not None: rev[m][k] += v
@@ -204,7 +209,7 @@ _MON = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august'
 
 def load_pl(kit, cfg):
     fx = cfg['fx']['aed_per_usd']; H = hist()
-    pl = {l: [0.0] * 32 for l in _PL_LINES}
+    pl = {l: [0.0] * NF for l in _PL_LINES}
     # 2024-25 from the baked build (USD -> AED). Opex is stored grouped there; carry each group on one line so
     # group totals, EBITDA and the checks are unchanged (the dashboard shows groups only).
     hp = H['pl']
@@ -234,7 +239,7 @@ def load_pl(kit, cfg):
 
 # ----------------------------------------------------------------------------- creators (net orders per Contact ID, 2026 from pack)
 def load_creators(kit, cfg):
-    orders = {}; unatt = [0.0] * 32; flags = []
+    orders = {}; unatt = [0.0] * NF; flags = []
     valid = set(cfg['creator_id_checks']['valid_lengths'])
     rows = _rows(os.path.join(PACK, 'orders_by_creator.xlsx'), 'Export')
     h = rows[0]; ix = {str(h[i]).strip(): i for i in range(len(h)) if h[i] is not None}
@@ -249,7 +254,7 @@ def load_creators(kit, cfg):
         if i is None: unatt[k] += v; continue
         if re.fullmatch(r'\d+\.0', i): i = i[:-2]
         if not i.isdigit() or len(i) not in valid: flags.append(('rejected_format', i, '2026-%02d' % ym[1])); continue
-        orders.setdefault(i, [0.0] * 32)
+        orders.setdefault(i, [0.0] * NF)
         orders[i][k] += v                      # BI net orders are fractional (partial returns); summed raw they tie to the client export
     return orders, unatt, flags
 
@@ -294,15 +299,30 @@ PACK_CREATOR_FIELDS = ('orders_total', 'orders_unatt')
 def patch_creator_series(cr):
     """Pack has no 2024-25 per-creator history, so creator status metrics (active/new/churned/major...) come from
     the baked build; only the order totals for 2026 (orders_total / orders_unatt) are taken from the pack."""
-    hc = hist()['creators']
-    keep = {f: list(cr[f]) for f in PACK_CREATOR_FIELDS}
-    for key, arr in hc.items(): cr[key] = list(arr)[:len(cr['active'])]
-    for f in PACK_CREATOR_FIELDS:
-        for k in range(24, 32): cr[f][k] = keep[f][k]
+    if os.environ.get('MM_NO_CREATOR_HISTORY'): return               # diagnostics: engine values only
+    hc = hist()['creators']; H_N = len(hc['active'])            # months covered by the baked history (32 = to Aug-26)
+    engine = {key: list(cr[key]) for key in cr}                 # pack-engine values (2026 orders only)
+    # Status series (active / emerging / major / new / churned / reactivated and the order splits that depend on them) need
+    # per-creator order history going back more than the 2026 pack holds. They are carried from the baked history up to its
+    # last month and are NOT computable after it (None) until a one-time 2024-25 Orders-by-Creator export is in the pack.
+    STATUS_FIELDS = [k for k in cr if k not in PACK_CREATOR_FIELDS]
+    for key in STATUS_FIELDS:
+        src = list(hc[key]) if key in hc else list(engine[key])
+        cr[key] = src[:min(H_N, NF)] + list(engine[key][min(H_N, NF):NF])     # engine values past the history are blanked after the periods are built
+    for f in PACK_CREATOR_FIELDS:                               # order totals: 2024-25 static history, 2026 from the pack
+        cr[f] = list(hc[f])[:24] + list(engine[f][24:NF])
+
+def blank_creator_series(cr):
+    """After the periods are built: status-based creator series are not computable past the baked history -> None."""
+    H_N = len(hist()['creators']['active'])
+    for key in cr:
+        if key in PACK_CREATOR_FIELDS: continue
+        for k in range(H_N, len(cr[key])): cr[key][k] = None
 
 def patch_creator_periods(P):
     """Period creator blocks from the baked build, except the pack-driven order totals (already computed from the
     patched series by build.py)."""
+    cutm = json.load(open(os.path.join(HERE, 'control.json')))['latest_month']
     for pk, pc in hist()['periods_creators'].items():
         if pk in P and pc is not None:
             mine = P[pk].get('creators') or {}
@@ -310,6 +330,15 @@ def patch_creator_periods(P):
             for f in PACK_CREATOR_FIELDS:
                 if f in mine: merged[f] = mine[f]
             P[pk]['creators'] = merged
+    # periods that reach past the baked history: status-based creator metrics are not computable -> None (order totals stay)
+    H_LAST = mo(len(hist()['creators']['active']) - 1)
+    for pk, p in P.items():
+        if not p or not p.get('end') or p['end'] <= H_LAST: continue
+        c = p.get('creators')
+        if isinstance(c, dict):
+            for f in list(c):
+                if f not in PACK_CREATOR_FIELDS: c[f] = None
+        if isinstance(p.get('creator_cac'), dict): p['creator_cac'] = dict(p['creator_cac'], per_active=None, new_active=None)
     # creator order NRR needs per-creator history across both windows -> carried from the baked build
     for pk, v in hist().get('periods_retention_orders_12m', {}).items():
         if pk in P and isinstance(P[pk].get('retention'), dict) and P[pk]['retention'].get('orders_12m') is None:
@@ -428,6 +457,14 @@ def health(E, ds, ctl, checks):
             'revenue_by_merchant.xlsx': 'Revenue by Merchant', '2026_model_pnl.csv': '2026 Model P&L', 'ladder.json': 'ROAS ladder snapshot', 'ladder_milestones.json': 'ROAS level history'}
     missing = [v for f, v in need.items() if not os.path.exists(os.path.join(PACK, f))]
     add('pack_files', 'bad' if missing else 'ok', 'Data pack complete' if not missing else 'Data pack incomplete', ('Missing: ' + ', '.join(missing)) if missing else 'All 7 pack files present (update date %s).' % cut_label)
+    # 1b. an export that was not replaced with the rest of the pack (older file date than the others) is probably stale
+    try:
+        ups = ['net_sales_by_client.xlsx', 'orders_by_creator.xlsx', 'ads_by_creator.xlsx', 'revenue_by_merchant.xlsx']
+        mt = {f: os.path.getmtime(os.path.join(PACK, f)) for f in ups if os.path.exists(os.path.join(PACK, f))}
+        if mt:
+            newest = max(mt.values()); stale = [f for f, t in mt.items() if newest - t > 36 * 3600]
+            if stale: add('pack_stale', 'warn', '%d export(s) not refreshed with this data pack' % len(stale), ', '.join(stale) + ' — older than the other exports; the model is using the previous upload. Re-export and replace if the month changed.')
+    except Exception: pass
     # 2. coverage of the update month in each export
     def cover(name, ok, detail): add('cover_' + name, 'ok' if ok else 'bad', ('%s covers %s' % (name, cut_label)) if ok else ('%s does not reach %s' % (name, cut_label)), detail)
     try:
@@ -472,7 +509,10 @@ def health(E, ds, ctl, checks):
             missing = [mo(k) for k in range(24, CUT + 1) if k not in months]
             if missing: gaps.append('%s: %s' % (ck, ', '.join(missing)))
         add('perf_commission', 'bad' if gaps else 'ok', 'Performance commission listed for all fixed-fee clients to %s' % cut_label if not gaps else 'Performance commission missing for a fixed-fee client', ('Needed each month for: ' + '; '.join(gaps)) if gaps else 'Clients with fixed-fee campaigns (ROAS factor on performance commission only): ' + ', '.join(perf.keys()) + '. Add the new month to pipeline/performance_commission.csv with every data pack.')
-    # 9. cash inputs
+    # 9. creator status history
+    H_N = len(hist()['creators']['active'])
+    if NF > H_N: add('creator_history', 'bad', 'Creator status metrics stop at %s' % mo(H_N - 1), 'Active / emerging / major / new / churned creators need per-creator order history back to 2024; the pack holds 2026 only. Months after %s show — for these (net orders are unaffected). Fix once: add the 2024–25 Orders by Creator export to the pack.' % mo(H_N - 1))
+    # 10. cash inputs
     cash = ctl.get('cash') or {}
     if not all(cash.get(k) not in (None, '') for k in ('balance_usd', 'monthly_burn_usd')): add('cash', 'warn', 'Cash inputs missing', 'Cash at month end and monthly burn are typed on the Investor page (then export control.json).')
     return H

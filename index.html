@@ -644,7 +644,8 @@ function computeInvestor() {
   const nm = D.roas_brands;
   const nmRev = ks => sum(nm.map(br => sum(ks.map(k => br.monthly[k] || 0))));
   const sinceK = br => S.months.indexOf(br.since);
-  const churnK = br => br.churn_month ? S.months.indexOf(br.churn_month) : -1;
+  // churn month = the model's status series (ladder churn month, or the no-payment backstop rule) so KPIs, Segmentation and Investor count the same brands
+  const churnK = br => { const sm = br.status_monthly || []; const i = sm.indexOf('Churned'); if (i >= 0) return i; return br.churn_month ? S.months.indexOf(br.churn_month) : -1; };
   const paidBy = k => nm.filter(br => sinceK(br) >= 0 && sinceK(br) <= k);
   const churnedBy = k => nm.filter(br => churnK(br) >= 0 && churnK(br) <= k && sinceK(br) <= k);
   const activeAt = k => paidBy(k).length - churnedBy(k).length;

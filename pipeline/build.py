@@ -600,13 +600,14 @@ def main():
             print('scenario', key, 'built', file=sys.stderr)
     checks = run_checks(base_E, kit, scen['none'])
     health = pack_loaders.health(base_E, scen['none'], ctl, checks) if PACK else []
+    next_update = pack_loaders.next_update(base_E, ctl) if PACK else None
     npass = sum(1 for c in checks if c['pass'])
     print('check figures: %d/%d pass' % (npass, len(checks)), file=sys.stderr)
     base = scen['none']
     # store overrides only where a section differs
     out = {'meta': {'built': __import__('datetime').date.today().isoformat(), 'latest_month': mo(NF - 1), 'fx': base_E.fx, 'spec_version': 'v0.25',
                     'config': base_E.cfg, 'control': ctl, 'checks': checks, 'checks_pass': npass, 'ladder_file': 'moontech-roas-ladder-2026-10-05.csv',
-                    'source': 'monthly data pack + history_base' if PACK else 'original workbooks', 'health': health},
+                    'source': 'monthly data pack + history_base' if PACK else 'original workbooks', 'health': health, 'next_update': next_update},
            'base': base, 'scenarios': {}}
     for key, ds in scen.items():
         if key == 'none': continue

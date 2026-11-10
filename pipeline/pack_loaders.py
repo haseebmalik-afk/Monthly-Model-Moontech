@@ -483,3 +483,29 @@ def _segment_known(brand):
             if r['brand'] == brand and r.get('confidence') != 'U.D' and r.get('source') != 'default': return True
     except FileNotFoundError: pass
     return False
+
+# ----------------------------------------------------------------------------- next update: what the data pack must contain
+def next_update(E, ctl):
+    CUT = cut_k(); nxt = mo(CUT + 1)
+    rows, today = _ladder_rows()
+    waiting = sorted([b['name'] for b in rows if b.get('since') and kidx(*map(int, str(b['since'])[:7].split('-'))) == CUT + 1])
+    later = sorted([b['name'] for b in rows if b.get('since') and kidx(*map(int, str(b['since'])[:7].split('-'))) > CUT + 1])
+    unseg = [n for n in waiting + later if not _segment_known(n)]
+    perf = performance_commission()
+    return {'month': nxt, 'cut': ctl['latest_month'], 'ladder_pulled': today,
+            'uploads': [
+                {'file': 'net_sales_by_client.xlsx', 'source': 'BI · Net Sales & Orders by Client', 'tab': 'Export', 'feeds': 'GMV per client, net orders per client, take rate, ROAS factor (commission clients)'},
+                {'file': 'orders_by_creator.xlsx', 'source': 'BI · Orders by Creator', 'tab': 'Export', 'feeds': 'net orders (incl. unattributed), creator metrics'},
+                {'file': 'ads_by_creator.xlsx', 'source': 'BI · Ads by Creator', 'tab': 'Export', 'feeds': 'closed ads'},
+                {'file': 'revenue_by_merchant.xlsx', 'source': 'BI · Revenue by Merchant', 'tab': 'Revenue by Merchant (model)', 'feeds': 'commission revenue per client, Adjustment, client segmentation inputs'}],
+            'pulled': [
+                {'item': '2026 Model P&L', 'how': 'published sheet, pulled through your browser into 2026_model_pnl.csv', 'feeds': 'P&L lines, total revenue (Sales), EBITDA'},
+                {'item': 'ROAS ladder (receivables + tracker)', 'how': 'published sheets, pulled through your browser into ladder.json + ladder_milestones.json', 'feeds': 'ROAS revenue, brands, levels, churn, tiers'}],
+            'inputs': [
+                {'item': 'Performance commission for fixed-fee clients', 'who': 'Haseeb', 'detail': ', '.join(perf.keys()) + ' — the month\'s AED figure for pipeline/performance_commission.csv (ROAS factor and level only)'},
+                {'item': 'Segments for new ROAS brands', 'who': 'Kareem\'s segmentation file', 'detail': ('Still unmapped: ' + ', '.join(unseg)) if unseg else ('All brands signed after %s already have a segment (%d entering in %s: %s)' % (ctl['latest_month'], len(waiting), nxt, ', '.join(waiting) or 'none'))},
+                {'item': 'Cash at month end and monthly burn', 'who': 'Haseeb', 'detail': 'typed on the Investor page, then export control.json'},
+                {'item': 'Ounass month confirmation', 'who': 'Haseeb', 'detail': 'confirm the month on this page once the invoice is final'}],
+            'live': [
+                {'item': 'ROAS Ladder page', 'sheet': 'receivables + tracker'}, {'item': 'CAC page and live CAC in LTV:CAC / payback', 'sheet': 'CAC sheet'},
+                {'item': '2026 P&L (live) view on Financials', 'sheet': '2026 Model P&L'}, {'item': 'ROAS factor for ROAS clients', 'sheet': 'CSM ROAS-factor mapping'}]}

@@ -1189,6 +1189,30 @@ function renderControl() {
   const nBad = items.filter(i => i.level === 'bad').length, nWarn = items.filter(i => i.level === 'warn').length;
   const ico = { bad: '<span class="neg">●</span>', warn: '<span style="color:var(--coral)">●</span>', info: '<span class="muted">●</span>', ok: '<span class="ok">●</span>' };
   const healthRows = items.map(i => `<tr><td style="width:18px">${ico[i.level]}</td><td style="text-align:left;white-space:normal"><b>${i.title}</b>${i.detail ? '<div class="muted small">' + i.detail + '</div>' : ''}</td></tr>`).join('');
+  // ---- data pack: what the next update needs
+  const NU = M.next_update; let packCard = '';
+  if (NU) {
+    const liveState = key => { const v = MT_LIVE[key]; return !v ? '<span class="muted">checking…</span>' : v.ok ? '<span class="ok">● live</span>' : '<span class="neg">● unreachable</span>'; };
+    const liveKey = { 'receivables + tracker': 'ladder', 'CAC sheet': 'cac', '2026 Model P&L': 'pnl', 'CSM ROAS-factor mapping': 'map' };
+    const nm = fmt.month(NU.month);
+    packCard = `<div class="card" style="margin-bottom:16px"><p class="eyebrow">Data pack · next update: ${nm}</p><h3 class="h3">Model is at ${fmt.month(NU.cut)}. To move it to ${nm}, this is what is needed</h3>
+      <div class="grid g2" style="margin-top:10px">
+        <div><p class="eyebrow">1 · Upload here (BI exports, must include ${nm})</p><div class="tblwrap"><table class="t dense"><thead><tr><th style="text-align:left">File</th><th style="text-align:left">Tab</th><th style="text-align:left">Feeds</th></tr></thead><tbody>
+          ${NU.uploads.map(u => `<tr><td style="text-align:left"><b>${esc(u.source)}</b><div class="muted small">${esc(u.file)}</div></td><td style="text-align:left">${esc(u.tab)}</td><td style="text-align:left;white-space:normal" class="small">${esc(u.feeds)}</td></tr>`).join('')}
+        </tbody></table></div>
+        <p class="eyebrow" style="margin-top:12px">2 · Pulled by Claude at update time (no action)</p><div class="tblwrap"><table class="t dense"><tbody>
+          ${NU.pulled.map(u => `<tr><td style="text-align:left"><b>${esc(u.item)}</b><div class="muted small">${esc(u.how)}</div></td><td style="text-align:left;white-space:normal" class="small">${esc(u.feeds)}</td></tr>`).join('')}
+        </tbody></table></div></div>
+        <div><p class="eyebrow">3 · Inputs to give or confirm</p><div class="tblwrap"><table class="t dense"><tbody>
+          ${NU.inputs.map(u => `<tr><td style="text-align:left"><b>${esc(u.item)}</b><div class="muted small">${esc(u.who)}</div></td><td style="text-align:left;white-space:normal" class="small">${esc(u.detail)}</td></tr>`).join('')}
+        </tbody></table></div>
+        <p class="eyebrow" style="margin-top:12px">Connected live (read in the browser every time a page opens)</p><div class="tblwrap"><table class="t dense"><tbody>
+          ${NU.live.map(u => `<tr><td style="text-align:left"><b>${esc(u.item)}</b><div class="muted small">${esc(u.sheet)}</div></td><td style="text-align:left">${liveState(liveKey[u.sheet])}</td></tr>`).join('')}
+        </tbody></table></div>
+        <div class="note">Live sheets are cut at the update date on every page, even when they already hold later months. The pipeline takes a snapshot of the ladder and the P&amp;L at update time, so the baked numbers and the live pages agree.</div></div>
+      </div>
+      <div class="note">Process: upload the four exports in the chat → Claude pulls the ladder and the P&amp;L through your browser, moves the update date to ${nm}, rebuilds, re-checks (43 check figures + this checklist) and pushes. Ladder snapshot last pulled ${NU.ladder_pulled || '—'}.</div></div>`;
+  }
   const healthCard = `<div class="card" style="margin-bottom:16px"><p class="eyebrow">Checklist · update date ${fmt.month(Lm)}</p>
     <h3 class="h3">${nBad ? '<span class="neg">' + nBad + ' red flag' + (nBad > 1 ? 's' : '') + '</span>' : 'No red flags'}${nWarn ? ' · ' + nWarn + ' to watch' : ''} · ${items.filter(i => i.level === 'ok').length} OK</h3>
     <div class="tblwrap"><table class="t dense"><tbody>${healthRows}</tbody></table></div>
@@ -1197,6 +1221,7 @@ function renderControl() {
   root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">08 · Control &amp; data quality</p><h1 class="h2">Finance controls and the monthly load check</h1><p>Nothing here changes a number by hand. Confirmations and switches set status; every figure is recomputed from the extracts. Changes are kept in this browser until you export <code>control.json</code> and commit it with the next monthly build.</p></div>
       <button class="btn" id="export-ctl">Export control.json</button></div>
     ${healthCard}
+    ${packCard}
     <div class="grid g2">
       <div class="card"><p class="eyebrow">Ounass provisional months</p><h3 class="h3">Buffer AED ${o.buffer_aed.toLocaleString()} · currently <b>${state.buffer === 'on' ? 'held' : 'added back'}</b></h3>
         <div class="tblwrap"><table class="t dense fit"><thead><tr><th>Month</th><th>System figure</th><th>USD</th><th>Buffer</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>

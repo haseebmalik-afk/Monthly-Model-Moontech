@@ -355,6 +355,7 @@ def comm_ttm(cfg):
             if ym and ym[0] == 2026 and ym[1] in K26 and met == 'Net Revenue (AED)':
                 v = _num(_g(r, i))
                 if v: gmv[k] = gmv.get(k, 0) + v / fx
+    perf = performance_commission()
     out = {}
     for n, vals in _rbm_2026():
         if n == 'Adjustment': continue
@@ -365,6 +366,20 @@ def comm_ttm(cfg):
             for gk in gmv:
                 if (k in gk or gk in k) and min(len(k), len(gk)) >= 5: g = gmv[gk]; break
         out[k] = {'c': round(c), 'n': nm, **({'g': round(g)} if g is not None else {})}
+        if k in perf:   # fixed-fee client: ROAS factor and level on performance commission only (revenue untouched)
+            ks26 = set(K26.values()); pc = sum(v for mk, v in perf[k].items() if mk in ks26) / fx
+            out[k].update({'c_tracked': round(c), 'c': round(pc), 'perf': True, 'perf_months': len([mk for mk in perf[k] if mk in ks26])})
+    return out
+
+def performance_commission():
+    """pipeline/performance_commission.csv: client, month (YYYY-MM), performance_commission_aed -> {client key: {month index: AED}}.
+    Used only for the ROAS factor / level of clients whose tracked commission includes fixed-fee campaigns."""
+    p = os.path.join(HERE, 'performance_commission.csv'); out = {}
+    if not os.path.exists(p): return out
+    for r in csv.DictReader(open(p)):
+        try: y, m = map(int, r['month'].split('-')); v = float(r['performance_commission_aed'])
+        except Exception: continue
+        out.setdefault(_key(r['client']), {})[kidx(y, m)] = v
     return out
 
 def adj_indicator(E):
@@ -449,7 +464,15 @@ def health(E, ds, ctl, checks):
     idf = ds['review']['creator_id_flags']; add('creator_ids', 'warn' if idf else 'ok', 'Creator IDs clean' if not idf else '%d creator-ID rows rejected' % len(idf), '' if not idf else 'See Creator-ID flags below.')
     prov = [m for m in ctl['ounass']['provisional_months'] if m not in ctl['ounass']['confirmed_months']]
     add('ounass', 'warn' if prov else 'ok', 'Ounass months confirmed' if not prov else 'Ounass provisional: ' + ', '.join(prov), '')
-    # 8. cash inputs
+    # 8. fixed-fee clients: performance commission must be listed for every month to the update date
+    perf = performance_commission()
+    if perf:
+        gaps = []
+        for ck, months in perf.items():
+            missing = [mo(k) for k in range(24, CUT + 1) if k not in months]
+            if missing: gaps.append('%s: %s' % (ck, ', '.join(missing)))
+        add('perf_commission', 'bad' if gaps else 'ok', 'Performance commission listed for all fixed-fee clients to %s' % cut_label if not gaps else 'Performance commission missing for a fixed-fee client', ('Needed each month for: ' + '; '.join(gaps)) if gaps else 'Clients with fixed-fee campaigns (ROAS factor on performance commission only): ' + ', '.join(perf.keys()) + '. Add the new month to pipeline/performance_commission.csv with every data pack.')
+    # 9. cash inputs
     cash = ctl.get('cash') or {}
     if not all(cash.get(k) not in (None, '') for k in ('balance_usd', 'monthly_burn_usd')): add('cash', 'warn', 'Cash inputs missing', 'Cash at month end and monthly burn are typed on the Investor page (then export control.json).')
     return H

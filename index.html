@@ -1311,7 +1311,7 @@ function renderSegmentation() {
     if ((m.rev_ttm || 0) <= 0) return;
     const e = mtCommTTM(m.name);                         // TTM-window commission + GMV from the data pack
     const avgComm = (e && e.c && e.n) ? e.c / e.n : null; // average monthly commission (USD)
-    clients.push({ name: m.name, model: 'Commission', seg: m.segment, segOnly: m.segment, rev: m.rev_ttm,
+    clients.push({ name: m.name, model: 'Commission', seg: m.segment, segOnly: m.segment, rev: m.rev_ttm, perf: !!(e && e.perf),
       level: avgComm ? Math.round(avgComm / 1000) : null,
       factor: (e && e.g && e.c) ? e.g / e.c : null });
   });
@@ -1324,7 +1324,7 @@ function renderSegmentation() {
   });
   const show = clients.filter(c => model === 'all' || c.model.toLowerCase() === model).sort((a, b) => (b.rev || 0) - (a.rev || 0));
   const facCell = (f, std) => f == null ? '<td class="muted">—</td>' : '<td>' + f.toFixed(1) + 'x' + (std ? ' <span class="muted small" title="no client mapping in the CSM sheet: standard ladder factor (L1 = 1×, L2 = 2×, L3 = 3× …)">std</span>' : '') + '</td>';
-  const clientRows = show.map(c => `<tr><td>${esc(c.name)}${c.migrated ? '<span class="tag">migrated</span>' : ''}</td><td>${c.model}</td><td>${c.seg || '—'}</td><td>${fmt.money(c.rev)}</td>${facCell(c.factor, c.std)}</tr>`).join('');
+  const clientRows = show.map(c => `<tr><td>${esc(c.name)}${c.migrated ? '<span class="tag">migrated</span>' : ''}${c.perf ? ' <span class="muted small" title="tracked commission includes fixed-fee campaigns; ROAS factor and level use performance commission only">perf. commission</span>' : ''}</td><td>${c.model}</td><td>${c.seg || '—'}</td><td>${fmt.money(c.rev)}</td>${facCell(c.factor, c.std)}</tr>`).join('');
 
   // Mega tile — average Level and average ROAS factor, ROAS clients and commission clients (split E/G/SME)
   const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;

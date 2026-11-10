@@ -236,6 +236,9 @@ footer{border-top:1px solid var(--rule);padding:18px 0 40px;font-size:11.5px;col
 #page-ladder .st-churned{background:rgba(192,57,43,.14);color:var(--bad)}
 #page-ladder .warn{display:none;margin:12px 0;padding:10px 12px;border-radius:8px;background:var(--coral-wash);color:var(--deep);font-size:12.5px;border:1px solid var(--rule)}
 #page-ladder .seg button.on{background:var(--ink);color:var(--card)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--rule);border-radius:999px;font-size:12px;cursor:pointer;color:var(--ink-2);background:var(--card)}.chip.on{color:var(--ink);font-weight:600}
+.zoom{display:inline-flex;gap:4px;margin-right:6px}.zoom .iconbtn{font-size:15px;line-height:1}
+.pl-toggle{display:inline-block;width:18px;height:18px;line-height:16px;text-align:center;border:1px solid var(--rule);border-radius:4px;background:var(--card);color:var(--ink-2);font-size:13px;cursor:pointer;padding:0;margin-right:4px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -252,18 +255,20 @@ footer{border-top:1px solid var(--rule);padding:18px 0 40px;font-size:11.5px;col
       <div class="spacer"></div>
       <span class="pill" id="pill-latest"><span class="dot"></span>Latest month <b>—</b></span>
       <span class="pill" id="pill-checks">Checks <b>—</b></span>
+      <span class="zoom" id="zoom"><button class="iconbtn" id="zoom-out" title="Zoom out" aria-label="Zoom out">−</button><button class="iconbtn" id="zoom-reset" title="Reset zoom" aria-label="Reset zoom" style="width:auto;padding:0 8px;font-size:11px">100%</button><button class="iconbtn" id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button></span>
       <button class="iconbtn" id="theme" title="Toggle theme" aria-label="Toggle theme">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
       </button>
     </div>
     <nav class="tabs" id="tabs">
       <button data-page="kpis" class="active"><span class="n">01</span>KPIs</button>
-      <button data-page="financials"><span class="n">02</span>Financials</button>
-      <button data-page="segmentation"><span class="n">03</span>Client Segmentation</button>
-      <button data-page="investor"><span class="n">04</span>Investor Dashboard</button>
-      <button data-page="ladder"><span class="n">05</span>ROAS Ladder</button>
-      <button data-page="cac"><span class="n">06</span>CAC</button>
-      <button data-page="control"><span class="n">07</span>Control &amp; data quality</button>
+      <button data-page="investor"><span class="n">02</span>Investor Dashboard</button>
+      <button data-page="financials"><span class="n">03</span>Financials</button>
+      <button data-page="performance"><span class="n">04</span>Business Performance</button>
+      <button data-page="segmentation"><span class="n">05</span>Client Segmentation</button>
+      <button data-page="ladder"><span class="n">06</span>ROAS Ladder</button>
+      <button data-page="cac"><span class="n">07</span>CAC</button>
+      <button data-page="control"><span class="n">08</span>Control &amp; data quality</button>
     </nav>
   </div>
 </header>
@@ -275,7 +280,8 @@ footer{border-top:1px solid var(--rule);padding:18px 0 40px;font-size:11.5px;col
       <select class="sel" id="ctl-pyear" title="Year"></select><select class="sel" id="ctl-pval" title="Quarter / month"></select>
       <span id="ctl-pcustom"><select class="sel" id="ctl-pfrom" title="From"></select><span class="muted small"> to </span><select class="sel" id="ctl-pto" title="To"></select></span>
       <select id="ctl-period" style="display:none"></select></div>
-    <div class="ctl" id="ctl-finwrap"><label>Detail</label><div class="seg" id="ctl-finview"><button data-v="pnl2026">2026 P&amp;L (live)</button><button data-v="annual" class="on">Annual</button><button data-v="monthly">Monthly</button><button data-v="actuals">Full grid</button></div></div>
+    <div class="ctl" id="ctl-finwrap"><label>Detail</label><div class="seg" id="ctl-finview"><button data-v="pnl2026">2026 P&amp;L (live)</button><button data-v="annual" class="on">Annual</button><button data-v="monthly">Monthly</button></div></div>
+    <div class="ctl" id="ctl-perfwrap"><label>Detail</label><div class="seg" id="ctl-perfview"><button data-v="trends" class="on">Trends</button><button data-v="actuals">Full grid</button></div></div>
     <div class="ctl"><label>Ounass buffer</label><div class="seg" id="ctl-buffer"><button data-v="on" class="on">On · held</button><button data-v="off">Off · added back</button></div></div>
     <div class="ctl"><label>Year</label><select class="sel" id="ctl-year"></select></div>
   </div>
@@ -285,6 +291,9 @@ footer{border-top:1px solid var(--rule);padding:18px 0 40px;font-size:11.5px;col
     <div id="fin-pnl2026" class="finview"></div>
     <div id="fin-annual" class="finview"></div>
     <div id="fin-monthly" class="finview"></div>
+  </section>
+  <section class="page" id="page-performance">
+    <div id="perf-trends" class="finview"></div>
     <div id="fin-actuals" class="finview"></div>
   </section>
   <section class="page" id="page-segmentation"></section>
@@ -304,7 +313,7 @@ footer{border-top:1px solid var(--rule);padding:18px 0 40px;font-size:11.5px;col
 const LS = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
 const state = {
   page: LS('mm.page') || 'kpis', view: LS('mm.view') || 'seg', buffer: LS('mm.buffer') || 'on',
-  finView: LS('mm.finview') || 'pnl2026', segModel: LS('mm.segmodel') || 'all', showConc: LS('mm.showconc') === '1',
+  finView: LS('mm.finview') || 'pnl2026', perfView: LS('mm.perfview') || 'trends', segModel: LS('mm.segmodel') || 'all', showConc: LS('mm.showconc') === '1',
   period: null, year: null, confirmed: null, cap: null, theme: LS('mm.theme')
 };
 if (state.theme) document.documentElement.setAttribute('data-theme', state.theme);
@@ -327,7 +336,8 @@ const mtCacTag = () => (MT_LIVE_CAC && MT_LIVE_CAC.cac) ? ' <span class="tag">li
 let MT_ADJ = {"m":["01","02","03","04","05","06","07","08"],"pnl":[323789,362858,579913,330345,426051,314421,345088,401593],"billing":[4000,7020,7150,1144,8000,7000,20169,18500],"spotted":[539,877,5498,1699,5583,2961,2605,4472],"adj":[-2511,3061,3276,-3906,5276,1154,21756,117588],"ind":[319250,354960,567265,327502,412468,304460,322314,378621]};
 const mtKey = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 function mtCommTTM(name) { const k = mtKey(name); let e = MT_COMM_TTM[k]; if (!e) { for (const gk in MT_COMM_TTM) { if (k && gk && (k.indexOf(gk) >= 0 || gk.indexOf(k) >= 0) && Math.min(k.length, gk.length) >= 5) { e = MT_COMM_TTM[gk]; break; } } } return e || null; }
-function mtRoasFactor(name, L) { if (!MT_ROAS_MAP) return null; const k = mtKey(name); let e = MT_ROAS_MAP[k]; if (!e) { for (const mk in MT_ROAS_MAP) { if (k && mk && (k.indexOf(mk) >= 0 || mk.indexOf(k) >= 0) && Math.min(k.length, mk.length) >= 5) { e = MT_ROAS_MAP[mk]; break; } } } return (e && e.levels[L]) ? e.levels[L].roas : null; }
+function mtRoasFactor(name, L) { if (!MT_ROAS_MAP) return null; const k = mtKey(name); let e = MT_ROAS_MAP[k]; if (!e) { for (const mk in MT_ROAS_MAP) { if (k && mk && (k.indexOf(mk) >= 0 || mk.indexOf(k) >= 0) && Math.min(k.length, mk.length) >= 5) { e = MT_ROAS_MAP[mk]; break; } } } return (e && e.levels[L]) ? e.levels[L].roas : (L ? L : null); }   // no mapping for the client -> standard ladder factor: L×
+function mtRoasFactorIsStd(name, L) { if (!MT_ROAS_MAP) return false; const k = mtKey(name); let e = MT_ROAS_MAP[k]; if (!e) { for (const mk in MT_ROAS_MAP) { if (k && mk && (k.indexOf(mk) >= 0 || mk.indexOf(k) >= 0) && Math.min(k.length, mk.length) >= 5) { e = MT_ROAS_MAP[mk]; break; } } } return !(e && e.levels[L]); }
 
 const SEG_C = { Enterprise: 'var(--teal)', Growth: 'var(--ochre)', SME: 'var(--violet)', Unassigned: 'var(--grey)' };
 const TIER_C = { Small: 'var(--ochre)', Medium: 'var(--coral)', Large: 'var(--deep)' };
@@ -497,7 +507,9 @@ function buildControls() {
   ys.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join(''); ys.value = state.year;
   document.querySelectorAll('#ctl-view button').forEach(b => b.classList.toggle('on', b.dataset.v === state.view));
   document.querySelectorAll('#ctl-buffer button').forEach(b => b.classList.toggle('on', b.dataset.v === state.buffer));
+  if (state.finView === 'actuals') state.finView = 'annual';
   document.querySelectorAll('#ctl-finview button').forEach(b => b.classList.toggle('on', b.dataset.v === state.finView));
+  document.querySelectorAll('#ctl-perfview button').forEach(b => b.classList.toggle('on', b.dataset.v === state.perfView));
   document.getElementById('pill-latest').querySelector('b').textContent = fmt.month(L_);
   document.getElementById('pill-checks').querySelector('b').textContent = M.checks_pass + '/' + M.checks.length;
   document.getElementById('pill-checks').querySelector('b').className = M.checks_pass === M.checks.length ? 'ok' : 'neg';
@@ -508,14 +520,22 @@ function bindUI() {
   document.querySelectorAll('#ctl-view button').forEach(b => b.addEventListener('click', () => { state.view = b.dataset.v; LS('mm.view', state.view); document.querySelectorAll('#ctl-view button').forEach(x => x.classList.toggle('on', x === b)); renderAll(); }));
   document.querySelectorAll('#ctl-buffer button').forEach(b => b.addEventListener('click', () => { state.buffer = b.dataset.v; LS('mm.buffer', state.buffer); document.querySelectorAll('#ctl-buffer button').forEach(x => x.classList.toggle('on', x === b)); mergeData(); renderAll(); }));
   document.querySelectorAll('#ctl-finview button').forEach(b => b.addEventListener('click', () => { state.finView = b.dataset.v; LS('mm.finview', state.finView); document.querySelectorAll('#ctl-finview button').forEach(x => x.classList.toggle('on', x === b)); showPage(); }));
+  document.querySelectorAll('#ctl-perfview button').forEach(b => b.addEventListener('click', () => { state.perfView = b.dataset.v; LS('mm.perfview', state.perfView); document.querySelectorAll('#ctl-perfview button').forEach(x => x.classList.toggle('on', x === b)); showPage(); }));
   document.getElementById('ctl-period').addEventListener('change', e => setPeriod(e.target.value));
   document.querySelectorAll('#ctl-ptype button').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('#ctl-ptype button').forEach(x => x.classList.toggle('on', x === b)); const pp = parsePeriodKey(state.period); if (b.dataset.v !== pp.type) { state.period = '__' + b.dataset.v; buildPeriodPickerFor(b.dataset.v, document.getElementById('ctl-pyear').value || pp.year); } setPeriod(periodKeyFromPicker(b.dataset.v)); }));
   ['ctl-pyear', 'ctl-pval', 'ctl-pfrom', 'ctl-pto'].forEach(id => document.getElementById(id).addEventListener('change', () => { const type = document.querySelector('#ctl-ptype button.on').dataset.v; if (id === 'ctl-pyear') { state.period = '__' + type; buildPeriodPickerFor(type, document.getElementById('ctl-pyear').value); } setPeriod(periodKeyFromPicker(type)); }));
   document.getElementById('ctl-year').addEventListener('change', e => { state.year = e.target.value; LS('mm.year', state.year); renderAll(); });
+  // zoom in / out (whole dashboard), remembered per browser
+  const applyZoom = () => { const z = state.zoom || 1; document.getElementById('app') ? (document.getElementById('app').style.zoom = z) : (document.body.style.zoom = z); document.getElementById('zoom-reset').textContent = Math.round(z * 100) + '%'; };
+  state.zoom = parseFloat(LS('mm.zoom') || '1') || 1; applyZoom();
+  const setZoom = z => { state.zoom = Math.min(1.6, Math.max(0.6, Math.round(z * 20) / 20)); LS('mm.zoom', String(state.zoom)); applyZoom(); };
+  document.getElementById('zoom-in').addEventListener('click', () => setZoom(state.zoom + 0.1));
+  document.getElementById('zoom-out').addEventListener('click', () => setZoom(state.zoom - 0.1));
+  document.getElementById('zoom-reset').addEventListener('click', () => setZoom(1));
   document.getElementById('theme').addEventListener('click', () => { const cur = document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); const nx = cur === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', nx); LS('mm.theme', nx); renderAll(); });
   showPage();
 }
-const PAGES = ['kpis', 'financials', 'segmentation', 'investor', 'ladder', 'cac', 'control'];
+const PAGES = ['kpis', 'investor', 'financials', 'performance', 'segmentation', 'ladder', 'cac', 'control'];
 function showPage() {
   if (!PAGES.includes(state.page)) state.page = 'kpis';
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.page === state.page));
@@ -523,11 +543,13 @@ function showPage() {
   const ctl = document.getElementById('controls');
   const liveReport = state.page === 'ladder' || state.page === 'cac';
   ctl.style.display = liveReport ? 'none' : '';
-  const onFin = state.page === 'financials';
+  const onFin = state.page === 'financials', onPerf = state.page === 'performance';
   ctl.querySelector('#ctl-finwrap').style.display = onFin ? '' : 'none';
-  ctl.querySelector('#ctl-year').parentElement.style.display = (onFin && state.finView === 'monthly') ? '' : 'none';
+  ctl.querySelector('#ctl-perfwrap').style.display = onPerf ? '' : 'none';
+  ctl.querySelector('#ctl-year').parentElement.style.display = ((onFin && state.finView === 'monthly') || (onPerf && state.perfView === 'trends')) ? '' : 'none';
   ctl.querySelector('#ctl-periodwrap').style.display = (state.page === 'kpis' || state.page === 'segmentation') ? '' : 'none';
-  if (onFin) ['pnl2026', 'annual', 'monthly', 'actuals'].forEach(v => { const el = document.getElementById('fin-' + v); if (el) el.style.display = v === state.finView ? '' : 'none'; });
+  if (onFin) ['pnl2026', 'annual', 'monthly'].forEach(v => { const el = document.getElementById('fin-' + v); if (el) el.style.display = v === state.finView ? '' : 'none'; });
+  if (onPerf) { document.getElementById('perf-trends').style.display = state.perfView === 'trends' ? '' : 'none'; document.getElementById('fin-actuals').style.display = state.perfView === 'actuals' ? '' : 'none'; }
   window.scrollTo({ top: 0 });
 }
 function renderFlags() {
@@ -538,7 +560,7 @@ function renderFlags() {
   f.push(`<span class="flag teal"><i>C</i> Development: ${Object.entries(state.cap).map(([y, v]) => y + ' ' + v).join(' · ')}</span>`);
   document.getElementById('flagbar').innerHTML = f.join('');
 }
-function renderAll() { if (!ensurePeriod(state.period)) state.period = 'TTM:' + M.latest_month; document.querySelectorAll("section.page").forEach(x => x.dataset.view = state.view); renderFlags(); renderKpis(); renderInvestor(); renderAnnual(); renderMonthly(); renderActuals(); renderSegmentation(); renderControl(); }
+function renderAll() { if (!ensurePeriod(state.period)) state.period = 'TTM:' + M.latest_month; document.querySelectorAll("section.page").forEach(x => x.dataset.view = state.view); renderFlags(); renderKpis(); renderInvestor(); renderAnnual(); renderMonthly(); renderPerformance(); renderActuals(); renderSegmentation(); renderControl(); }
 
 /* ============================================================ charts (inline SVG) */
 const tipEl = document.getElementById('tip');
@@ -578,7 +600,7 @@ function barChart(el, cfg) {
   for (let i = 0; i < n; i++) g += `<rect class="hit" data-i="${i}" x="${pl + bw * i}" y="${pt}" width="${bw}" height="${ih}"/>`;
   g += '</svg>'; el.innerHTML = g;
   const all = [...series, ...lines];
-  el.querySelectorAll('.hit').forEach(r => { r.addEventListener('mousemove', e => { const i = +r.dataset.i; showTip(e, `<div class="t">${cfg.fullLabels ? cfg.fullLabels[i] : labels[i]}</div>` + all.map(s => s.values[i] == null ? '' : `<div class="r"><span>${s.name}</span><span>${kind === 'pct' ? fmt.pct(s.values[i]) : kind === 'num' ? fmt.int(s.values[i]) : fmt.money(s.values[i], 1)}</span></div>`).join('')); }); r.addEventListener('mouseleave', hideTip); });
+  el.querySelectorAll('.hit').forEach(r => { r.addEventListener('mousemove', e => { const i = +r.dataset.i; if (cfg.tip) { showTip(e, cfg.tip(i)); return; } showTip(e, `<div class="t">${cfg.fullLabels ? cfg.fullLabels[i] : labels[i]}</div>` + all.map(s => s.values[i] == null ? '' : `<div class="r"><span>${s.name}</span><span>${kind === 'pct' ? fmt.pct(s.values[i]) : kind === 'num' ? fmt.int(s.values[i]) : fmt.money(s.values[i], 1)}</span></div>`).join('')); }); r.addEventListener('mouseleave', hideTip); });
 }
 function lineChart(el, cfg) { barChart(el, Object.assign({ series: [] }, cfg, { lines: cfg.series, series: [] })); }
 function sparkline(values, color = 'var(--coral)', w = 90, hh = 26) {
@@ -719,7 +741,7 @@ function renderInvestor() {
   T += R('Runway', runway, null, null, 'na', null, null, 'Pro forma cash ÷ monthly burn.', fmt.mo);
   T += '</tbody></table>';
 
-  const hdr = h`<div class="pagehead"><div><p class="eyebrow">04 · Investor dashboard</p><h1 class="h2">Investor metrics · cut at ${asOf}</h1>
+  const hdr = h`<div class="pagehead"><div><p class="eyebrow">02 · Investor dashboard</p><h1 class="h2">Investor metrics · cut at ${asOf}</h1>
     <p>The agreed investor metric set (Investor Metrics file). <b>Blended</b> is the whole company; <b>New Model</b> is the ROAS-priced brands (incl. Jetour), the primary growth driver, launched Jan 2026. Every number comes from the same series as the rest of the model.</p></div>
     <div class="muted small">As of ${asOf} · ${nm.length} ladder brands · FX ${M.fx}</div></div>`;
   const heroes = h`<div class="grid g4">
@@ -781,40 +803,8 @@ function renderAnnual() {
   const rv = (f) => p => p.rev ? f(p) / p.rev : null;
   T += pr('Total opex', rv(p => p.opex), pct1, 'tot'); T += pr('Total opex excl. development', rv(p => p.opexX), pct1, 'sub');
   T += pr('Marketing &amp; branding', rv(p => p.opex_marketing), pct1, 'sub2'); T += pr('Staff', rv(p => p.opex_staff), pct1, 'sub2'); T += pr('Technology', rv(p => p.opex_tech), pct1, 'sub2'); T += pr('G&amp;A', rv(p => p.opex_ga), pct1, 'sub2');
-  T += sec('Volume <span class="tag warn">basis under review</span>', 5);
-  T += rr('Net orders (incl. unattributed)', p => p.creators.orders_total, fmt.int, A.orders, yoy(y => y.orders));
-  T += rr('GMV (commission, net)', p => p.gmv, money, A.gmv, yoy(y => y.gmv));
-  T += rr('Take rate', p => p.gmv ? p.rev.legacy / p.gmv : null, pct1, null, null);
-  T += rr('Closed ads (from Apr-25 counting change)', p => p.ads, fmt.int, A.ads, null);
-  T += sec('Clients', 5);
-  T += rr('Active clients at year end', p => p.active_end.total, fmt.int, null, null, 'tot');
-  T += rr('Commission (E / G / SME)', p => p.active_end.legacy, v => v, null, null, 'sub');
-  T += row('', cols.map(p => `<td class="muted">${LEG_SEGS.map(s => p.active_end.leg_seg[s]).join(' / ')}</td>`).concat(['<td></td>', '<td></td>']), 'sub2');
-  T += rr('ROAS (S / M / L)', p => p.active_end.roas, v => v, null, null, 'sub');
-  T += row('', cols.map(p => `<td class="muted">${TIERS.map(s => p.active_end.roas_tier[s]).join(' / ')}</td>`).concat(['<td></td>', '<td></td>']), 'sub2');
-  T += row('New commission / reactivated / churned <span class="muted small">(YTD vs prior YTD, never annualised)</span>', [...cols.map(p => `<td>${p.events.leg_new} / ${p.events.leg_react} / ${p.events.leg_churn}</td>`), '<td class="na">—</td>', `<td class="muted">${pytd.events.leg_new} / ${pytd.events.leg_react} / ${pytd.events.leg_churn} prior YTD</td>`]);
-  T += row('ROAS signed / churned', [...cols.map(p => `<td>${p.events.roas_signed} / ${p.events.roas_churn}</td>`), '<td class="na">—</td>', '<td></td>']);
-  T += sec('Retention and churn', 5);
-  T += row('Commission NRR · rolling 12m', [...cols.map(p => td(p.retention.legacy_12m && p.retention.legacy_12m.nrr, pct0)), '<td class="na">—</td>', '<td></td>']);
-  T += row('Commission GRR · rolling 12m', [...cols.map(p => td(p.retention.legacy_12m && p.retention.legacy_12m.grr, pct0)), '<td class="na">—</td>', '<td></td>']);
-  T += row('Commission logo churn · 12-month / lifetime', [...cols.map(p => `<td>${churnTxt(p.churn.legacy)}</td>`), '<td class="na">—</td>', '<td></td>']);
-  T += row('Enterprise · Growth &amp; SME', [...cols.map(p => `<td class="muted">${fmt.pct(p.churn.Enterprise && p.churn.Enterprise.twelve_month, 0)} · ${fmt.pct(p.churn.GrowthSME && p.churn.GrowthSME.twelve_month, 0)}</td>`), '<td></td>', '<td></td>'], 'sub2');
-  T += row('ROAS logo churn · 12-month / lifetime', [...cols.map(p => `<td>${churnTxt(p.churn.ROAS)}</td>`), '<td class="na">—</td>', '<td></td>']);
-  T += row('L1 · L2+ · Small · Medium · Large', [...cols.map(p => `<td class="muted">${['L1', 'L2+', 'Small', 'Medium', 'Large'].map(g => fmt.pct(p.churn[g] && p.churn[g].twelve_month, 0)).join(' · ')}</td>`), '<td></td>', '<td></td>'], 'sub2');
-  T += sec('ROAS economics (period)', 5);
-  T += row('Merchant CAC', [...cols.map(p => td(p.cac && p.cac.cac, money)), '<td class="na">—</td>', '<td></td>']);
-  T += row('LTV · LTV/CAC · payback (blended ROAS)', [...cols.map(p => p.ltv.ROAS ? `<td>${fmt.money(p.ltv.ROAS.ltv)} · ${fmt.x(mtLtvCac(p.ltv.ROAS.ltv, p.ltv.ROAS.ltv_cac))} · ${fmt.mo(mtPayback(p.ltv.ROAS))}</td>` : '<td class="na">—</td>'), '<td class="na">—</td>', '<td></td>']);
-  T += row('Creator CAC · per recruited / per active', [...cols.map(p => `<td>${fmt.money(p.creator_cac.per_recruited)} / ${fmt.money(p.creator_cac.per_active)}</td>`), '<td class="na">—</td>', '<td></td>']);
-  T += sec('Creators <span class="tag warn">basis under review</span>', 5);
-  T += rr('Active creators (year end)', p => p.creators.active_end, fmt.int, null, null, 'tot');
-  T += rr('Emerging creators (year end)', p => p.creators.emerging_end, fmt.int, null, null, 'sub');
-  T += rr('Major creators (year end)', p => p.creators.major_end, fmt.int, null, null, 'sub');
-  T += rr('% of orders from Major creators', p => p.creators.orders_total ? p.creators.orders_major / p.creators.orders_total : null, pct0, null, null, 'sub');
-  T += rr('Orders per active creator', p => p.creators.orders_per_active, v => fmt.num(v, 0), null, null);
-  T += rr('Creator churn · 12-month', p => p.creators.churn && p.creators.churn.twelve_month, pct0, null, null);
-  T += row('Order NRR / GRR · rolling 12m', [...cols.map(p => p.retention.orders_12m ? `<td>${fmt.pct(p.retention.orders_12m.nrr, 0)} / ${fmt.pct(p.retention.orders_12m.grr, 0)}</td>` : '<td class="na">—</td>'), '<td class="na">—</td>', '<td></td>']);
   T += '</tbody></table>';
-  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">02 · Financials · Annual</p><h1 class="h2">Full years against the current year</h1>
+  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">03 · Financials · Annual</p><h1 class="h2">Full years against the current year</h1>
     <p>“2026 annualised (seasonality-adjusted)” is a mechanical extrapolation from YTD: commission YTD ÷ the seasonal share of the elapsed months (${fmt.pct(A.share_elapsed, 1)} for Jan–${fmt.month(Lm).slice(0, 3)}), ROAS YTD + ARR × remaining months. It is not a forecast. Event counts and snapshots are never annualised.</p></div></div>
     <div class="grid g3">
       <div class="card block"><p class="eyebrow">2026 annualised revenue</p><div class="hero">${fmt.money(A.total)}</div><div class="split"><div class="it"><span class="sw legacy"></span><span class="k">Commission</span><b>${fmt.money(A.legacy)}</b></div><div class="it"><span class="sw roas"></span><span class="k">ROAS</span><b>${fmt.money(A.roas)}</b></div></div><div class="muted small" style="margin-top:8px">vs FY2025 ${fmt.money(fy25.rev.total)} · ${fmt.pctS(A.total / fy25.rev.total - 1)}</div></div>
@@ -842,64 +832,191 @@ function renderMonthly() {
   T += R('Total revenue', p => p.rev.total, money, 'tot'); T += R('Commission (named)', p => p.rev.named, money, 'sub'); T += R('ROAS', p => p.rev.roas, money, 'sub'); if (HAS_OTHER()) T += R('Other pricing', p => p.rev.other, money, 'sub'); T += R('Adjustment', p => p.rev.plug, money, 'sub');
   T += R('Blended ARR', p => p.arr.blended, money, 'tot', false); T += R('Commission run-rate', p => p.arr.legacy, money, 'sub', false); T += R('ROAS ARR', p => p.arr.roas, money, 'sub', false);
   T += PR('Contribution margin %', p => p.cm_pct, pct1); T += PR('Gross margin %', p => p.gm_pct, pct1); T += PR('EBITDA', p => p.ebitda, money); T += PR('EBITDA margin %', p => p.ebitda_pct, pct1);
-  T += sec('Commission movement', n);
-  T += row('Start', [...ps.map((p, i) => `<td>${p.active_end.legacy - p.events.leg_new - p.events.leg_react + p.events.leg_churn + p.events.leg_migrated}</td>`), `<td>${ps[0].active_end.legacy - ps[0].events.leg_new - ps[0].events.leg_react + ps[0].events.leg_churn + ps[0].events.leg_migrated}</td>`]);
-  T += R('New', p => p.events.leg_new, fmt.int, 'sub'); T += R('Reactivated', p => p.events.leg_react, fmt.int, 'sub'); T += R('Churned', p => -p.events.leg_churn, fmt.int, 'sub'); T += R('Migrated to ROAS', p => -p.events.leg_migrated, fmt.int, 'sub');
-  T += R('End · active commission', p => p.active_end.legacy, fmt.int, 'tot');
-  LEG_SEGS.forEach(s => T += R(s, p => p.active_end.leg_seg[s], fmt.int, 'sub2'));
-  T += sec('ROAS movement', n);
-  T += R('Signed', p => p.events.roas_signed, fmt.int, 'sub'); T += R('of which migrated from commission', p => p.events.roas_migrated, fmt.int, 'sub2'); T += R('Churned', p => -p.events.roas_churn, fmt.int, 'sub'); T += R('Reactivated', p => p.events.roas_react, fmt.int, 'sub');
-  T += R('End · active ROAS', p => p.active_end.roas, fmt.int, 'tot');
-  TIERS.forEach(s => T += R(s, p => p.active_end.roas_tier[s], fmt.int, 'sub2'));
-  T += row('L1 / L2+', [...ps.map(p => `<td class="muted">${p.active_end.roas_lvl.L1} / ${p.active_end.roas_lvl['L2+']}</td>`), `<td class="muted">${ytd.active_end.roas_lvl.L1} / ${ytd.active_end.roas_lvl['L2+']}</td>`], 'sub2');
-  T += R('Total active clients', p => p.active_end.total, fmt.int, 'tot');
-  T += sec('ARPA', n);
-  T += R('Blended', p => p.arpa.blended, money, 'tot', false); T += R('Blended excl. Enterprise', p => p.arpa.blended_ex_ent, money, 'sub', false);
-  ['Enterprise', 'Growth', 'SME', 'ROAS'].forEach(g => T += R(g, p => p.arpa[g], money, 'sub', false));
-  TIERS.forEach(g => T += R('ROAS ' + g, p => p.arpa[g], money, 'sub2', false));
-  T += R('Enterprise share of commission revenue', p => p.rev.named ? p.rev.leg_seg.Enterprise / p.rev.named : null, pct0);
-  T += sec('Churn and risk', n);
-  T += row('Commission churn events', [...ps.map(p => `<td>${p.churn.legacy ? p.churn.legacy.events : 0}</td>`), `<td>${ytd.churn.legacy.events} <span class="muted small">(${fmt.pct(ytd.churn.legacy.twelve_month, 0)} 12-mo)</span></td>`]);
-  T += row('ROAS churn events', [...ps.map(p => `<td>${p.churn.ROAS ? p.churn.ROAS.events : 0}</td>`), `<td>${ytd.churn.ROAS ? ytd.churn.ROAS.events + ' <span class="muted small">(' + fmt.pct(ytd.churn.ROAS.twelve_month, 0) + ' 12-mo)</span>' : '—'}</td>`]);
-  T += row('At risk · commission (3–5 quiet months)', [...mk.map(m => `<td class="muted">${S.at_risk_leg[kOf(m)].length}</td>`), '<td></td>']);
-  T += row('At risk · ROAS (3–5 months unpaid)', [...mk.map(m => `<td class="muted">${S.at_risk_roas[kOf(m)].length}</td>`), '<td></td>']);
-  T += sec('ROAS economics', n);
-  T += R('Merchant acquisition spend', p => p.cac ? p.cac.spend : null, money, 'sub');
-  T += R('CAC (spend ÷ brands signed)', p => p.cac ? p.cac.cac : null, money);
-  T += sec('Creators <span class="tag warn">basis under review</span>', n);
-  T += R('Active creators (end)', p => p.creators.active_end, fmt.int, 'tot', false); T += R('Emerging', p => p.creators.emerging_end, fmt.int, 'sub', false);
-  T += R('New', p => p.creators.new, fmt.int, 'sub'); T += R('Churned', p => -p.creators.churned, fmt.int, 'sub'); T += R('Major (end)', p => p.creators.major_end, fmt.int, 'sub', false);
-  T += R('Net orders', p => p.creators.orders_total, fmt.int); T += R('% orders from Major', p => p.creators.orders_total ? p.creators.orders_major / p.creators.orders_total : null, pct0);
-  T += R('Graduation · % of new creators active within 3 months', p => p.creators.graduation.within3, pct0);
-  T += sec('Growth', n);
-  T += R('Revenue YoY', p => p.yoy ? p.yoy.total : null, fmt.pctS); T += R('Commission YoY', p => p.yoy ? p.yoy.legacy : null, fmt.pctS, 'sub'); T += R('ROAS YoY', p => p.yoy ? p.yoy.roas : null, fmt.pctS, 'sub');
-  T += row('Revenue MoM <span class="muted small">(seasonal)</span>', [...mk.map(m => { const k = kOf(m); return td(k > 0 ? S.rev_total[k] / S.rev_total[k - 1] - 1 : null, fmt.pctS); }), '<td></td>']);
-  T += row('Commission NRR · 3m vs same 3m last year', [...ps.map((p, i) => { const q = findQ3m(mk[i]); return td(q, pct0); }), '<td></td>']);
   T += '</tbody></table>';
 
-  const moves = Object.entries(S.tier_moves).filter(([m]) => m.startsWith(y)).sort().reverse();
-  const movesHtml = moves.length ? moves.map(([m, arr]) => `<li><b>${fmt.month(m)}</b> · ${arr.map(x => `${esc(x.brand)} <span class="muted">${x.from} → ${x.to}</span>`).join(' · ')}</li>`).join('') : '<li class="muted">No tier moves in ' + y + '</li>';
-  const lastK = kOf(mk[mk.length - 1]);
-  const riskL = S.at_risk_leg[lastK], riskR = S.at_risk_roas[Math.min(lastK + 1, S.at_risk_roas.length - 1)];
-  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">02 · Financials · Monthly · ${y}</p><h1 class="h2">Month by month, with client movement</h1><p>Who is growing, churning and moving between tiers. ROAS tier moves and at-risk lists come from the ladder; commission movement from the Datos extract.</p></div></div>
-    <div class="grid g3">
+  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">03 · Financials · Monthly · ${y}</p><h1 class="h2">Month by month</h1><p>Revenue, run-rate and margins by month. Client movement, volume, retention and creators are on Business Performance.</p></div></div>
+    <div class="grid g2">
       <div class="card"><p class="eyebrow">ARR trend</p><div class="chart" id="mo-arr"></div><div class="legend"><span><span class="sw legacy"></span>Commission run-rate</span><span><span class="sw roas"></span>ROAS ARR</span></div></div>
-      <div class="card"><p class="eyebrow">Active clients by size</p><div class="chart" id="mo-act"></div><div class="legend"><span><span class="sw ent"></span>Enterprise</span><span><span class="sw gro"></span>Growth</span><span><span class="sw sme"></span>SME</span><span><span class="sw s"></span>ROAS Small</span><span><span class="sw m"></span>Medium</span><span><span class="sw l"></span>Large</span></div></div>
-      <div class="card"><p class="eyebrow">ROAS tier moves · ${y}</p><ul class="plain">${movesHtml}</ul><div class="hairline"></div><p class="eyebrow">At risk · ${fmt.month(mk[mk.length - 1])}</p>
-        <div class="small"><span class="sw legacy"></span>Commission: ${riskL.length ? riskL.map(r => `${esc(r.name)} (${r.months})`).join(', ') : 'none'}<br><span class="sw roas"></span>ROAS: ${riskR.length ? riskR.map(r => `${esc(r.name)} (${r.months})`).join(', ') : 'none'}</div>
-        <div class="note">Numbers in brackets are consecutive quiet months. Large-tier benchmark at ${fmt.month(mk[mk.length - 1])}: ${fmt.money(S.benchmark_large[lastK])} (${S.benchmark_seg[lastK]} ARPA); CAC used for the Small/Medium line: ${fmt.money(S.cac_sl[lastK])}.</div></div>
     </div>
-    <div class="card" style="margin-top:16px"><div class="tblwrap">${T}</div><div class="note"><b>P</b> provisional Ounass month. Churn events are detected late (up to 6 months), so recent months understate churn; the At-risk rows show what is coming.</div></div>`;
+    <div class="card" style="margin-top:16px"><div class="tblwrap">${T}</div><div class="note"><b>P</b> provisional Ounass month.</div></div>`;
   const ks = mk.map(kOf), lab = mk.map(m => fmt.month(m).slice(0, 3));
   lineChart(document.getElementById('mo-arr'), { labels: lab, fullLabels: mk.map(fmt.monthLong), series: [{ name: 'Commission run-rate', color: 'var(--c-legacy)', values: ks.map(k => S.arr_legacy[k]) }, { name: 'ROAS ARR', color: 'var(--c-roas)', values: ks.map(k => S.arr_roas[k]) }], height: 190, labelEvery: 1 });
-  barChart(document.getElementById('mo-act'), { labels: lab, fullLabels: mk.map(fmt.monthLong), kind: 'num', height: 190, labelEvery: 1, series: [
-    ...LEG_SEGS.map(s => ({ name: s, color: SEG_C[s], values: ks.map(k => S.act_leg_seg[s][k]) })), ...TIERS.map(s => ({ name: 'ROAS ' + s, color: TIER_C[s], values: ks.map(k => S.act_roas_tier[s][k]) }))] });
 }
 function findQ3m(m) { // legacy rolling-3 NRR vs same 3 months a year earlier, from monthly period retention
   const k = kOf(m); if (k < 14) return null; const ks = [k - 2, k - 1, k]; // compute client-side from merchants table
   const base = [k - 14, k - 13, k - 12]; let s = 0, e = 0;
   D.merchants.forEach(mm => { const a = sum(base.map(i => mm.monthly[i])), b = sum(ks.map(i => mm.monthly[i])); if (a > 0) { s += a; e += b; } });
   return s ? e / s : null;
+}
+
+
+/* ============================================================ PAGE 4: Business Performance (trends + tables) */
+state.perfSeries = (function () { try { return JSON.parse(LS('mm.perfseries') || 'null') || ['orders', 'gmv', 'creators']; } catch (e) { return ['orders', 'gmv', 'creators']; } })();
+state.perfMode = LS('mm.perfmode') || 'index';
+function perfCatalogue() {
+  const cr = S.creators;
+  const contrib = k => (S.rev_total[k] || 0) - (S.pl.creator_payouts[k] || 0);
+  return [
+    { id: 'orders', name: 'Net orders', kind: 'num', color: 'var(--teal)', v: k => cr.orders_total[k] },
+    { id: 'gmv', name: 'GMV', kind: 'money', color: 'var(--coral)', v: k => S.gmv[k] },
+    { id: 'ads', name: 'Closed ads', kind: 'num', color: '#8b5cf6', v: k => S.ads[k] },
+    { id: 'cpo', name: 'Contribution per order', kind: 'money1', color: '#d97706', v: k => cr.orders_total[k] ? contrib(k) / cr.orders_total[k] : null },
+    { id: 'rev', name: 'Total revenue', kind: 'money', color: 'var(--ink)', v: k => S.rev_total[k] },
+    { id: 'comm', name: 'Commission revenue', kind: 'money', color: 'var(--c-legacy)', v: k => S.rev_legacy[k] },
+    { id: 'roas', name: 'ROAS revenue', kind: 'money', color: 'var(--c-roas)', v: k => S.rev_roas[k] },
+    { id: 'take', name: 'Take rate', kind: 'pct', color: '#0f766e', v: k => S.gmv[k] ? S.rev_legacy[k] / S.gmv[k] : null },
+    { id: 'act', name: 'Active clients', kind: 'num', color: '#2563eb', v: k => (S.act_leg[k] || 0) + (S.act_roas[k] || 0) },
+    { id: 'creators', name: 'Active creators', kind: 'num', color: '#db2777', v: k => cr.active[k] },
+    { id: 'arr', name: 'Blended ARR', kind: 'money', color: '#475569', v: k => S.arr_blended[k] },
+    { id: 'nrr', name: 'Commission NRR (12m)', kind: 'pct', color: '#16a34a', v: k => { const t = P['TTM:' + S.months[k]]; return t && t.retention && t.retention.legacy_12m ? t.retention.legacy_12m.nrr : null; } },
+  ];
+}
+function renderPerformance() {
+  const root = document.getElementById('perf-trends'); if (!root) return;
+  const y = state.year, Lm = M.latest_month, Lk = L(), co = state.view === 'co';
+  const mk = S.months.filter(m => m.startsWith(y)); const ps = mk.map(m => P['M:' + m]); const ytdKey = y === Lm.slice(0, 4) ? 'YTD:' + y : 'FY:' + y; const ytd = P[ytdKey];
+  const n = mk.length + 1, ks = mk.map(kOf), lab = mk.map(m => fmt.month(m).slice(0, 3)), full = mk.map(fmt.monthLong);
+  const hdrs = mk.map(m => `<th class="${m === Lm ? 'now' : ''}">${fmt.month(m).slice(0, 3)}${P['M:' + m].ounass_flag ? '<span class="f">P</span>' : ''}</th>`).join('') + `<th>${y === Lm.slice(0, 4) ? 'YTD' : 'FY'}</th>`;
+  const R = (label, f, fm, klass = '', agg) => row(label, [...ps.map(p => td(f(p), fm)), agg === false ? '<td></td>' : td(f(ytd), fm)], klass);
+  const money = v => fmt.money(v), pct0 = v => fmt.pct(v, 0), pct1 = v => fmt.pct(v, 1);
+  const tbl = (rows) => `<div class="tblwrap"><table class="t dense"><thead><tr><th>${y}</th>${hdrs}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  const chartCard = (title, id, legend, extra = '') => `<div class="card"><p class="eyebrow">${title}</p><div class="chart" id="${id}"></div>${legend ? '<div class="legend">' + legend + '</div>' : ''}${extra}</div>`;
+  const lg = (items) => items.map(([c, t]) => `<span><span class="sw" style="background:${c}"></span>${t}</span>`).join('');
+
+  // ---- mega graph
+  const cat = perfCatalogue(); const chosen = state.perfSeries.filter(id => cat.some(c => c.id === id)); const mode = state.perfMode;
+  const allM = S.months.map((m, k) => k).filter(k => k <= Lk);
+  const from = Math.max(0, S.months.indexOf(state.perfFrom || S.months[0])), to = Math.min(Lk, S.months.indexOf(state.perfTo || Lm) < 0 ? Lk : S.months.indexOf(state.perfTo || Lm));
+  const mks = allM.filter(k => k >= from && k <= to);
+  const megaSeries = chosen.map(id => { const c = cat.find(x => x.id === id); const raw = mks.map(c.v); let base = raw.find(v => v != null && v !== 0);
+    return { name: c.name, color: c.color, kind: c.kind, raw, values: mode === 'index' ? raw.map(v => (v == null || !base) ? null : v / base * 100) : raw }; });
+  const fmtK = (v, kind) => v == null ? '—' : kind === 'pct' ? fmt.pct(v, 0) : kind === 'num' ? fmt.int(v) : kind === 'money1' ? fmt.money(v, 1) : fmt.money(v);
+  const chips = cat.map(c => `<label class="chip ${chosen.includes(c.id) ? 'on' : ''}" style="border-color:${chosen.includes(c.id) ? c.color : 'var(--rule)'}"><input type="checkbox" data-id="${c.id}" ${chosen.includes(c.id) ? 'checked' : ''} style="display:none"><span class="sw" style="background:${c.color}"></span>${c.name}</label>`).join('');
+  const mopts = allM.map(k => `<option value="${S.months[k]}">${fmt.month(S.months[k])}</option>`).join('');
+  const mega = `<div class="card" style="margin-top:16px"><p class="eyebrow">Mega graph · pick what to plot</p><h3 class="h3">How the business moves, month by month</h3>
+    <div class="statrow" style="gap:8px;flex-wrap:wrap;margin:8px 0 6px" id="perf-chips">${chips}</div>
+    <div class="statrow" style="gap:14px;flex-wrap:wrap;margin-bottom:8px">
+      <span class="small muted">Scale</span><div class="seg" id="perf-mode"><button data-v="index" class="${mode === 'index' ? 'on' : ''}">Index (start = 100)</button><button data-v="actual" class="${mode === 'actual' ? 'on' : ''}">Actual values</button></div>
+      <span class="small muted">From</span><select class="sel" id="perf-from">${mopts}</select><span class="small muted">to</span><select class="sel" id="perf-to">${mopts}</select>
+    </div>
+    <div class="chart" id="perf-mega" style="min-height:260px"></div>
+    <div class="note">${mode === 'index' ? 'Every line starts at 100 at the first month shown, so lines of different units can be compared; hover for the actual values.' : 'Actual values on one axis — pick series with the same unit (e.g. net orders and closed ads) for a readable chart; hover for values.'} Suggested pairs: net orders vs active creators · net orders vs contribution per order · GMV vs net orders.</div></div>`;
+
+  // ---- Volume
+  const volT = tbl(R('Net orders (incl. unattributed)', p => p.creators.orders_total, fmt.int, 'tot') + R('of which unattributed', p => p.creators.orders_unatt, fmt.int, 'sub2')
+    + R('GMV (commission, net)', p => p.gmv, money, 'tot') + R('Take rate (commission ÷ GMV)', p => p.gmv ? p.rev.legacy / p.gmv : null, pct1) + R('Revenue per net order (GMV)', p => p.creators.orders_total ? p.gmv / p.creators.orders_total : null, v => fmt.money(v, 1))
+    + R('Contribution per net order', p => p.creators.orders_total ? (p.rev.total - p.pl.creator_payouts) / p.creators.orders_total : null, v => fmt.money(v, 1))
+    + R('Closed ads', p => p.ads, fmt.int) + R('Net orders per closed ad', p => p.ads ? p.creators.orders_total / p.ads : null, v => fmt.num(v, 1)));
+  // ---- Clients
+  const cliT = tbl(sec('Commission movement', n)
+    + row('Start', [...ps.map(p => `<td>${p.active_end.legacy - p.events.leg_new - p.events.leg_react + p.events.leg_churn + p.events.leg_migrated}</td>`), `<td>${ps[0].active_end.legacy - ps[0].events.leg_new - ps[0].events.leg_react + ps[0].events.leg_churn + ps[0].events.leg_migrated}</td>`], 'sub')
+    + R('New', p => p.events.leg_new, fmt.int, 'sub') + R('Reactivated', p => p.events.leg_react, fmt.int, 'sub') + R('Churned', p => -p.events.leg_churn, fmt.int, 'sub') + R('Migrated to ROAS', p => -p.events.leg_migrated, fmt.int, 'sub')
+    + R('End · active commission', p => p.active_end.legacy, fmt.int, 'tot') + LEG_SEGS.map(sg => R(sg, p => p.active_end.leg_seg[sg], fmt.int, 'sub2')).join('')
+    + sec('ROAS movement', n)
+    + R('Signed', p => p.events.roas_signed, fmt.int, 'sub') + R('of which migrated from commission', p => p.events.roas_migrated, fmt.int, 'sub2') + R('Churned', p => -p.events.roas_churn, fmt.int, 'sub')
+    + R('End · active ROAS', p => p.active_end.roas, fmt.int, 'tot') + TIERS.map(sg => R(sg, p => p.active_end.roas_tier[sg], fmt.int, 'sub2')).join('')
+    + R('Total active clients', p => p.active_end.total, fmt.int, 'tot'));
+  const moves = Object.entries(S.tier_moves).filter(([m]) => m.startsWith(y)).sort().reverse();
+  const movesHtml = moves.length ? moves.map(([m, arr]) => `<li><b>${fmt.month(m)}</b> · ${arr.map(x => `${esc(x.brand)} <span class="muted">${x.from} → ${x.to}</span>`).join(' · ')}</li>`).join('') : '<li class="muted">No tier moves in ' + y + '</li>';
+  const lastK = ks[ks.length - 1]; const riskL = S.at_risk_leg[lastK], riskR = S.at_risk_roas[Math.min(lastK + 1, S.at_risk_roas.length - 1)];
+  // ---- Retention & churn
+  const retT = tbl(row('Commission NRR · rolling 12m', [...mk.map(m => { const t = P['TTM:' + m]; return td(t && t.retention.legacy_12m ? t.retention.legacy_12m.nrr : null, pct0); }), td(ytd.retention && ytd.retention.legacy_12m ? ytd.retention.legacy_12m.nrr : null, pct0)])
+    + row('Commission GRR · rolling 12m', [...mk.map(m => { const t = P['TTM:' + m]; return td(t && t.retention.legacy_12m ? t.retention.legacy_12m.grr : null, pct0); }), td(ytd.retention && ytd.retention.legacy_12m ? ytd.retention.legacy_12m.grr : null, pct0)])
+    + row('Commission NRR · 3m vs same 3m last year', [...mk.map(m => td(findQ3m(m), pct0)), '<td></td>'])
+    + row('Commission churn events', [...ps.map(p => `<td>${p.churn.legacy ? p.churn.legacy.events : 0}</td>`), `<td>${ytd.churn.legacy ? ytd.churn.legacy.events : 0} <span class="muted small">(${fmt.pct(ytd.churn.legacy && ytd.churn.legacy.twelve_month, 0)} 12m)</span></td>`])
+    + row('ROAS churn events', [...ps.map(p => `<td>${p.churn.ROAS ? p.churn.ROAS.events : 0}</td>`), `<td>${ytd.churn.ROAS ? ytd.churn.ROAS.events : 0}</td>`])
+    + row('At risk · commission (3–5 quiet months)', [...mk.map(m => `<td class="muted">${S.at_risk_leg[kOf(m)].length}</td>`), '<td></td>'])
+    + row('At risk · ROAS (3–5 months unpaid)', [...mk.map(m => `<td class="muted">${S.at_risk_roas[kOf(m)].length}</td>`), '<td></td>']));
+  // ---- ARPA
+  const arpaT = tbl(R('Blended', p => p.arpa.blended, money, 'tot', false) + R('Blended excl. Enterprise', p => p.arpa.blended_ex_ent, money, 'sub', false)
+    + (co ? '' : ['Enterprise', 'Growth', 'SME', 'ROAS'].map(g => R(g, p => p.arpa[g], money, 'sub', false)).join('') + TIERS.map(g => R('ROAS ' + g, p => p.arpa[g], money, 'sub2', false)).join(''))
+    + R('Enterprise share of commission revenue', p => p.rev.named ? p.rev.leg_seg.Enterprise / p.rev.named : null, pct0));
+  // ---- ROAS economics
+  const I = computeInvestor();
+  const ecoT = tbl(R('Merchant acquisition spend', p => p.cac ? p.cac.spend : null, money, 'sub') + R('ROAS brands signed', p => p.events.roas_signed, fmt.int, 'sub') + R('CAC (spend ÷ brands signed)', p => p.cac ? p.cac.cac : null, money)
+    + R('ROAS revenue', p => p.rev.roas, money, 'sub') + R('ROAS ARR (3 months × 4)', p => p.arr.roas, money, 'sub', false)
+    + row('As at ' + fmt.month(Lm) + ' (Investor definitions)', [`<td colspan="${n}" style="text-align:left" class="muted">ARPA ${fmt.money(I.nmArpa)} · LTV ${fmt.money(I.nmLtv)} · CAC ${fmt.money(I.cacSL)}${mtCacTag()} · LTV/CAC ${fmt.x(I.nmLtvCac)} · payback ${fmt.mo(I.nmPayback)} · logo churn ${fmt.pct(I.nmLogoChurn, 0)} annualised</td>`]));
+  // ---- Creators
+  const creT = tbl(R('Active creators (end)', p => p.creators.active_end, fmt.int, 'tot', false) + R('Emerging', p => p.creators.emerging_end, fmt.int, 'sub', false) + R('Major (end)', p => p.creators.major_end, fmt.int, 'sub', false)
+    + R('New', p => p.creators.new, fmt.int, 'sub') + R('Churned', p => -p.creators.churned, fmt.int, 'sub') + R('Reactivated', p => p.creators.react, fmt.int, 'sub')
+    + R('Net orders', p => p.creators.orders_total, fmt.int) + R('Orders per active creator', p => p.creators.orders_per_active, v => fmt.num(v, 0)) + R('% orders from Major', p => p.creators.orders_total ? p.creators.orders_major / p.creators.orders_total : null, pct0)
+    + R('Graduation · % of new creators active within 3 months', p => p.creators.graduation ? p.creators.graduation.within3 : null, pct0)
+    + R('Creator CAC · per recruited', p => p.creator_cac ? p.creator_cac.per_recruited : null, money) + R('Creator CAC · per new active', p => p.creator_cac ? p.creator_cac.per_active : null, money));
+  // ---- Growth
+  const groT = tbl(R('Revenue YoY', p => p.yoy ? p.yoy.total : null, fmt.pctS, 'tot') + R('Commission YoY', p => p.yoy ? p.yoy.legacy : null, fmt.pctS, 'sub') + R('ROAS YoY', p => p.yoy ? p.yoy.roas : null, fmt.pctS, 'sub')
+    + row('Revenue MoM <span class="muted small">(seasonal)</span>', [...mk.map(m => { const k = kOf(m); return td(k > 0 ? S.rev_total[k] / S.rev_total[k - 1] - 1 : null, fmt.pctS); }), '<td></td>'])
+    + R('GMV YoY', p => p.yoy ? p.yoy.gmv : null, fmt.pctS) + R('Net orders YoY', p => p.yoy ? p.yoy.orders : null, fmt.pctS));
+  // ---- annual comparison (FY24 / FY25 / YTD / annualised / YoY)
+  const fy24 = P['FY:2024'], fy25 = P['FY:2025'], ytd26 = P['YTD:' + Lm.slice(0, 4)], A = D.annualised; const cols = [fy24, fy25, ytd26];
+  const rr = (label, f, fm, ann, g, klass = '') => row(label, [...cols.map(p => td(f(p), fm)), ann == null ? '<td class="na">—</td>' : td(ann, fm), g || '<td class="na">—</td>'], klass);
+  const yoy = f => growthCell(ytd26.yoy ? f(ytd26.yoy) : null);
+  let AT = `<table class="t"><thead><tr><th>Line</th><th>FY2024</th><th>FY2025</th><th>${ytd26.label}</th><th><span style="color:var(--coral)">2026 annualised</span></th><th>YoY (YTD)</th></tr></thead><tbody>`;
+  AT += sec('Volume', 5);
+  AT += rr('Net orders (incl. unattributed)', p => p.creators.orders_total, fmt.int, A.orders, yoy(y2 => y2.orders)); AT += rr('GMV (commission, net)', p => p.gmv, money, A.gmv, yoy(y2 => y2.gmv));
+  AT += rr('Take rate', p => p.gmv ? p.rev.legacy / p.gmv : null, pct1, null, null); AT += rr('Closed ads (from Apr-25 counting change)', p => p.ads, fmt.int, A.ads, null);
+  AT += sec('Clients', 5);
+  AT += rr('Active clients at year end', p => p.active_end.total, fmt.int, null, null, 'tot'); AT += rr('Commission (E / G / SME)', p => p.active_end.legacy, v => v, null, null, 'sub');
+  AT += row('', cols.map(p => `<td class="muted">${LEG_SEGS.map(sg => p.active_end.leg_seg[sg]).join(' / ')}</td>`).concat(['<td></td>', '<td></td>']), 'sub2');
+  AT += rr('ROAS (S / M / L)', p => p.active_end.roas, v => v, null, null, 'sub'); AT += row('', cols.map(p => `<td class="muted">${TIERS.map(sg => p.active_end.roas_tier[sg]).join(' / ')}</td>`).concat(['<td></td>', '<td></td>']), 'sub2');
+  AT += row('New commission / reactivated / churned <span class="muted small">(YTD vs prior YTD, never annualised)</span>', [...cols.map(p => `<td>${p.events.leg_new} / ${p.events.leg_react} / ${p.events.leg_churn}</td>`), '<td class="na">—</td>', '<td></td>']);
+  AT += row('ROAS signed / churned', [...cols.map(p => `<td>${p.events.roas_signed} / ${p.events.roas_churn}</td>`), '<td class="na">—</td>', '<td></td>']);
+  AT += sec('Retention and churn', 5);
+  AT += row('Commission NRR · rolling 12m', [...cols.map(p => td(p.retention.legacy_12m && p.retention.legacy_12m.nrr, pct0)), '<td class="na">—</td>', '<td></td>']);
+  AT += row('Commission GRR · rolling 12m', [...cols.map(p => td(p.retention.legacy_12m && p.retention.legacy_12m.grr, pct0)), '<td class="na">—</td>', '<td></td>']);
+  AT += row('Commission logo churn · 12-month / lifetime', [...cols.map(p => `<td>${churnTxt(p.churn.legacy)}</td>`), '<td class="na">—</td>', '<td></td>']);
+  AT += row('Enterprise · Growth &amp; SME', [...cols.map(p => `<td class="muted">${fmt.pct(p.churn.Enterprise && p.churn.Enterprise.twelve_month, 0)} · ${fmt.pct(p.churn.GrowthSME && p.churn.GrowthSME.twelve_month, 0)}</td>`), '<td></td>', '<td></td>']);
+  AT += row('ROAS logo churn · annualised (Investor definition)', [...cols.map((p, i) => i === 2 ? `<td>${fmt.pct(I.nmLogoChurn, 0)}</td>` : '<td class="na">—</td>'), '<td class="na">—</td>', '<td></td>']);
+  AT += sec('Creators', 5);
+  AT += rr('Active creators (year end)', p => p.creators.active_end, fmt.int, null, null, 'tot'); AT += rr('Emerging creators (year end)', p => p.creators.emerging_end, fmt.int, null, null, 'sub'); AT += rr('Major creators (year end)', p => p.creators.major_end, fmt.int, null, null, 'sub');
+  AT += rr('% of orders from Major creators', p => p.creators.orders_total ? p.creators.orders_major / p.creators.orders_total : null, pct0, null, null, 'sub'); AT += rr('Orders per active creator', p => p.creators.orders_per_active, v => fmt.num(v, 0), null, null);
+  AT += rr('Creator churn · 12-month', p => p.creators.churn && p.creators.churn.twelve_month, pct0, null, null);
+  AT += row('Order NRR / GRR · rolling 12m', [...cols.map(p => p.retention.orders_12m ? `<td>${fmt.pct(p.retention.orders_12m.nrr, 0)} / ${fmt.pct(p.retention.orders_12m.grr, 0)}</td>` : '<td class="na">—</td>'), '<td class="na">—</td>', '<td></td>']);
+  AT += row('Creator CAC · per recruited / per active', [...cols.map(p => `<td>${fmt.money(p.creator_cac.per_recruited)} / ${fmt.money(p.creator_cac.per_active)}</td>`), '<td class="na">—</td>', '<td></td>']);
+  AT += '</tbody></table>';
+
+  const panel = (eyebrow, title, chartsHtml, table, note = '') => `<div class="card" style="margin-top:16px"><p class="eyebrow">${eyebrow}</p><h3 class="h3">${title}</h3><div class="grid g2" style="margin:10px 0 12px">${chartsHtml}</div>${table}${note ? '<div class="note">' + note + '</div>' : ''}</div>`;
+  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">04 · Business Performance · ${y}</p><h1 class="h2">Volume, clients, retention, creators — the operating picture</h1>
+    <p>Everything that is not the P&amp;L: how volume, clients, retention and churn, ARPA, ROAS economics and creators are moving. Charts first, full detail in the tables below each. Year from the selector; ${co ? 'company-wide view' : 'segmented view'}.</p></div>
+    <div class="muted small">Update date ${fmt.month(Lm)} · ${y === Lm.slice(0, 4) ? 'year to date' : 'full year'}</div></div>`
+    + mega
+    + panel('Volume', 'Net orders, GMV and closed ads', chartCard('Net orders and closed ads · ' + y, 'pf-vol', lg([['var(--teal)', 'Net orders'], ['#8b5cf6', 'Closed ads']])) + chartCard('GMV and take rate · ' + y, 'pf-gmv', lg([['var(--coral)', 'GMV'], ['#0f766e', 'Take rate (right scale, ×)']])), volT, 'Net orders and GMV are on a net basis (BI exports). Contribution per order = (revenue − creator payouts) ÷ net orders.')
+    + panel('Clients', 'Active clients and movement', chartCard('Active clients by size and tier · ' + y, 'pf-act', lg([...LEG_SEGS.map(sg => [SEG_C[sg], sg]), ...TIERS.map(t => [TIER_C[t], 'ROAS ' + t])])) + `<div class="card"><p class="eyebrow">ROAS tier moves · ${y}</p><ul class="plain">${movesHtml}</ul><div class="hairline"></div><p class="eyebrow">At risk · ${fmt.month(mk[mk.length - 1])}</p><div class="small"><span class="sw legacy"></span>Commission: ${riskL.length ? riskL.map(r => `${esc(r.name)} (${r.months})`).join(', ') : 'none'}<br><span class="sw roas"></span>ROAS: ${riskR.length ? riskR.map(r => `${esc(r.name)} (${r.months})`).join(', ') : 'none'}</div><div class="note">Numbers in brackets are consecutive quiet months.</div></div>`, cliT)
+    + panel('Retention and churn', 'Are clients staying and spending more?', chartCard('Commission NRR and GRR · rolling 12 months', 'pf-ret', lg([['var(--teal)', 'NRR'], ['var(--ink-3)', 'GRR']])) + chartCard('Churn events and at-risk clients · ' + y, 'pf-churn', lg([['var(--c-legacy)', 'Commission churn'], ['var(--c-roas)', 'ROAS churn'], ['#d97706', 'At risk (commission + ROAS)']])), retT, 'Churn events are detected late (up to 6 months), so recent months understate churn; the at-risk rows show what is coming.')
+    + panel('ARPA', 'Revenue per active account', chartCard('ARPA by segment · ' + y, 'pf-arpa', lg([['var(--ink)', 'Blended'], ['#64748b', 'Blended excl. Enterprise'], [SEG_C.Growth, 'Growth'], [SEG_C.SME, 'SME'], ['var(--c-roas)', 'ROAS']])) + chartCard('Enterprise ARPA · ' + y, 'pf-arpa-ent', lg([[SEG_C.Enterprise, 'Enterprise']])), arpaT, 'ARPA here is the model\'s period ARPA (ARR ÷ average active accounts). The Investor Dashboard shows the as-at ARPA on its own definition.')
+    + panel('ROAS economics', 'What it costs to acquire a ROAS brand and what it returns', chartCard('Acquisition spend and brands signed · ' + y, 'pf-cac', lg([['var(--c-roas)', 'Spend'], ['var(--ink)', 'Brands signed (right)']])) + chartCard('ROAS revenue and ARR · ' + y, 'pf-roas', lg([['var(--c-roas)', 'ROAS revenue'], ['var(--ink-3)', 'ROAS ARR']])), ecoT)
+    + panel('Creators', 'The supply side', chartCard('Active, emerging and major creators · ' + y, 'pf-cre', lg([['#db2777', 'Active'], ['#f59e0b', 'Emerging'], ['var(--ink)', 'Major']])) + chartCard('Net orders and orders per active creator · ' + y, 'pf-cre2', lg([['var(--teal)', 'Net orders'], ['#db2777', 'Orders per active creator (right)']])), creT)
+    + panel('Growth', 'Year on year', chartCard('Revenue YoY by model · ' + y, 'pf-gro', lg([['var(--ink)', 'Total'], ['var(--c-legacy)', 'Commission'], ['var(--c-roas)', 'ROAS']])) + chartCard('GMV and net orders YoY · ' + y, 'pf-gro2', lg([['var(--coral)', 'GMV'], ['var(--teal)', 'Net orders']])), groT)
+    + `<div class="card" style="margin-top:16px"><p class="eyebrow">Annual comparison</p><h3 class="h3">Full years against the current year</h3><div class="tblwrap">${AT}</div><div class="note">"2026 annualised" is the same mechanical extrapolation used on Financials. Volume rows are on a net basis.</div></div>`;
+
+  // ---- charts
+  const cr = S.creators, v = (arr) => ks.map(k => arr[k]);
+  const tipFor = (series, kinds) => i => `<div class="t">${full[i]}</div>` + series.map((sr, j) => sr.values[i] == null ? '' : `<div class="r"><span>${sr.name}</span><span>${fmtK(sr.values[i], kinds[j])}</span></div>`).join('');
+  const dual = (id, bars, line, kinds) => { // bars on the left scale, one line rescaled to the bar axis (hover shows true values)
+    const el = document.getElementById(id); if (!el) return; const lv = line.values.filter(x => x != null); const bmax = Math.max(1, ...bars.map(b => Math.max(...b.values.map(x => x || 0)))); const lmax = lv.length ? Math.max(...lv) : 1;
+    const scaled = { name: line.name, color: line.color, values: line.values.map(x => x == null ? null : x / (lmax || 1) * bmax) };
+    barChart(el, { labels: lab, fullLabels: full, kind: bars[0].kind || 'num', stacked: false, height: 200, labelEvery: 1, series: bars, lines: [scaled], tip: tipFor([...bars, line], kinds) }); };
+  // mega
+  if (megaSeries.length) { const el = document.getElementById('perf-mega'); const mlab = mks.map(k => fmt.month(S.months[k]).slice(0, 3)), mfull = mks.map(k => fmt.monthLong(S.months[k]));
+    barChart(el, { labels: mlab, fullLabels: mfull, kind: mode === 'index' ? 'num' : (megaSeries[0].kind === 'pct' ? 'pct' : megaSeries[0].kind === 'num' ? 'num' : 'money'), height: 260, labelEvery: mks.length > 18 ? 3 : 1, series: [], lines: megaSeries,
+      tip: i => `<div class="t">${mfull[i]}</div>` + megaSeries.map(sr => sr.raw[i] == null ? '' : `<div class="r"><span>${sr.name}</span><span>${fmtK(sr.raw[i], sr.kind)}${mode === 'index' && sr.values[i] != null ? ' <span class="muted">(' + sr.values[i].toFixed(0) + ')</span>' : ''}</span></div>`).join('') }); }
+  dual('pf-vol', [{ name: 'Net orders', color: 'var(--teal)', values: v(cr.orders_total), kind: 'num' }], { name: 'Closed ads', color: '#8b5cf6', values: v(S.ads) }, ['num', 'num']);
+  dual('pf-gmv', [{ name: 'GMV', color: 'var(--coral)', values: v(S.gmv), kind: 'money' }], { name: 'Take rate', color: '#0f766e', values: ks.map(k => S.gmv[k] ? S.rev_legacy[k] / S.gmv[k] : null) }, ['money', 'pct']);
+  barChart(document.getElementById('pf-act'), { labels: lab, fullLabels: full, kind: 'num', height: 200, labelEvery: 1, series: [...LEG_SEGS.map(sg => ({ name: sg, color: SEG_C[sg], values: v(S.act_leg_seg[sg]) })), ...TIERS.map(t => ({ name: 'ROAS ' + t, color: TIER_C[t], values: v(S.act_roas_tier[t]) }))] });
+  lineChart(document.getElementById('pf-ret'), { labels: lab, fullLabels: full, kind: 'pct', height: 200, labelEvery: 1, series: [{ name: 'NRR', color: 'var(--teal)', values: mk.map(m => { const t = P['TTM:' + m]; return t && t.retention.legacy_12m ? t.retention.legacy_12m.nrr : null; }) }, { name: 'GRR', color: 'var(--ink-3)', values: mk.map(m => { const t = P['TTM:' + m]; return t && t.retention.legacy_12m ? t.retention.legacy_12m.grr : null; }) }] });
+  barChart(document.getElementById('pf-churn'), { labels: lab, fullLabels: full, kind: 'num', height: 200, labelEvery: 1, series: [{ name: 'Commission churn', color: 'var(--c-legacy)', values: ps.map(p => p.churn.legacy ? p.churn.legacy.events : 0) }, { name: 'ROAS churn', color: 'var(--c-roas)', values: ps.map(p => p.churn.ROAS ? p.churn.ROAS.events : 0) }], lines: [{ name: 'At risk', color: '#d97706', values: ks.map(k => S.at_risk_leg[k].length + S.at_risk_roas[k].length) }] });
+  lineChart(document.getElementById('pf-arpa'), { labels: lab, fullLabels: full, kind: 'money', height: 200, labelEvery: 1, series: [{ name: 'Blended', color: 'var(--ink)', values: ps.map(p => p.arpa.blended) }, { name: 'Blended excl. Enterprise', color: '#64748b', values: ps.map(p => p.arpa.blended_ex_ent) }, { name: 'Growth', color: SEG_C.Growth, values: ps.map(p => p.arpa.Growth) }, { name: 'SME', color: SEG_C.SME, values: ps.map(p => p.arpa.SME) }, { name: 'ROAS', color: 'var(--c-roas)', values: ps.map(p => p.arpa.ROAS) }] });
+  lineChart(document.getElementById('pf-arpa-ent'), { labels: lab, fullLabels: full, kind: 'money', height: 200, labelEvery: 1, series: [{ name: 'Enterprise', color: SEG_C.Enterprise, values: ps.map(p => p.arpa.Enterprise) }] });
+  dual('pf-cac', [{ name: 'Spend', color: 'var(--c-roas)', values: ps.map(p => p.cac ? p.cac.spend : null), kind: 'money' }], { name: 'Brands signed', color: 'var(--ink)', values: ps.map(p => p.events.roas_signed) }, ['money', 'num']);
+  barChart(document.getElementById('pf-roas'), { labels: lab, fullLabels: full, kind: 'money', height: 200, labelEvery: 1, series: [{ name: 'ROAS revenue', color: 'var(--c-roas)', values: v(S.rev_roas) }], lines: [{ name: 'ROAS ARR', color: 'var(--ink-3)', values: v(S.arr_roas) }] });
+  lineChart(document.getElementById('pf-cre'), { labels: lab, fullLabels: full, kind: 'num', height: 200, labelEvery: 1, series: [{ name: 'Active', color: '#db2777', values: v(cr.active) }, { name: 'Emerging', color: '#f59e0b', values: v(cr.emerging) }, { name: 'Major', color: 'var(--ink)', values: v(cr.major) }] });
+  dual('pf-cre2', [{ name: 'Net orders', color: 'var(--teal)', values: v(cr.orders_total), kind: 'num' }], { name: 'Orders per active creator', color: '#db2777', values: ps.map(p => p.creators.orders_per_active) }, ['num', 'num']);
+  lineChart(document.getElementById('pf-gro'), { labels: lab, fullLabels: full, kind: 'pct', height: 200, labelEvery: 1, minVal: 0, series: [{ name: 'Total', color: 'var(--ink)', values: ps.map(p => p.yoy ? p.yoy.total : null) }, { name: 'Commission', color: 'var(--c-legacy)', values: ps.map(p => p.yoy ? p.yoy.legacy : null) }, { name: 'ROAS', color: 'var(--c-roas)', values: ps.map(p => p.yoy ? p.yoy.roas : null) }] });
+  lineChart(document.getElementById('pf-gro2'), { labels: lab, fullLabels: full, kind: 'pct', height: 200, labelEvery: 1, minVal: 0, series: [{ name: 'GMV', color: 'var(--coral)', values: ps.map(p => p.yoy ? p.yoy.gmv : null) }, { name: 'Net orders', color: 'var(--teal)', values: ps.map(p => p.yoy ? p.yoy.orders : null) }] });
+  // ---- mega graph controls
+  root.querySelectorAll('#perf-chips input').forEach(cb => cb.addEventListener('change', () => { const id = cb.dataset.id; const set = new Set(state.perfSeries); cb.checked ? set.add(id) : set.delete(id); state.perfSeries = [...set].slice(-5); LS('mm.perfseries', JSON.stringify(state.perfSeries)); renderPerformance(); }));
+  root.querySelectorAll('#perf-mode button').forEach(b => b.addEventListener('click', () => { state.perfMode = b.dataset.v; LS('mm.perfmode', state.perfMode); renderPerformance(); }));
+  const pf = root.querySelector('#perf-from'), pt = root.querySelector('#perf-to'); if (pf && pt) { pf.value = S.months[from]; pt.value = S.months[to];
+    [pf, pt].forEach(el => el.addEventListener('change', () => { let f = pf.value, t = pt.value; if (S.months.indexOf(f) > S.months.indexOf(t)) [f, t] = [t, f]; state.perfFrom = f; state.perfTo = t; renderPerformance(); })); }
 }
 
 /* ============================================================ PAGE 4: monthly actuals */
@@ -948,13 +1065,13 @@ function renderActuals() {
   T += sec('Acquisition', total);
   T += R('Merchant acquisition spend', S.cac_merchant_spend, money, 'sub'); T += R('Creator acquisition spend', S.cac_creator_spend, money, 'sub');
   T += R('Merchant CAC (month)', months.map((_, k) => { const s = S.cac_merchant_spend[k], b = mv.roas_signed[k]; return (s != null && b) ? s / b : null; }), money, '', p => p.cac ? p.cac.cac : null);
-  T += sec('Metrics <span class="tag warn">basis under review</span>', total);
+  T += sec('Metrics', total);
   T += R('GMV (commission, net)', S.gmv, money); T += R('Take rate', months.map((_, k) => S.gmv[k] ? S.rev_legacy[k] / S.gmv[k] : null), pct1, '', p => p.gmv ? p.rev.legacy / p.gmv : null);
   T += R('AOV (GMV ÷ orders)', months.map((_, k) => S.gmv[k] && cr.orders_total[k] ? S.gmv[k] / cr.orders_total[k] : null), v => fmt.money(v, 0), '', p => p.gmv && p.creators.orders_total ? p.gmv / p.creators.orders_total : null);
   T += R('Orders per ad', months.map((_, k) => S.ads[k] && k >= 15 ? cr.orders_total[k] / S.ads[k] : null), v => fmt.num(v, 1), '', false);
   T += R('Contribution per order', months.map((_, k) => cr.orders_total[k] ? pls[k].cm / cr.orders_total[k] : null), v => fmt.money(v, 1), '', false);
   T += '</tbody></table>';
-  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">02 · Financials · Full grid</p><h1 class="h2">Full grid, Jan-24 to ${fmt.month(Lm)}</h1><p>Actuals only. Projection columns from the old model are not carried over. Scroll sideways; the first column stays put. Year columns sum additive rows and show period-end values for snapshots.</p></div></div>
+  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">04 · Business Performance · Full grid</p><h1 class="h2">Full grid, Jan-24 to ${fmt.month(Lm)}</h1><p>Actuals only. Projection columns from the old model are not carried over. Scroll sideways; the first column stays put. Year columns sum additive rows and show period-end values for snapshots.</p></div></div>
     <div class="card"><div class="tblwrap" id="act-wrap">${T}</div><div class="note"><b>P</b> provisional Ounass month${addbackActive() ? ' (AED 150k add-back applied)' : ''}. Development follows the capitalisation switches on the Control page. 2024–25 P&amp;L lines are the frozen snapshot from the old model pending the 2024–25 P&amp;L cross-check (F4).</div></div>`;
   const w = document.getElementById('act-wrap'); if (w) w.scrollLeft = w.scrollWidth;
 }
@@ -1029,7 +1146,7 @@ function renderControl() {
     <div class="tblwrap"><table class="t dense"><tbody>${healthRows}</tbody></table></div>
     <div class="note">Re-computed on every build and every page load: pack completeness and coverage of the update month, ladder snapshot freshness, client segmentation (commission and ROAS), unknown merchant names, Adjustment size, check figures, creator IDs, Ounass confirmations, cash inputs, and the four live sheets (reachable, in step with the pack, mapping coverage). Red = fix before publishing; coral = watch.</div></div>`;
 
-  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">07 · Control &amp; data quality</p><h1 class="h2">Finance controls and the monthly load check</h1><p>Nothing here changes a number by hand. Confirmations and switches set status; every figure is recomputed from the extracts. Changes are kept in this browser until you export <code>control.json</code> and commit it with the next monthly build.</p></div>
+  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">08 · Control &amp; data quality</p><h1 class="h2">Finance controls and the monthly load check</h1><p>Nothing here changes a number by hand. Confirmations and switches set status; every figure is recomputed from the extracts. Changes are kept in this browser until you export <code>control.json</code> and commit it with the next monthly build.</p></div>
       <button class="btn" id="export-ctl">Export control.json</button></div>
     ${healthCard}
     <div class="grid g2">
@@ -1202,12 +1319,12 @@ function renderSegmentation() {
     if (!['Existing', 'New', 'Reactivated'].includes(b.status_monthly ? b.status_monthly[kEnd] : b.status)) return;
     const Lcur = (typeof b.level === 'number') ? b.level : (parseInt(String(b.level).replace(/[^0-9]/g, ''), 10) || null);
     const Lnum = (b.level_monthly && b.level_monthly[kEnd] != null) ? b.level_monthly[kEnd] : Lcur;   // level reached by the period end
-    clients.push({ name: b.name, model: 'ROAS', seg: (b.segment || 'SME') + (b.segment_confidence === 'U.D' ? ' · U.D' : '') + ' · ' + (b.tier || '—'), segOnly: b.segment || 'SME', rev: b.paid_to_latest, level: Lnum,
+    clients.push({ name: b.name, model: 'ROAS', seg: (b.segment || 'SME') + (b.segment_confidence === 'U.D' ? ' · U.D' : '') + ' · ' + (b.tier || '—'), segOnly: b.segment || 'SME', rev: b.paid_to_latest, level: Lnum, std: !!(Lnum && mtRoasFactorIsStd(b.name, Lnum)),
       factor: mtRoasFactor(b.name, Lnum), migrated: b.migrated });
   });
   const show = clients.filter(c => model === 'all' || c.model.toLowerCase() === model).sort((a, b) => (b.rev || 0) - (a.rev || 0));
-  const facCell = f => f == null ? '<td class="muted">—</td>' : '<td>' + f.toFixed(1) + 'x</td>';
-  const clientRows = show.map(c => `<tr><td>${esc(c.name)}${c.migrated ? '<span class="tag">migrated</span>' : ''}</td><td>${c.model}</td><td>${c.seg || '—'}</td><td>${fmt.money(c.rev)}</td>${facCell(c.factor)}</tr>`).join('');
+  const facCell = (f, std) => f == null ? '<td class="muted">—</td>' : '<td>' + f.toFixed(1) + 'x' + (std ? ' <span class="muted small" title="no client mapping in the CSM sheet: standard ladder factor (L1 = 1×, L2 = 2×, L3 = 3× …)">std</span>' : '') + '</td>';
+  const clientRows = show.map(c => `<tr><td>${esc(c.name)}${c.migrated ? '<span class="tag">migrated</span>' : ''}</td><td>${c.model}</td><td>${c.seg || '—'}</td><td>${fmt.money(c.rev)}</td>${facCell(c.factor, c.std)}</tr>`).join('');
 
   // Mega tile — average Level and average ROAS factor, ROAS clients and commission clients (split E/G/SME)
   const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
@@ -1226,7 +1343,7 @@ function renderSegmentation() {
     <div class="note">ROAS clients: factor = the client's ROAS target at its current ladder level, from the CSM mapping sheet (live)${MT_ROAS_MAP ? '' : ' <b>(loading…)</b>'}. Commission clients: factor = GMV ÷ commission paid over the TTM window, from the data pack; counts include every client with revenue in the window. Revenue-weighted = weighted by what the client paid.</div></div>`;
 
   const mbtn = (v, lab) => `<button data-sm="${v}" class="${model === v ? 'on' : ''}">${lab}</button>`;
-  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">03 · Client Segmentation</p><h1 class="h2">Two ways to slice the same clients</h1>
+  root.innerHTML = h`<div class="pagehead"><div><p class="eyebrow">05 · Client Segmentation</p><h1 class="h2">Two ways to slice the same clients</h1>
       <p>Model (Commission vs ROAS) and size are independent axes: pick a model to see only those clients, broken down by size, for <b>${esc(sel.label)}</b> (set the period in the header). Only the segmentable metrics show by segment; CAC, payback and LTV:CAC are not segmentable.</p></div>
       <div class="ctl" style="margin:0"><label>Model</label><div class="seg" id="seg-model">${mbtn('all', 'All')}${mbtn('commission', 'Commission')}${mbtn('roas', 'ROAS')}</div></div></div>
     ${model === 'all' ? bothTable.replace('style="margin-top:16px"', '') : ''}
@@ -1235,7 +1352,7 @@ function renderSegmentation() {
     ${megaTile}
     <div class="card" style="margin-top:16px"><p class="eyebrow">Clients · revenue (commission) / paid to date (ROAS)</p>
       <div class="tblwrap" style="max-height:420px;overflow:auto"><table class="t dense fit"><thead><tr><th style="text-align:left">Client</th><th>Model</th><th>Size · tier</th><th>Revenue / paid</th><th>ROAS factor</th></tr></thead><tbody>${clientRows}</tbody></table></div>
-      <div class="note">${show.length} clients. ROAS factor — ROAS clients: the client's ROAS target at its ladder level from the CSM mapping sheet; commission clients: GMV ÷ commission over the TTM window (data pack). Migrated clients appear once under each model for the months they were on it.</div></div>
+      <div class="note">${show.length} clients. ROAS factor — ROAS clients: the client's ROAS target at its ladder level from the CSM mapping sheet (<i>std</i> = no mapping for the client, so the standard ladder factor L1 = 1×, L2 = 2×, L3 = 3× … is used); commission clients: GMV ÷ commission over the TTM window (data pack). Migrated clients appear once under each model for the months they were on it.</div></div>
     <div class="card" style="margin-top:16px"><p class="eyebrow">Size definitions</p><div class="defs">
       <p><b>Enterprise:</b> over AED 1M Moontech revenue in any single year (actuals).</p>
       <p><b>Growth:</b> the client's own company revenue above $50M (group revenue where the brand sits in a group) and below the Enterprise test.</p>
@@ -1388,7 +1505,7 @@ function renderSegmentation() {
         + '<td class="txt keep">' + (r.dropped ? (r.churnMonth ? '<b>' + esc2(r.churnMonth) + '</b>' : '<span class="muted">not set</span>') : '') + '</td></tr>';
     });
     t += '</tbody></table></div>';
-    root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">05 · ROAS Ladder</p><h1 class="h2">ROAS clients, live from receivables + tracker</h1>'
+    root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">06 · ROAS Ladder</p><h1 class="h2">ROAS clients, live from receivables + tracker</h1>'
       + '<p>Paid invoices drive activation, milestone movement, the monthly grid and ARPA (M1–M2 = spend to date, M3+ = latest paid × 12). Churn comes only from the ROAS tracker. Cut at the model update date, ' + built.today.toISOString().slice(0, 10) + ' — later payments and churn in the sheets are not counted until the next data pack.</p></div></div>'
       + '<div class="grid g4">'
       + '<div class="card block"><p class="eyebrow">Fleet ARPA</p><div class="hero">' + money(built.fleetARPA) + '</div><div class="muted small">across ' + built.counts.brands + ' qualifying brands</div></div>'
@@ -1403,7 +1520,7 @@ function renderSegmentation() {
       + '</div>' + t + '</div>';
     root.querySelectorAll('#lad-sort button').forEach(b => b.addEventListener('click', () => { sortMode = b.dataset.sort; try { localStorage.setItem('mm.ladderSort', sortMode); } catch (e) {} renderLadder(); }));
   }
-  function setLadderMsg(msg) { const root = document.getElementById('page-ladder'); if (root) root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">05 · ROAS Ladder</p><h1 class="h2">ROAS clients</h1></div></div><div class="card">' + msg + '</div>'; }
+  function setLadderMsg(msg) { const root = document.getElementById('page-ladder'); if (root) root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">06 · ROAS Ladder</p><h1 class="h2">ROAS clients</h1></div></div><div class="card">' + msg + '</div>'; }
 
   async function initLadder() {
     setLadderMsg('<div class="loading">Loading the ROAS ladder from the live sheets…</div>');
@@ -1513,7 +1630,7 @@ function renderSegmentation() {
     const yrBtns = years.map(y => '<button data-cy="' + y + '" class="' + (y === cacYear ? 'on' : '') + '">' + y + '</button>').join('');
     const m = sideBlock(C.merchant, 'Merchant', 'New merchants', 'var(--teal)', 'cac-m');
     const c = sideBlock(C.creator, 'Creator', 'New creators', 'var(--coral)', 'cac-c');
-    root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">06 · CAC</p><h1 class="h2">Acquisition cost, live from the CAC sheet</h1>'
+    root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">07 · CAC</p><h1 class="h2">Acquisition cost, live from the CAC sheet</h1>'
       + '<p>Merchant and creator acquisition cost per month, from the dedicated CAC sheet (AED converted at ' + CAC_AED_PER_USD + '). CAC = acquisition cost ÷ new acquisitions. ' + (C.asOf ? esc2(C.asOf) : '') + '</p></div>'
       + '<div class="ctl" style="margin:0"><label>Year</label><div class="seg" id="cac-year">' + yrBtns + '</div></div></div>'
       + '<div class="grid g2">' + m.html + c.html + '</div>';
@@ -1522,7 +1639,7 @@ function renderSegmentation() {
       barChart(el, { labels: side.months.map(mm => MONTH_NAMES[mm]), series: [{ name: 'CAC', color: side.color, values: side.months.map(side.perCac) }], kind: 'money', height: 190, labelEvery: 1 }); });
     root.querySelectorAll('#cac-year button').forEach(b => b.addEventListener('click', () => { cacYear = +b.dataset.cy; try { localStorage.setItem('mm.cacYear', cacYear); } catch (e) {} renderCac(); }));
   }
-  function setCacMsg(msg) { const root = document.getElementById('page-cac'); if (root) root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">06 · CAC</p><h1 class="h2">Acquisition cost</h1></div></div><div class="card">' + msg + '</div>'; }
+  function setCacMsg(msg) { const root = document.getElementById('page-cac'); if (root) root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">07 · CAC</p><h1 class="h2">Acquisition cost</h1></div></div><div class="card">' + msg + '</div>'; }
 
   async function initCac() {
     setCacMsg('<div class="loading">Loading CAC from the live sheet…</div>');
@@ -1612,29 +1729,40 @@ function renderSegmentation() {
   const esc2 = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const money = v => (v == null || isNaN(v)) ? '—' : (v < 0 ? '-$' : '$') + Math.round(Math.abs(v)).toLocaleString('en-US');
 
+  const OPEN = new Set(); let LAST = null;
   function render(parsed) {
-    const root = document.getElementById('fin-pnl2026'); if (!root) return;
+    LAST = parsed; const root = document.getElementById('fin-pnl2026'); if (!root) return;
     // keep only months that have a Sales value
     const sales = parsed.lines.find(l => l.label === 'Sales');
     const keep = parsed.months.map((m, i) => (sales && sales.values[i] != null) ? i : -1).filter(i => i >= 0);
     const mlabels = keep.map(i => SHORT[parsed.months[i]]);
     const cls = { tot: 'tot', sub: 'sub', sub2: 'sub2', sec: 'sec' };
     let t = '<div class="tblwrap"><table class="t dense fit"><thead><tr><th style="text-align:left">USD</th>' + mlabels.map(l => '<th>' + l + '</th>').join('') + '<th>YTD</th></tr></thead><tbody>';
-    parsed.lines.forEach(l => {
-      if (l.style === 'sec') { t += '<tr class="sec"><td colspan="' + (keep.length + 2) + '" style="text-align:left">' + esc2(l.label) + '</td></tr>'; return; }
-      const vals = keep.map(i => l.values[i]);
-      const ytd = vals.some(v => v != null) ? vals.reduce((a, v) => a + (v || 0), 0) : null;
-      const cellCls = l.style === 'tot' ? 'tot' : (l.style === 'sub2' ? 'sub2' : 'sub');
-      t += '<tr class="' + cellCls + '"><td style="text-align:left">' + esc2(l.label) + '</td>'
-        + vals.map(v => '<td>' + (v == null ? '<span class="muted">—</span>' : money(v)) + '</td>').join('')
-        + '<td><b>' + money(ytd) + '</b></td></tr>';
+    // groups: a 'tot' or 'sec' row owns the sub rows that follow it; groups with children start collapsed (+ to expand)
+    const COLLAPSIBLE = ['Sales', 'Cost of Sales', 'Marketing & branding', 'Staff', 'Technology'];
+    let gid = 0, cur = null; const groups = [];
+    parsed.lines.forEach(l => { if (l.style === 'tot' || l.style === 'sec') { cur = { id: ++gid, head: l, kids: [] }; groups.push(cur); } else if (cur) cur.kids.push(l); });
+    const sumVals = (ls) => keep.map(i => { const vs = ls.map(l => l.values[i]).filter(v => v != null); return vs.length ? vs.reduce((a, v) => a + v, 0) : null; });
+    groups.forEach(g => {
+      const collapsible = COLLAPSIBLE.includes(g.head.label) && g.kids.length;
+      const open = OPEN.has(g.head.label);
+      const hv = g.head.style === 'sec' ? sumVals(g.kids.filter(k => k.style === 'sub')) : keep.map(i => g.head.values[i]);
+      const ytd = hv.some(v => v != null) ? hv.reduce((a, v) => a + (v || 0), 0) : null;
+      const btn = collapsible ? '<button class="pl-toggle" data-g="' + esc2(g.head.label) + '" title="' + (open ? 'Collapse' : 'Expand') + '">' + (open ? '−' : '+') + '</button> ' : '';
+      t += '<tr class="' + (g.head.style === 'sec' ? 'tot' : 'tot') + '"><td style="text-align:left">' + btn + esc2(g.head.label) + (g.head.style === 'sec' ? ' <span class="muted small">(group)</span>' : '') + '</td>'
+        + hv.map(v => '<td>' + (v == null ? '<span class="muted">—</span>' : money(v)) + '</td>').join('') + '<td><b>' + money(ytd) + '</b></td></tr>';
+      if (!collapsible || open) g.kids.forEach(l => {
+        const vals = keep.map(i => l.values[i]); const y2 = vals.some(v => v != null) ? vals.reduce((a, v) => a + (v || 0), 0) : null;
+        t += '<tr class="' + (l.style === 'sub2' ? 'sub2' : 'sub') + '"><td style="text-align:left">' + esc2(l.label) + '</td>'
+          + vals.map(v => '<td>' + (v == null ? '<span class="muted">—</span>' : money(v)) + '</td>').join('') + '<td><b>' + money(y2) + '</b></td></tr>'; });
     });
     t += '</tbody></table></div>';
-    root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">02 · Financials · 2026 P&amp;L (live)</p><h1 class="h2">2026 Model P&amp;L, live from the sheet</h1>'
+    root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">03 · Financials · 2026 P&amp;L (live)</p><h1 class="h2">2026 Model P&amp;L, live from the sheet</h1>'
       + '<p>Live from the published 2026 Model P&amp;L, converted from AED to USD at ' + AED_PER_USD + '. Shown Sales → Net Profit; transfer pricing and the reconciliation section are excluded. Months appear as the sheet fills them.</p></div></div>' + t
-      + '<div class="note">This view reads the sheet in your browser each time it loads, so it always reflects the current 2026 P&amp;L. 2024 and 2025 are unchanged — see the Annual / Monthly / Full grid views.</div>';
+      + '<div class="note">This view reads the sheet in your browser each time it loads, so it always reflects the current 2026 P&amp;L (cut at the update date). Sales, Cost of Sales and the opex groups are collapsed — press + to see the lines inside. 2024 and 2025 are unchanged — see the Annual / Monthly views.</div>';
+    root.querySelectorAll('.pl-toggle').forEach(b => b.addEventListener('click', () => { const g = b.dataset.g; OPEN.has(g) ? OPEN.delete(g) : OPEN.add(g); render(LAST); }));
   }
-  function setMsg(msg) { const root = document.getElementById('fin-pnl2026'); if (root) root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">02 · Financials · 2026 P&amp;L (live)</p><h1 class="h2">2026 Model P&amp;L</h1></div></div><div class="card">' + msg + '</div>'; }
+  function setMsg(msg) { const root = document.getElementById('fin-pnl2026'); if (root) root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">03 · Financials · 2026 P&amp;L (live)</p><h1 class="h2">2026 Model P&amp;L</h1></div></div><div class="card">' + msg + '</div>'; }
 
   async function init() {
     setMsg('<div class="loading">Loading the 2026 P&L from the live sheet…</div>');

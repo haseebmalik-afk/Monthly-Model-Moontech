@@ -49,6 +49,18 @@ def _patched_load(kit, master, lad, cfg, source='system'):
     return rev, adj, review
 _patched_load.control = None; _patched_load.addback = set()
 R.load_merchant_revenue = _patched_load
+# The add-back is revenue that was held out of the books: the P&L Sales line (which fixes total revenue) moves up by the
+# same amount in the add-back scenario, so Revenue / ARR / margins move with it and the Adjustment stays the same.
+_orig_load_pl = R.load_pl
+def _patched_load_pl(kit, cfg):
+    pl = _orig_load_pl(kit, cfg)
+    ctl = _patched_load.control; ab = _patched_load.addback
+    if ab:
+        for k in ab:
+            for line in ('sales', 'pl_gross_profit', 'pl_ebitda'):
+                if line in pl and pl[line][k] is not None: pl[line][k] += ctl['ounass']['buffer_aed']
+    return pl
+R.load_pl = _patched_load_pl
 R.load_config = lambda kit: __import__('yaml').safe_load(open(os.path.join(HERE, 'config.yaml')))
 _orig_master = R.load_master
 R.load_master = lambda kit: _orig_master(HERE)

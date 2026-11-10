@@ -515,7 +515,7 @@ function buildControls() {
 function bindUI() {
   document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', () => { state.page = b.dataset.page; LS('mm.page', state.page); showPage(); }));
   document.querySelectorAll('#ctl-view button').forEach(b => b.addEventListener('click', () => { state.view = b.dataset.v; LS('mm.view', state.view); document.querySelectorAll('#ctl-view button').forEach(x => x.classList.toggle('on', x === b)); renderAll(); }));
-  document.querySelectorAll('#ctl-buffer button').forEach(b => b.addEventListener('click', () => { state.buffer = b.dataset.v; LS('mm.buffer', state.buffer); document.querySelectorAll('#ctl-buffer button').forEach(x => x.classList.toggle('on', x === b)); mergeData(); renderAll(); }));
+  document.querySelectorAll('#ctl-buffer button').forEach(b => b.addEventListener('click', () => { state.buffer = b.dataset.v; LS('mm.buffer', state.buffer); document.querySelectorAll('#ctl-buffer button').forEach(x => x.classList.toggle('on', x === b)); mergeData(); renderAll(); if (typeof window.mtRerenderPnl === 'function') window.mtRerenderPnl(); }));
   document.querySelectorAll('#ctl-finview button').forEach(b => b.addEventListener('click', () => { state.finView = b.dataset.v; LS('mm.finview', state.finView); document.querySelectorAll('#ctl-finview button').forEach(x => x.classList.toggle('on', x === b)); showPage(); }));
   document.querySelectorAll('#ctl-perfview button').forEach(b => b.addEventListener('click', () => { state.perfView = b.dataset.v; LS('mm.perfview', state.perfView); document.querySelectorAll('#ctl-perfview button').forEach(x => x.classList.toggle('on', x === b)); showPage(); }));
   document.getElementById('ctl-period').addEventListener('change', e => setPeriod(e.target.value));
@@ -1226,7 +1226,7 @@ function renderControl() {
     <div class="grid g2">
       <div class="card"><p class="eyebrow">Ounass provisional months</p><h3 class="h3">Buffer AED ${o.buffer_aed.toLocaleString()} · currently <b>${state.buffer === 'on' ? 'held' : 'added back'}</b></h3>
         <div class="tblwrap"><table class="t dense fit"><thead><tr><th>Month</th><th>System figure</th><th>USD</th><th>Buffer</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
-        <div class="note">The system figure for Ounass is an estimate until the confirmed extract arrives about two months after month end. A confirmed month is locked at its extract value and the buffer never touches it. Months older than two months still unconfirmed are flagged on load. The buffer toggle in the header switches the add-back on unconfirmed months; it moves revenue between the Adjustment and Ounass, so total revenue does not change.</div></div>
+        <div class="note">The system figure for Ounass is an estimate until the confirmed extract arrives about two months after month end. A confirmed month is locked at its extract value and the buffer never touches it. Months older than two months still unconfirmed are flagged on load. The buffer toggle in the header switches the add-back on unconfirmed months: <b>On · held</b> shows the books as they are (buffer held out). <b>Off · added back</b> adds the AED 150k to Ounass and to P&amp;L Sales for that month, so revenue, commission ARR, blended ARR, margins, EBITDA, ARPA, NRR and concentration all move with it; the Adjustment does not change.</div></div>
       <div class="card"><p class="eyebrow">Development cost treatment</p><h3 class="h3">One switch per year</h3>
         <div class="tblwrap"><table class="t dense fit"><thead><tr><th>Year</th><th style="text-align:left">Treatment</th><th style="text-align:left">Note</th></tr></thead><tbody>${caps}</tbody></table></div>
         <div class="note"><b>Capitalised</b>: shown as a memo line below net profit and excluded from EBITDA (amortisation comes through D&amp;A). <b>Expensed</b>: inside Technology opex, reducing EBITDA. EBITDA before development is shown on every page regardless.</div></div>
@@ -1804,8 +1804,20 @@ function renderSegmentation() {
   const money = v => (v == null || isNaN(v)) ? '—' : (v < 0 ? '-$' : '$') + Math.round(Math.abs(v)).toLocaleString('en-US');
 
   const OPEN = new Set(); let LAST = null;
-  function render(parsed) {
-    LAST = parsed; const root = document.getElementById('fin-pnl2026'); if (!root) return;
+  function render(parsed0) {
+    LAST = parsed0; const root = document.getElementById('fin-pnl2026'); if (!root) return;
+    // Ounass buffer "off · added back": the held AED 150k is added to Sales and the profit lines of each provisional month,
+    // so this live view says the same as the Annual / Monthly views and the KPIs (the sheet itself is not changed).
+    let parsed = parsed0, abNote = '';
+    try {
+      const o = (typeof M !== 'undefined' && M && M.control && M.control.ounass) || null;
+      const prov = o ? (o.provisional_months || []).filter(m => !(o.confirmed_months || []).includes(m)) : [];
+      if (o && typeof addbackActive === 'function' && addbackActive() && prov.length) {
+        const add = o.buffer_aed / AED_PER_USD; const pidx = prov.filter(m => m.startsWith('2026-')).map(m => +m.slice(5) - 1); const idx = parsed0.months.map((m, i) => pidx.includes(+m) ? i : -1).filter(i => i >= 0);   // sheet months are 0-based indices
+        parsed = { months: parsed0.months, lines: parsed0.lines.map(l => /^(Sales|Gross Profit|EBITDA|Net Profit)$/i.test(l.label) ? Object.assign({}, l, { values: l.values.map((v, i) => (idx.includes(i) && v != null) ? v + add : v) }) : l) };
+        abNote = ' <b>Ounass buffer added back:</b> ' + money(add) + ' added to Sales, Gross Profit, EBITDA and Net Profit for ' + prov.map(m => { const [y, mm] = m.split('-'); return SHORT[+mm - 1] + '-' + y.slice(2); }).join(', ') + ' (toggle at the top of the page).';
+      }
+    } catch (e) {}
     // keep only months that have a Sales value
     const sales = parsed.lines.find(l => l.label === 'Sales');
     const keep = parsed.months.map((m, i) => (sales && sales.values[i] != null) ? i : -1).filter(i => i >= 0);
@@ -1833,9 +1845,10 @@ function renderSegmentation() {
     t += '</tbody></table></div>';
     root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">03 · Financials · 2026 P&amp;L (live)</p><h1 class="h2">2026 Model P&amp;L, live from the sheet</h1>'
       + '<p>Live from the published 2026 Model P&amp;L, converted from AED to USD at ' + AED_PER_USD + '. Shown Sales → Net Profit; transfer pricing and the reconciliation section are excluded. Months appear as the sheet fills them.</p></div></div>' + t
-      + '<div class="note">This view reads the sheet in your browser each time it loads, so it always reflects the current 2026 P&amp;L (cut at the update date). Sales, Cost of Sales and the opex groups are collapsed — press + to see the lines inside. 2024 and 2025 are unchanged — see the Annual / Monthly views.</div>';
+      + '<div class="note">This view reads the sheet in your browser each time it loads, so it always reflects the current 2026 P&amp;L (cut at the update date). Sales, Cost of Sales and the opex groups are collapsed — press + to see the lines inside. 2024 and 2025 are unchanged — see the Annual / Monthly views.' + abNote + '</div>';
     root.querySelectorAll('.pl-toggle').forEach(b => b.addEventListener('click', () => { const g = b.dataset.g; OPEN.has(g) ? OPEN.delete(g) : OPEN.add(g); render(LAST); }));
   }
+  window.mtRerenderPnl = () => { if (LAST) render(LAST); };
   function setMsg(msg) { const root = document.getElementById('fin-pnl2026'); if (root) root.innerHTML = '<div class="pagehead"><div><p class="eyebrow">03 · Financials · 2026 P&amp;L (live)</p><h1 class="h2">2026 Model P&amp;L</h1></div></div><div class="card">' + msg + '</div>'; }
 
   async function init() {

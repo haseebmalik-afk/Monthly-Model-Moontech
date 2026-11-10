@@ -310,7 +310,7 @@ class Engine:
         self.leg = {m: legacy_status(x, cfg, self.since.get(m)) for m, x in self.rev.items()}
         self.leg_full = {m: legacy_status(x, cfg) for m, x in self.rev.items()}
         self.rst = {b: roas_status(v, cfg) for b, v in self.lad.items()}
-        self.cst = {i: creator_status(x, cfg) for i, x in self.orders.items()}
+        self.cst = {i: creator_status(x, cfg) for i, x in (getattr(self.orders, 'rounded', None) or self.orders).items()}   # status rules on whole orders [S4]
         # revenue composition (USD)
         self.roas = [sum(v['pay'][k] for v in self.lad.values() if not v['other_pricing']) for k in range(NM)]
         self.other = [sum(v['pay'][k] for v in self.lad.values() if v['other_pricing']) for k in range(NM)]

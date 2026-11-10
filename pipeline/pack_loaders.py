@@ -168,7 +168,7 @@ def load_merchant_revenue(kit, master, lad, cfg, source='system'):
         if not n: continue
         n = str(n).strip()
         if n.lower() in ('total', 'pnl total') or 'total' in n.lower(): continue
-        if n == 'Adjustment': continue          # ignored: the Adjustment is computed (P&L Sales - tracked), not read
+        if n == 'Adjustment': continue          # LOCKED (agreed 2026-11): the workbook's Adjustment row is ignored; the model computes its own Adjustment = P&L Sales - tracked commission - ladder ROAS
         if _is_pure_roas(n, pure):            # rule #1: ROAS revenue comes from the ladder
             continue
         if n in alias: m = alias[n]
@@ -238,8 +238,13 @@ def load_pl(kit, cfg):
     return pl
 
 # ----------------------------------------------------------------------------- creators (net orders per Contact ID, 2026 from pack)
+class _Orders(dict):
+    """Per-creator net orders. Raw fractional values (they tie to the client export); .rounded holds the same series with each
+    creator-month rounded to whole orders [S4], which is what the creator status rules read (as in the original engine)."""
+    rounded = None
+
 def load_creators(kit, cfg):
-    orders = {}; unatt = [0.0] * NF; flags = []
+    orders = _Orders(); rounded = {}; unatt = [0.0] * NF; flags = []
     valid = set(cfg['creator_id_checks']['valid_lengths'])
     rows = _rows(os.path.join(PACK, 'orders_by_creator.xlsx'), 'Export')
     h = rows[0]; ix = {str(h[i]).strip(): i for i in range(len(h)) if h[i] is not None}
@@ -256,6 +261,25 @@ def load_creators(kit, cfg):
         if not i.isdigit() or len(i) not in valid: flags.append(('rejected_format', i, '2026-%02d' % ym[1])); continue
         orders.setdefault(i, [0.0] * NF)
         orders[i][k] += v                      # BI net orders are fractional (partial returns); summed raw they tie to the client export
+        rounded.setdefault(i, [0.0] * NF)[k] += round(v + 1e-9)
+    # 2024-25 per-creator history (one-time file, wide: one row per creator, Jan-24..Dec-25 columns). Locked: it never changes
+    # with a monthly pack; it only gives the creator status rules their 12-month look-back into 2025.
+    hp = os.path.join(PACK, 'orders_by_creator_2024_25.xlsx')
+    if os.path.exists(hp):
+        hrows = _rows(hp, "Orders by Creator (Model)"); hh = hrows[0]
+        mcols = [(j, _ym(hh[j])) for j in range(len(hh)) if _ym(hh[j])]
+        for r in hrows[1:]:
+            i = _g(r, 0)
+            if i in (None, '', 0, '0'): continue
+            i = str(i).strip()
+            if re.fullmatch(r'\d+\.0', i): i = i[:-2]
+            if not i.isdigit(): continue
+            for j, ym in mcols:
+                k = kidx(ym[0], ym[1])
+                if k < 0 or k >= 24: continue
+                v = _num(_g(r, j))
+                if v: orders.setdefault(i, [0.0] * NF)[k] += v; rounded.setdefault(i, [0.0] * NF)[k] += round(v + 1e-9)
+    orders.rounded = rounded
     return orders, unatt, flags
 
 # ----------------------------------------------------------------------------- CAC spend (USD per month) — from baked history
@@ -296,32 +320,35 @@ def load_gmv_ads(kit):
 # ----------------------------------------------------------------------------- creators post-patch (status/history from baked build)
 PACK_CREATOR_FIELDS = ('orders_total', 'orders_unatt')
 
+def has_creator_history():
+    """True once the one-time 2024-25 Orders by Creator file is in the pack (data/pack/orders_by_creator_2024_25.xlsx)."""
+    return os.path.exists(os.path.join(PACK, 'orders_by_creator_2024_25.xlsx'))
+
 def patch_creator_series(cr):
-    """Pack has no 2024-25 per-creator history, so creator status metrics (active/new/churned/major...) come from
-    the baked build; only the order totals for 2026 (orders_total / orders_unatt) are taken from the pack."""
+    """2024-25 creator series are locked to the frozen history. 2026 comes from the engine run on the pack
+    (2024-25 per-creator file + the 2026 export), so every month uses the same creator rules on the same data.
+    Without the 2024-25 file the engine cannot look back into 2025, so the status series are carried from the
+    baked history and blanked after it (see blank_creator_series)."""
     if os.environ.get('MM_NO_CREATOR_HISTORY'): return               # diagnostics: engine values only
     hc = hist()['creators']; H_N = len(hc['active'])            # months covered by the baked history (32 = to Aug-26)
-    engine = {key: list(cr[key]) for key in cr}                 # pack-engine values (2026 orders only)
-    # Status series (active / emerging / major / new / churned / reactivated and the order splits that depend on them) need
-    # per-creator order history going back more than the 2026 pack holds. They are carried from the baked history up to its
-    # last month and are NOT computable after it (None) until a one-time 2024-25 Orders-by-Creator export is in the pack.
-    STATUS_FIELDS = [k for k in cr if k not in PACK_CREATOR_FIELDS]
-    for key in STATUS_FIELDS:
+    engine = {key: list(cr[key]) for key in cr}
+    for key in cr:
         src = list(hc[key]) if key in hc else list(engine[key])
-        cr[key] = src[:min(H_N, NF)] + list(engine[key][min(H_N, NF):NF])     # engine values past the history are blanked after the periods are built
-    for f in PACK_CREATOR_FIELDS:                               # order totals: 2024-25 static history, 2026 from the pack
-        cr[f] = list(hc[f])[:24] + list(engine[f][24:NF])
+        if has_creator_history() or key in PACK_CREATOR_FIELDS: cr[key] = src[:24] + list(engine[key][24:NF])
+        else: cr[key] = src[:min(H_N, NF)] + list(engine[key][min(H_N, NF):NF])
 
 def blank_creator_series(cr):
-    """After the periods are built: status-based creator series are not computable past the baked history -> None."""
+    """Without the 2024-25 creator file: status-based creator series are not computable past the baked history -> None."""
+    if has_creator_history(): return
     H_N = len(hist()['creators']['active'])
     for key in cr:
         if key in PACK_CREATOR_FIELDS: continue
         for k in range(H_N, len(cr[key])): cr[key][k] = None
 
 def patch_creator_periods(P):
-    """Period creator blocks from the baked build, except the pack-driven order totals (already computed from the
-    patched series by build.py)."""
+    """Without the 2024-25 creator file: period creator blocks from the baked build, except the pack-driven order totals
+    (already computed from the patched series by build.py). With the file, the engine's own periods stand."""
+    if has_creator_history(): return
     cutm = json.load(open(os.path.join(HERE, 'control.json')))['latest_month']
     for pk, pc in hist()['periods_creators'].items():
         if pk in P and pc is not None:
@@ -509,7 +536,8 @@ def health(E, ds, ctl, checks):
         add('perf_commission', 'bad' if gaps else 'ok', 'Performance commission listed for all fixed-fee clients to %s' % cut_label if not gaps else 'Performance commission missing for a fixed-fee client', ('Needed each month for: ' + '; '.join(gaps)) if gaps else 'Clients with fixed-fee campaigns (ROAS factor on performance commission only): ' + ', '.join(perf.keys()) + '. Add the new month to pipeline/performance_commission.csv with every data pack.')
     # 9. creator status history
     H_N = len(hist()['creators']['active'])
-    if NF > H_N: add('creator_history', 'bad', 'Creator status metrics stop at %s' % mo(H_N - 1), '2024 and 2025 totals are locked and not affected. The active / new / churned / emerging / major rules look back 12 months per creator, so %s needs each creator\'s 2025 orders, which the pack does not hold. Months after %s show — for these (net orders are unaffected). One-time fix: an Orders by Creator export for 2025 (2024 too if easy) added to the pack.' % (mo(NF - 1), mo(H_N - 1)))
+    if has_creator_history(): add('creator_history', 'ok', 'Creator history complete', 'Per-creator orders 2024-25 (locked file orders_by_creator_2024_25.xlsx) + 2026 export: creator status rules run for every month to %s.' % mo(NF - 1))
+    elif NF > H_N: add('creator_history', 'bad', 'Creator status metrics stop at %s' % mo(H_N - 1), '2024 and 2025 totals are locked and not affected. The active / new / churned / emerging / major rules look back 12 months per creator, so %s needs each creator\'s 2025 orders, which the pack does not hold. Months after %s show — for these (net orders are unaffected). One-time fix: an Orders by Creator export for 2025 (2024 too if easy) added to the pack.' % (mo(NF - 1), mo(H_N - 1)))
     # 10. cash inputs
     cash = ctl.get('cash') or {}
     if not all(cash.get(k) not in (None, '') for k in ('balance_usd', 'monthly_burn_usd')): add('cash', 'warn', 'Cash inputs missing', 'Cash at month end and monthly burn are typed on the Investor page (then export control.json).')
@@ -533,9 +561,9 @@ def next_update(E, ctl):
     return {'month': nxt, 'cut': ctl['latest_month'], 'ladder_pulled': today,
             'uploads': [
                 {'file': 'net_sales_by_client.xlsx', 'source': 'BI · Net Sales & Orders by Client', 'tab': 'Export', 'feeds': 'GMV per client, net orders per client, take rate, ROAS factor (commission clients)'},
-                {'file': 'orders_by_creator.xlsx', 'source': 'BI · Orders by Creator', 'tab': 'Export', 'feeds': 'net orders (incl. unattributed), creator metrics'},
+                {'file': 'orders_by_creator.xlsx', 'source': 'BI · Orders by Creator', 'tab': 'Export', 'feeds': 'net orders (incl. unattributed), creator metrics — the 2024-25 creator file (orders_by_creator_2024_25.xlsx) is locked in the pack and is never re-uploaded'},
                 {'file': 'ads_by_creator.xlsx', 'source': 'BI · Ads by Creator', 'tab': 'Export', 'feeds': 'closed ads'},
-                {'file': 'revenue_by_merchant.xlsx', 'source': 'BI · Revenue by Merchant', 'tab': 'Revenue by Merchant (model)', 'feeds': 'commission revenue per client, Adjustment, client segmentation inputs'}],
+                {'file': 'revenue_by_merchant.xlsx', 'source': 'Revenue by Merchant workbook (prepared with checks, not a BI export)', 'tab': 'Revenue by Merchant (model)', 'feeds': 'commission revenue per client (its Adjustment row is ignored — the model computes its own), client segmentation inputs'}],
             'pulled': [
                 {'item': '2026 Model P&L', 'how': 'published sheet, pulled through your browser into 2026_model_pnl.csv', 'feeds': 'P&L lines, total revenue (Sales), EBITDA'},
                 {'item': 'ROAS ladder (receivables + tracker)', 'how': 'published sheets, pulled through your browser into ladder.json + ladder_milestones.json', 'feeds': 'ROAS revenue, brands, levels, churn, tiers'}],

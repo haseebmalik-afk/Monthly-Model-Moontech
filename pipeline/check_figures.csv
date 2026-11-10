@@ -17,9 +17,9 @@ CF15,§7 counting,Active ROAS brands (incl. Jetour),Aug-26,ROAS,23,23,count,0,Je
 CF16,§7 counting,Total active merchants,Aug-26,Total,46,46,count,0,
 CF17,§7,ROAS brands signed (incl. Jetour),Nov-25 to Sep-26,ROAS,39,39,count,0,Pack shows 37 (excludes Touche Prive) | re-baselined 2026-11-05: live ROAS ladder snapshot (incl. Jetour) | re-baselined 2026-11-05: model cut at the Aug-26 update date (no data after it) | re-baselined 2026-11-11: September data pack (update date 2026-09)
 CF18,§7,Active ROAS brands (excl. Jetour),Sep-26,ROAS,28,28,count,0,re-baselined 2026-11-05: model cut at the Aug-26 update date (no data after it) | re-baselined 2026-11-11: September data pack (update date 2026-09)
-CF19,§8,Active creators,Aug-26 (last month with creator history),Creators,254,254,count,0,Re-run when net history arrives
-CF20,§8,Emerging creators,Aug-26 (last month with creator history),Creators,803,803,count,0,Recently churned creators who ordered in the last 6 months count as Emerging (spec §8). Corrected from 773
-CF21,§6,Major creators (annualised rule),Aug-26 (last month with creator history),Creators,20,20,count,0,
+CF19,§8,Active creators,Sep-26,Creators,251,254,count,0,Re-run when net history arrives | re-baselined 2026-11-11: creator rules run on the locked 2024-25 creator file + 2026 export (previously carried from the baked build)
+CF20,§8,Emerging creators,Sep-26,Creators,764,803,count,0,Recently churned creators who ordered in the last 6 months count as Emerging (spec §8). Corrected from 773 | re-baselined 2026-11-11: creator rules run on the locked 2024-25 creator file + 2026 export (previously carried from the baked build)
+CF21,§6,Major creators (annualised rule),Sep-26,Creators,19,20,count,0,re-baselined 2026-11-11: creator rules run on the locked 2024-25 creator file + 2026 export (previously carried from the baked build)
 CF22,§S4,Total net orders incl. Unattributed,Aug-26,Total,17780.88,17780.88,count,0.5,17149 + 96 unattributed | re-baselined 2026-11-04: monthly data pack rebuild
 CF23,§10.1,ROAS ARR,Sep-26,ROAS,226676.0,226676.0,USD,1,Matches VC pack | re-baselined 2026-11-05: live ROAS ladder snapshot (incl. Jetour) | re-baselined 2026-11-05: model cut at the Aug-26 update date (no data after it) | re-baselined 2026-11-11: September data pack (update date 2026-09)
 CF24,§10.1,Legacy run-rate (3m seasonality-adj),Jul-26,Legacy,5.05,5.05,USD M,0.02,

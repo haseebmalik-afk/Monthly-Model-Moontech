@@ -545,6 +545,7 @@ function showPage() {
   ctl.querySelector('#ctl-perfwrap').style.display = onPerf ? '' : 'none';
   ctl.querySelector('#ctl-year').parentElement.style.display = ((onFin && state.finView === 'monthly') || (onPerf && state.perfView === 'trends')) ? '' : 'none';
   ctl.querySelector('#ctl-periodwrap').style.display = (state.page === 'kpis' || state.page === 'segmentation') ? '' : 'none';
+  ctl.querySelector('#ctl-view').parentElement.style.display = state.page === 'segmentation' ? 'none' : '';   // Segmented / Company-wide has no effect on Client Segmentation
   if (onFin) ['pnl2026', 'annual', 'monthly'].forEach(v => { const el = document.getElementById('fin-' + v); if (el) el.style.display = v === state.finView ? '' : 'none'; });
   if (onPerf) { document.getElementById('perf-trends').style.display = state.perfView === 'trends' ? '' : 'none'; document.getElementById('fin-actuals').style.display = state.perfView === 'actuals' ? '' : 'none'; }
   window.scrollTo({ top: 0 });

@@ -239,6 +239,7 @@ footer{border-top:1px solid var(--rule);padding:18px 0 40px;font-size:11.5px;col
 .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--rule);border-radius:999px;font-size:12px;cursor:pointer;color:var(--ink-2);background:var(--card)}.chip.on{color:var(--ink);font-weight:600}
 .zoom{display:inline-flex;gap:4px;margin-right:6px}.zoom .iconbtn{font-size:15px;line-height:1}
 .pl-toggle{display:inline-block;width:18px;height:18px;line-height:16px;text-align:center;border:1px solid var(--rule);border-radius:4px;background:var(--card);color:var(--ink-2);font-size:13px;cursor:pointer;padding:0;margin-right:4px;vertical-align:middle}
+.trend-panel{padding:6px 0 10px;border-bottom:1px solid var(--rule)}.trend-panel:last-child{border-bottom:0}
 </style>
 </head>
 <body>
@@ -573,17 +574,19 @@ function tickFmt(v, kind) { if (kind === 'pct') return Math.round(v * 100) + '%'
 // stacked / grouped bars + optional lines; x = categorical labels
 function barChart(el, cfg) {
   const { labels, series, lines = [], kind = 'money', height = 220, stacked = true, labelEvery = 3, minVal } = cfg;
-  const W = 720, H = height, pl = 46, pr = 12, pt = 12, pb = 26, iw = W - pl - pr, ih = H - pt - pb, n = labels.length;
+  const W = cfg.width || 720, H = height, pl = 46, pr = cfg.right ? 50 : 12, pt = 12, pb = 26, iw = W - pl - pr, ih = H - pt - pb, n = labels.length;
   let mx = 0, mn = 0;
   for (let i = 0; i < n; i++) { let pos = 0, neg = 0; series.forEach(s => { const v = s.values[i] || 0; if (stacked) { v >= 0 ? pos += v : neg += v; } else { mx = Math.max(mx, v); mn = Math.min(mn, v); } }); if (stacked) { mx = Math.max(mx, pos); mn = Math.min(mn, neg); } }
   lines.forEach(l => l.values.forEach(v => { if (v != null) { mx = Math.max(mx, v); mn = Math.min(mn, v); } }));
   if (minVal != null) mn = Math.min(mn, minVal);
   mx = niceMax(mx); mn = mn < 0 ? -niceMax(-mn) : 0;
-  const y = v => pt + ih - (v - mn) / (mx - mn) * ih, bw = iw / n, barW = Math.min(24, bw * 0.62);
+  const y = v => pt + ih - (v - mn) / (mx - mn) * ih, bw = iw / n, barW = Math.min(cfg.width ? 40 : 24, bw * 0.62);
   let g = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="aspect-ratio:${W}/${H}">`;
   const ticks = 4; g += '<g class="grid">';
-  for (let t = 0; t <= ticks; t++) { const v = mn + (mx - mn) * t / ticks, yy = y(v); g += `<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 6}" y="${yy + 3.5}" text-anchor="end">${tickFmt(v, kind)}</text>`; }
+  for (let t = 0; t <= ticks; t++) { const v = mn + (mx - mn) * t / ticks, yy = y(v); g += `<line x1="${pl}" x2="${W - pr}" y1="${yy}" y2="${yy}"/><text x="${pl - 6}" y="${yy + 3.5}" text-anchor="end">${tickFmt(v, kind)}</text>`;
+    if (cfg.right) { const rv = cfg.right.min + (cfg.right.max - cfg.right.min) * (v - mn) / (mx - mn); g += `<text x="${W - pr + 6}" y="${yy + 3.5}" text-anchor="start" fill="${cfg.right.color || 'currentColor'}">${tickFmt(rv, cfg.right.kind)}</text>`; } }
   g += '</g>';
+  if (cfg.bands) cfg.bands.forEach(b => { g += `<rect x="${pl + bw * b.from}" y="${pt}" width="${bw * (b.to - b.from + 1)}" height="${ih}" fill="${b.fill || 'rgba(0,0,0,0.035)'}"/>`; });
   for (let i = 0; i < n; i++) {
     const cx = pl + bw * i + bw / 2; let pos = 0, neg = 0;
     series.forEach((s, si) => { const v = s.values[i] || 0; if (!v) return; let y0, y1;
@@ -851,24 +854,24 @@ function findQ3m(m) { // legacy rolling-3 NRR vs same 3 months a year earlier, f
 
 
 /* ============================================================ PAGE 4: Business Performance (trends + tables) */
-state.perfSeries = (function () { try { return JSON.parse(LS('mm.perfseries') || 'null') || ['orders', 'gmv', 'creators']; } catch (e) { return ['orders', 'gmv', 'creators']; } })();
-state.perfMode = LS('mm.perfmode') || 'index';
+state.trend = Object.assign({ view: 'multi', series: ['orders', 'gmv', 'creators'], pairA: 'gmv', pairB: 'orders', metric: 'orders', range: '12m', grain: 'M', from: null, to: null }, (function () { try { return JSON.parse(LS('mm.trend') || '{}'); } catch (e) { return {}; } })());
 function perfCatalogue() {
   const cr = S.creators;
   const contrib = k => (S.rev_total[k] || 0) - (S.pl.creator_payouts[k] || 0);
-  return [
-    { id: 'orders', name: 'Net orders', kind: 'num', color: 'var(--teal)', v: k => cr.orders_total[k] },
-    { id: 'gmv', name: 'GMV', kind: 'money', color: 'var(--coral)', v: k => S.gmv[k] },
-    { id: 'ads', name: 'Closed ads', kind: 'num', color: '#8b5cf6', v: k => S.ads[k] },
-    { id: 'cpo', name: 'Contribution per order', kind: 'money1', color: '#d97706', v: k => cr.orders_total[k] ? contrib(k) / cr.orders_total[k] : null },
-    { id: 'rev', name: 'Total revenue', kind: 'money', color: 'var(--ink)', v: k => S.rev_total[k] },
-    { id: 'comm', name: 'Commission revenue', kind: 'money', color: 'var(--c-legacy)', v: k => S.rev_legacy[k] },
-    { id: 'roas', name: 'ROAS revenue', kind: 'money', color: 'var(--c-roas)', v: k => S.rev_roas[k] },
-    { id: 'take', name: 'Take rate', kind: 'pct', color: '#0f766e', v: k => S.gmv[k] ? S.rev_legacy[k] / S.gmv[k] : null },
-    { id: 'act', name: 'Active clients', kind: 'num', color: '#2563eb', v: k => (S.act_leg[k] || 0) + (S.act_roas[k] || 0) },
-    { id: 'creators', name: 'Active creators', kind: 'num', color: '#db2777', v: k => cr.active[k] },
-    { id: 'arr', name: 'Blended ARR', kind: 'money', color: '#475569', v: k => S.arr_blended[k] },
-    { id: 'nrr', name: 'Commission NRR (12m)', kind: 'pct', color: '#16a34a', v: k => { const t = P['TTM:' + S.months[k]]; return t && t.retention && t.retention.legacy_12m ? t.retention.legacy_12m.nrr : null; } },
+  const sumK = (ks, f) => ks.reduce((a, k) => a + (f(k) || 0), 0);
+  return [   // agg: how a quarter is formed — sum (flows), last (stocks), ratio (recomputed from the summed parts)
+    { id: 'orders', name: 'Net orders', kind: 'num', color: 'var(--teal)', agg: 'sum', v: k => cr.orders_total[k] },
+    { id: 'gmv', name: 'GMV', kind: 'money', color: 'var(--coral)', agg: 'sum', v: k => S.gmv[k] },
+    { id: 'ads', name: 'Closed ads', kind: 'num', color: '#8b5cf6', agg: 'sum', v: k => S.ads[k] },
+    { id: 'cpo', name: 'Contribution per order', kind: 'money1', color: '#d97706', agg: 'ratio', v: k => cr.orders_total[k] ? contrib(k) / cr.orders_total[k] : null, ratio: ks => { const o = sumK(ks, k => cr.orders_total[k]); return o ? sumK(ks, contrib) / o : null; } },
+    { id: 'rev', name: 'Total revenue', kind: 'money', color: 'var(--ink)', agg: 'sum', v: k => S.rev_total[k] },
+    { id: 'comm', name: 'Commission revenue', kind: 'money', color: 'var(--c-legacy)', agg: 'sum', v: k => S.rev_legacy[k] },
+    { id: 'roas', name: 'ROAS revenue', kind: 'money', color: 'var(--c-roas)', agg: 'sum', v: k => S.rev_roas[k] },
+    { id: 'take', name: 'Take rate', kind: 'pct', color: '#0f766e', agg: 'ratio', v: k => S.gmv[k] ? S.rev_legacy[k] / S.gmv[k] : null, ratio: ks => { const g = sumK(ks, k => S.gmv[k]); return g ? sumK(ks, k => S.rev_legacy[k]) / g : null; } },
+    { id: 'act', name: 'Active clients', kind: 'num', color: '#2563eb', agg: 'last', v: k => (S.act_leg[k] || 0) + (S.act_roas[k] || 0) },
+    { id: 'creators', name: 'Active creators', kind: 'num', color: '#db2777', agg: 'last', v: k => cr.active[k] },
+    { id: 'arr', name: 'Blended ARR', kind: 'money', color: '#475569', agg: 'last', v: k => S.arr_blended[k] },
+    { id: 'nrr', name: 'Commission NRR (12m)', kind: 'pct', color: '#16a34a', agg: 'last', v: k => { const t = P['TTM:' + S.months[k]]; return t && t.retention && t.retention.legacy_12m ? t.retention.legacy_12m.nrr : null; } },
   ];
 }
 function renderPerformance() {
@@ -883,24 +886,40 @@ function renderPerformance() {
   const chartCard = (title, id, legend, extra = '') => `<div class="card"><p class="eyebrow">${title}</p><div class="chart" id="${id}"></div>${legend ? '<div class="legend">' + legend + '</div>' : ''}${extra}</div>`;
   const lg = (items) => items.map(([c, t]) => `<span><span class="sw" style="background:${c}"></span>${t}</span>`).join('');
 
-  // ---- mega graph
-  const cat = perfCatalogue(); const chosen = state.perfSeries.filter(id => cat.some(c => c.id === id)); const mode = state.perfMode;
-  const allM = S.months.map((m, k) => k).filter(k => k <= Lk);
-  const from = Math.max(0, S.months.indexOf(state.perfFrom || S.months[0])), to = Math.min(Lk, S.months.indexOf(state.perfTo || Lm) < 0 ? Lk : S.months.indexOf(state.perfTo || Lm));
-  const mks = allM.filter(k => k >= from && k <= to);
-  const megaSeries = chosen.map(id => { const c = cat.find(x => x.id === id); const raw = mks.map(c.v); let base = raw.find(v => v != null && v !== 0);
-    return { name: c.name, color: c.color, kind: c.kind, raw, values: mode === 'index' ? raw.map(v => (v == null || !base) ? null : v / base * 100) : raw }; });
+  // ---- Trend explorer (small multiples · pair view · year overlay)
+  const cat = perfCatalogue(); const T = state.trend;
+  const kAll = S.months.map((m, k) => k).filter(k => k <= Lk);
+  const rangeKs = () => { if (T.range === '12m') return kAll.filter(k => k > Lk - 12); if (/^\d{4}$/.test(T.range)) return kAll.filter(k => S.months[k].startsWith(T.range)); if (T.range === 'custom') { const f = S.months.indexOf(T.from), t = S.months.indexOf(T.to); return kAll.filter(k => k >= Math.max(0, f) && k <= (t < 0 ? Lk : t)); } return kAll; };
+  const mksR = rangeKs();
+  // buckets: months, or calendar quarters within the range
+  const buckets = T.grain === 'Q' ? Object.values(mksR.reduce((o, k) => { const q = S.months[k].slice(0, 4) + '-Q' + (Math.floor((+S.months[k].slice(5, 7) - 1) / 3) + 1); (o[q] = o[q] || { label: q.slice(5) + '-' + q.slice(2, 4), full: q.replace('-', ' '), ks: [] }).ks.push(k); return o; }, {})).map(b => b.ks.length < 3 ? Object.assign(b, { label: b.label + '*', full: b.full + ' (to date, ' + b.ks.length + ' of 3 months)' }) : b) : mksR.map(k => ({ label: fmt.month(S.months[k]).slice(0, 3) + (S.months[k].endsWith('-01') || k === mksR[0] ? ' ' + S.months[k].slice(2, 4) : ''), full: fmt.monthLong(S.months[k]), ks: [k] }));
+  const bval = (c, bk) => c.agg === 'last' ? c.v(bk.ks[bk.ks.length - 1]) : c.agg === 'ratio' ? c.ratio(bk.ks) : bk.ks.reduce((a, k) => a + (c.v(k) || 0), 0);
+  const seriesOf = c => ({ name: c.name, color: c.color, kind: c.kind, values: buckets.map(bk => bval(c, bk)) });
   const fmtK = (v, kind) => v == null ? '—' : kind === 'pct' ? fmt.pct(v, 0) : kind === 'num' ? fmt.int(v) : kind === 'money1' ? fmt.money(v, 1) : fmt.money(v);
-  const chips = cat.map(c => `<label class="chip ${chosen.includes(c.id) ? 'on' : ''}" style="border-color:${chosen.includes(c.id) ? c.color : 'var(--rule)'}"><input type="checkbox" data-id="${c.id}" ${chosen.includes(c.id) ? 'checked' : ''} style="display:none"><span class="sw" style="background:${c.color}"></span>${c.name}</label>`).join('');
-  const mopts = allM.map(k => `<option value="${S.months[k]}">${fmt.month(S.months[k])}</option>`).join('');
-  const mega = `<div class="card" style="margin-top:16px"><p class="eyebrow">Mega graph · pick what to plot</p><h3 class="h3">How the business moves, month by month</h3>
-    <div class="statrow" style="gap:8px;flex-wrap:wrap;margin:8px 0 6px" id="perf-chips">${chips}</div>
-    <div class="statrow" style="gap:14px;flex-wrap:wrap;margin-bottom:8px">
-      <span class="small muted">Scale</span><div class="seg" id="perf-mode"><button data-v="index" class="${mode === 'index' ? 'on' : ''}">Index (start = 100)</button><button data-v="actual" class="${mode === 'actual' ? 'on' : ''}">Actual values</button></div>
-      <span class="small muted">From</span><select class="sel" id="perf-from">${mopts}</select><span class="small muted">to</span><select class="sel" id="perf-to">${mopts}</select>
-    </div>
-    <div class="chart" id="perf-mega" style="min-height:260px"></div>
-    <div class="note">${mode === 'index' ? 'Every line starts at 100 at the first month shown, so lines of different units can be compared; hover for the actual values.' : 'Actual values on one axis — pick series with the same unit (e.g. net orders and closed ads) for a readable chart; hover for values.'} Suggested pairs: net orders vs active creators · net orders vs contribution per order · GMV vs net orders.</div></div>`;
+  const bands = buckets.map((bk, i) => ({ i, yr: S.months[bk.ks[0]].slice(0, 4) })).reduce((arr, x) => { const last = arr[arr.length - 1]; if (last && last.yr === x.yr) last.to = x.i; else arr.push({ from: x.i, to: x.i, yr: x.yr }); return arr; }, []).filter((b, i) => i % 2 === 1);
+  const labelEvery = buckets.length > 24 ? 3 : buckets.length > 14 ? 2 : 1;
+  const strip = (sr) => { const vs = sr.values.map((v, i) => [v, i]).filter(x => x[0] != null); if (vs.length < 2) return ''; const [a, ia] = vs[0], [z, iz] = vs[vs.length - 1]; const d = a ? z / a - 1 : null;
+    return `<div class="muted small" style="margin-top:4px"><b style="color:${sr.color}">${sr.name}</b> · ${buckets[ia].label} ${fmtK(a, sr.kind)} → ${buckets[iz].label} ${fmtK(z, sr.kind)}${d == null ? '' : ' · <span class="' + (d >= 0 ? 'pos' : 'neg') + '">' + fmt.pctS(d) + '</span>'}</div>`; };
+  const sel = (id, opts, val) => `<select class="sel" id="${id}">${opts.map(o => `<option value="${o.id}" ${o.id === val ? 'selected' : ''}>${o.name}</option>`).join('')}</select>`;
+  const segBtns = (id, items, val) => `<div class="seg" id="${id}">${items.map(([v, t]) => `<button data-v="${v}" class="${v === val ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+  const views = [['multi', 'Small multiples'], ['pair', 'Pair view'], ['overlay', 'Year overlay']];
+  const ranges = [['12m', 'Last 12 months'], ...[...new Set(S.months.map(m => m.slice(0, 4)))].map(y2 => [y2, y2]), ['all', 'All'], ['custom', 'Custom']];
+  let body = '', controls = '';
+  if (T.view === 'multi') {
+    const chosen = T.series.filter(id => cat.some(c => c.id === id));
+    controls = `<div class="statrow" style="gap:8px;flex-wrap:wrap;margin:8px 0 6px" id="trend-chips">${cat.map(c => `<label class="chip ${chosen.includes(c.id) ? 'on' : ''}" style="border-color:${chosen.includes(c.id) ? c.color : 'var(--rule)'}"><input type="checkbox" data-id="${c.id}" ${chosen.includes(c.id) ? 'checked' : ''} style="display:none"><span class="sw" style="background:${c.color}"></span>${c.name}</label>`).join('')}</div>`;
+    body = chosen.map(id => `<div class="trend-panel"><div class="chart" id="tr-${id}"></div><div id="trs-${id}"></div></div>`).join('') || '<div class="muted">Pick at least one series above.</div>';
+  } else if (T.view === 'pair') {
+    controls = `<div class="statrow" style="gap:10px;flex-wrap:wrap;margin:8px 0 6px"><span class="small muted">Bars</span>${sel('trend-a', cat, T.pairA)}<span class="small muted">Line</span>${sel('trend-b', cat, T.pairB)}<span class="small muted">Presets</span>${segBtns('trend-presets', [['gmv|orders', 'GMV vs net orders'], ['orders|cpo', 'Net orders vs contribution per order'], ['orders|creators', 'Net orders vs active creators'], ['comm|take', 'Commission vs take rate']], T.pairA + '|' + T.pairB)}</div>`;
+    body = `<div class="chart" id="tr-pair" style="min-height:300px"></div><div id="trs-pair"></div>`;
+  } else {
+    controls = `<div class="statrow" style="gap:10px;flex-wrap:wrap;margin:8px 0 6px"><span class="small muted">Metric</span>${sel('trend-m', cat, T.metric)}</div>`;
+    body = `<div class="chart" id="tr-overlay" style="min-height:300px"></div><div id="trs-overlay"></div>`;
+  }
+  const rangeCtl = `<div class="statrow" style="gap:12px;flex-wrap:wrap;margin:4px 0 8px"><span class="small muted">View</span>${segBtns('trend-view', views, T.view)}${T.view === 'overlay' ? '' : `<span class="small muted">Range</span>${segBtns('trend-range', ranges, T.range)}${T.range === 'custom' ? `<select class="sel" id="trend-from">${kAll.map(k => `<option value="${S.months[k]}" ${S.months[k] === T.from ? 'selected' : ''}>${fmt.month(S.months[k])}</option>`).join('')}</select><span class="small muted">to</span><select class="sel" id="trend-to">${kAll.map(k => `<option value="${S.months[k]}" ${S.months[k] === T.to ? 'selected' : ''}>${fmt.month(S.months[k])}</option>`).join('')}</select>` : ''}`}<span class="small muted">Grain</span>${segBtns('trend-grain', [['M', 'Month'], ['Q', 'Quarter']], T.grain)}</div>`;
+  const mega = `<div class="card" style="margin-top:16px"><p class="eyebrow">Trend explorer</p><h3 class="h3">${T.view === 'multi' ? 'Each metric on its own scale, same months, stacked for comparison' : T.view === 'pair' ? 'Two metrics against each other — bars on the left scale, line on the right' : 'One metric, each year on top of the other, January to December'}</h3>
+    ${rangeCtl}${controls}${body}
+    <div class="note">${T.view === 'multi' ? 'Up to five metrics; hover any month for the value; the line under each chart states the first and last value and the change. Alternate years are shaded; an incomplete quarter is marked with *.' : T.view === 'pair' ? 'Pick any two; the presets are the pairs we discussed. The line uses the right-hand scale.' : 'Shows seasonality and whether this year is running above or below last year, month by month. Quarters when grain is set to Quarter; an incomplete quarter is marked with *.'}</div></div>`;
 
   // ---- Volume
   const volT = tbl(R('Net orders (incl. unattributed)', p => p.creators.orders_total, fmt.int, 'tot') + R('of which unattributed', p => p.creators.orders_unatt, fmt.int, 'sub2')
@@ -995,10 +1014,28 @@ function renderPerformance() {
     const el = document.getElementById(id); if (!el) return; const lv = line.values.filter(x => x != null); const bmax = Math.max(1, ...bars.map(b => Math.max(...b.values.map(x => x || 0)))); const lmax = lv.length ? Math.max(...lv) : 1;
     const scaled = { name: line.name, color: line.color, values: line.values.map(x => x == null ? null : x / (lmax || 1) * bmax) };
     barChart(el, { labels: lab, fullLabels: full, kind: bars[0].kind || 'num', stacked: false, height: 200, labelEvery: 1, series: bars, lines: [scaled], tip: tipFor([...bars, line], kinds) }); };
-  // mega
-  if (megaSeries.length) { const el = document.getElementById('perf-mega'); const mlab = mks.map(k => fmt.month(S.months[k]).slice(0, 3)), mfull = mks.map(k => fmt.monthLong(S.months[k]));
-    barChart(el, { labels: mlab, fullLabels: mfull, kind: mode === 'index' ? 'num' : (megaSeries[0].kind === 'pct' ? 'pct' : megaSeries[0].kind === 'num' ? 'num' : 'money'), height: 260, labelEvery: mks.length > 18 ? 3 : 1, series: [], lines: megaSeries,
-      tip: i => `<div class="t">${mfull[i]}</div>` + megaSeries.map(sr => sr.raw[i] == null ? '' : `<div class="r"><span>${sr.name}</span><span>${fmtK(sr.raw[i], sr.kind)}${mode === 'index' && sr.values[i] != null ? ' <span class="muted">(' + sr.values[i].toFixed(0) + ')</span>' : ''}</span></div>`).join('') }); }
+  // trend explorer charts
+  const blab = buckets.map(b => b.label), bfull = buckets.map(b => b.full);
+  if (T.view === 'multi') {
+    T.series.filter(id => cat.some(c => c.id === id)).forEach(id => { const c = cat.find(x => x.id === id); const sr = seriesOf(c); const el = document.getElementById('tr-' + id); if (!el) return;
+      barChart(el, { labels: blab, fullLabels: bfull, kind: c.kind === 'money1' ? 'money' : c.kind, width: 1400, height: 170, labelEvery, bands, series: [], lines: [sr], tip: i => `<div class="t">${bfull[i]}</div><div class="r"><span>${c.name}</span><span>${fmtK(sr.values[i], c.kind)}</span></div>` });
+      const st = document.getElementById('trs-' + id); if (st) st.innerHTML = strip(sr); });
+  } else if (T.view === 'pair') {
+    const ca = cat.find(x => x.id === T.pairA) || cat[0], cb = cat.find(x => x.id === T.pairB) || cat[1]; const A = seriesOf(ca), Bs = seriesOf(cb);
+    const el = document.getElementById('tr-pair'); const av = A.values.map(x => x || 0), bv = Bs.values.filter(x => x != null);
+    const amax = niceMax(Math.max(1, ...av)), bmin = Math.min(0, ...bv), bmax = niceMax(Math.max(1e-9, ...bv));
+    const scaled = { name: cb.name, color: cb.color, values: Bs.values.map(x => x == null ? null : (x - bmin) / ((bmax - bmin) || 1) * amax) };
+    barChart(el, { labels: blab, fullLabels: bfull, kind: ca.kind === 'money1' ? 'money' : ca.kind, width: 1400, height: 360, labelEvery, bands, stacked: false, series: [{ name: ca.name, color: ca.color, values: av }], lines: [scaled], right: { min: bmin, max: bmax, kind: cb.kind === 'money1' ? 'money' : cb.kind, color: cb.color },
+      tip: i => `<div class="t">${bfull[i]}</div><div class="r"><span>${ca.name}</span><span>${fmtK(A.values[i], ca.kind)}</span></div><div class="r"><span>${cb.name}</span><span>${fmtK(Bs.values[i], cb.kind)}</span></div>` });
+    const st = document.getElementById('trs-pair'); if (st) st.innerHTML = strip(A) + strip(Bs);
+  } else {
+    const c = cat.find(x => x.id === T.metric) || cat[0]; const years = [...new Set(S.months.map(m => m.slice(0, 4)))]; const ycol = { '2024': 'var(--ink-3)', '2025': 'var(--teal)', '2026': 'var(--coral)' };
+    const qg = T.grain === 'Q'; const xl = qg ? ['Q1', 'Q2', 'Q3', 'Q4'] : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const lines = years.map((yr, yi) => ({ name: yr, color: ycol[yr] || ['#8b5cf6', '#d97706'][yi % 2], kind: c.kind, values: xl.map((_, i) => { const ks = kAll.filter(k => S.months[k].startsWith(yr) && (qg ? Math.floor((+S.months[k].slice(5, 7) - 1) / 3) === i : +S.months[k].slice(5, 7) - 1 === i)); return ks.length ? bval(c, { ks }) : null; }) }));
+    const el = document.getElementById('tr-overlay');
+    barChart(el, { labels: xl, fullLabels: xl, kind: c.kind === 'money1' ? 'money' : c.kind, width: 1400, height: 360, labelEvery: 1, series: [], lines, tip: i => `<div class="t">${c.name} · ${xl[i]}</div>` + lines.map(l => l.values[i] == null ? '' : `<div class="r"><span>${l.name}</span><span>${fmtK(l.values[i], c.kind)}</span></div>`).join('') });
+    const st = document.getElementById('trs-overlay'); if (st) st.innerHTML = '<div class="legend">' + lines.map(l => `<span><span class="sw" style="background:${l.color}"></span>${l.name}</span>`).join('') + '</div>' + lines.map(l => { const vs = l.values.filter(v => v != null); return vs.length ? `<div class="muted small"><b style="color:${l.color}">${l.name}</b> · total ${c.agg === 'last' || c.agg === 'ratio' ? 'latest ' + fmtK(vs[vs.length - 1], c.kind) : fmtK(vs.reduce((a, v) => a + v, 0), c.kind)} over ${vs.length} ${qg ? 'quarters' : 'months'}</div>` : ''; }).join('');
+  }
   dual('pf-vol', [{ name: 'Net orders', color: 'var(--teal)', values: v(cr.orders_total), kind: 'num' }], { name: 'Closed ads', color: '#8b5cf6', values: v(S.ads) }, ['num', 'num']);
   dual('pf-gmv', [{ name: 'GMV', color: 'var(--coral)', values: v(S.gmv), kind: 'money' }], { name: 'Take rate', color: '#0f766e', values: ks.map(k => S.gmv[k] ? S.rev_legacy[k] / S.gmv[k] : null) }, ['money', 'pct']);
   barChart(document.getElementById('pf-act'), { labels: lab, fullLabels: full, kind: 'num', height: 200, labelEvery: 1, series: [...LEG_SEGS.map(sg => ({ name: sg, color: SEG_C[sg], values: v(S.act_leg_seg[sg]) })), ...TIERS.map(t => ({ name: 'ROAS ' + t, color: TIER_C[t], values: v(S.act_roas_tier[t]) }))] });
@@ -1012,11 +1049,15 @@ function renderPerformance() {
   dual('pf-cre2', [{ name: 'Net orders', color: 'var(--teal)', values: v(cr.orders_total), kind: 'num' }], { name: 'Orders per active creator', color: '#db2777', values: ps.map(p => p.creators.orders_per_active) }, ['num', 'num']);
   lineChart(document.getElementById('pf-gro'), { labels: lab, fullLabels: full, kind: 'pct', height: 200, labelEvery: 1, minVal: 0, series: [{ name: 'Total', color: 'var(--ink)', values: ps.map(p => p.yoy ? p.yoy.total : null) }, { name: 'Commission', color: 'var(--c-legacy)', values: ps.map(p => p.yoy ? p.yoy.legacy : null) }, { name: 'ROAS', color: 'var(--c-roas)', values: ps.map(p => p.yoy ? p.yoy.roas : null) }] });
   lineChart(document.getElementById('pf-gro2'), { labels: lab, fullLabels: full, kind: 'pct', height: 200, labelEvery: 1, minVal: 0, series: [{ name: 'GMV', color: 'var(--coral)', values: ps.map(p => p.yoy ? p.yoy.gmv : null) }, { name: 'Net orders', color: 'var(--teal)', values: ps.map(p => p.yoy ? p.yoy.orders : null) }] });
-  // ---- mega graph controls
-  root.querySelectorAll('#perf-chips input').forEach(cb => cb.addEventListener('change', () => { const id = cb.dataset.id; const set = new Set(state.perfSeries); cb.checked ? set.add(id) : set.delete(id); state.perfSeries = [...set].slice(-5); LS('mm.perfseries', JSON.stringify(state.perfSeries)); renderPerformance(); }));
-  root.querySelectorAll('#perf-mode button').forEach(b => b.addEventListener('click', () => { state.perfMode = b.dataset.v; LS('mm.perfmode', state.perfMode); renderPerformance(); }));
-  const pf = root.querySelector('#perf-from'), pt = root.querySelector('#perf-to'); if (pf && pt) { pf.value = S.months[from]; pt.value = S.months[to];
-    [pf, pt].forEach(el => el.addEventListener('change', () => { let f = pf.value, t = pt.value; if (S.months.indexOf(f) > S.months.indexOf(t)) [f, t] = [t, f]; state.perfFrom = f; state.perfTo = t; renderPerformance(); })); }
+  // ---- trend explorer controls
+  const saveT = () => { LS('mm.trend', JSON.stringify(state.trend)); renderPerformance(); };
+  const bindSeg = (id, key) => root.querySelectorAll('#' + id + ' button').forEach(b => b.addEventListener('click', () => { state.trend[key] = b.dataset.v; if (key === 'range' && b.dataset.v === 'custom' && !state.trend.from) { state.trend.from = S.months[Math.max(0, Lk - 11)]; state.trend.to = Lm; } saveT(); }));
+  bindSeg('trend-view', 'view'); bindSeg('trend-range', 'range'); bindSeg('trend-grain', 'grain');
+  root.querySelectorAll('#trend-chips input').forEach(cb => cb.addEventListener('change', () => { const id = cb.dataset.id; const set = new Set(state.trend.series); cb.checked ? set.add(id) : set.delete(id); state.trend.series = [...set].slice(-5); saveT(); }));
+  const ta = root.querySelector('#trend-a'), tb = root.querySelector('#trend-b'); if (ta) ta.addEventListener('change', () => { state.trend.pairA = ta.value; saveT(); }); if (tb) tb.addEventListener('change', () => { state.trend.pairB = tb.value; saveT(); });
+  root.querySelectorAll('#trend-presets button').forEach(b => b.addEventListener('click', () => { const [x1, x2] = b.dataset.v.split('|'); state.trend.pairA = x1; state.trend.pairB = x2; saveT(); }));
+  const tm = root.querySelector('#trend-m'); if (tm) tm.addEventListener('change', () => { state.trend.metric = tm.value; saveT(); });
+  const tf = root.querySelector('#trend-from'), tt = root.querySelector('#trend-to'); if (tf && tt) [tf, tt].forEach(el => el.addEventListener('change', () => { let f = tf.value, t = tt.value; if (S.months.indexOf(f) > S.months.indexOf(t)) [f, t] = [t, f]; state.trend.from = f; state.trend.to = t; saveT(); }));
 }
 
 /* ============================================================ PAGE 4: monthly actuals */

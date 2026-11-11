@@ -667,7 +667,7 @@ function computeInvestor() {
   const nmUp = upgrade(cur3[0], Lk), nmUpPrev = upgrade(prev3[0], prev3[2]);
   // CAC: spend since launch ÷ brands that have paid; quarter CAC = window spend ÷ brands signed in window
   const spendK = ks => sum(ks.map(k => S.cac_merchant_spend[k] || 0));
-  const cacSL = sl.cac && sl.cac.cac != null ? mtCacUse(sl.cac.cac) : null;
+  const cacSL = (MT_LIVE_CAC && MT_LIVE_CAC.cac) ? MT_LIVE_CAC.cac : (sl.cac && sl.cac.cac != null ? sl.cac.cac : null);   // live CAC sheet first; the baked figure only as fallback (it ends where the pack's spend history ends)
   const cacCur = nmSignedCur ? spendK(cur3) / nmSignedCur : null, cacPrev = nmSignedPrev ? spendK(prev3) / nmSignedPrev : null;
   const nmArpa = nmActive ? nmArrCur / nmActive : null, nmArpaPrev = nmActivePrev ? nmArrPrev / nmActivePrev : null;
   const nmLtv = (nmArpa != null && nmLogoChurn) ? nmArpa * NM_MARGIN / nmLogoChurn : null;

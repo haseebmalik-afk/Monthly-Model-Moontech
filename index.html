@@ -701,6 +701,26 @@ function computeInvestor() {
   return { ttm, ytd, latest, sl, ttmPrev, ytdPrev, money, pct0, pct1, ACTIVE, NM_MARGIN, BLENDED_CHURN, sum, win, cur3, prev3, ytdK, ytdPrevK, g, pts, nm, nmRev, sinceK, churnK, paidBy, churnedBy, activeAt, nmArrCur, nmArrPrev, nmActive, nmActivePrev, nmSigned, nmSignedCur, nmSignedPrev, monthsYtd, nmChurned, nmPaid, nmLogoChurn, nmLogoChurnPrev, nmRet, nmNrr, nmNrrPrev, upgrade, nmUp, nmUpPrev, spendK, cacSL, cacCur, cacPrev, nmArpa, nmArpaPrev, nmLtv, nmLtvPrev, nmLtvCac, nmPayback, nmPaybackPrev, blArr, blArrPrev, blActive, blActivePrev, blArpa, blArpaPrev, margin, marginPrev, blLtv, blLtvPrev, blLtvCac, legNewPrev, repeat, repNow, repPrev, nrr, nrrPrev, top1, top1Prev, cash, cashNum, cashBal, cashFund, burn, proForma, runway };
 }
 
+/* ---- ARPA: one definition across the model (Investor Metrics file).
+   Commission side: TTM revenue ÷ active clients at the month end (blended = all revenue ÷ all active).
+   ROAS side (New Model): ARR (last 3 months × 4) ÷ active brands at the month end. Tiers use the brand's current tier. */
+function mtTierOf(b, cacSL) { if (b.tier && ['Small', 'Medium', 'Large'].includes(b.tier)) return b.tier; if (!cacSL) return null; const x = (b.paid_to_latest || 0) * 0.5 / cacSL; return x < 1 ? 'Small' : x < 2 ? 'Medium' : 'Large'; }
+function arpaAt(k, cacSL) {
+  const m = S.months[k]; const T = P['TTM:' + m], Mo = P['M:' + m]; if (!Mo) return null;
+  const o = { n: {} }; const put = (g, rev, n) => { o[g] = (rev != null && n) ? rev / n : null; o.n[g] = n || 0; };
+  const ae = Mo.active_end;
+  if (T) {
+    put('blended', T.rev.total, ae.total); put('legacy', T.rev.legacy, ae.legacy);
+    LEG_SEGS.forEach(sg => put(sg, T.rev.leg_seg[sg], ae.leg_seg[sg]));
+    put('blended_ex_ent', T.rev.total - T.rev.leg_seg.Enterprise, ae.total - ae.leg_seg.Enterprise);
+  } else ['blended', 'legacy', 'blended_ex_ent', ...LEG_SEGS].forEach(g => put(g, null, 0));
+  const nm = D.roas_brands || [], ACT = ['New', 'Existing', 'Reactivated'], ks = [k - 2, k - 1, k].filter(j => j >= 0);
+  const grp = pred => { const mem = nm.filter(pred); const arr = mem.reduce((a, b) => a + ks.reduce((x, j) => x + (b.monthly[j] || 0), 0), 0) * 4; const n = mem.filter(b => ACT.includes((b.status_monthly || [])[k])).length; return [arr, n]; };
+  let [arr, n] = grp(() => true); put('ROAS', arr, n);
+  TIERS.forEach(t => { const [a2, n2] = grp(b => mtTierOf(b, cacSL) === t); put(t, a2, n2); });
+  return o;
+}
+
 function renderInvestor() {
   const root = document.getElementById('page-investor'); const Lm = M.latest_month, Lk = L();
   const I = computeInvestor(); const { ttm, ytd, latest, sl, ttmPrev, ytdPrev, money, pct0, pct1, ACTIVE, NM_MARGIN, BLENDED_CHURN, sum, win, cur3, prev3, ytdK, ytdPrevK, g, pts, nm, nmRev, sinceK, churnK, paidBy, churnedBy, activeAt, nmArrCur, nmArrPrev, nmActive, nmActivePrev, nmSigned, nmSignedCur, nmSignedPrev, monthsYtd, nmChurned, nmPaid, nmLogoChurn, nmLogoChurnPrev, nmRet, nmNrr, nmNrrPrev, upgrade, nmUp, nmUpPrev, spendK, cacSL, cacCur, cacPrev, nmArpa, nmArpaPrev, nmLtv, nmLtvPrev, nmLtvCac, nmPayback, nmPaybackPrev, blArr, blArrPrev, blActive, blActivePrev, blArpa, blArpaPrev, margin, marginPrev, blLtv, blLtvPrev, blLtvCac, legNewPrev, repeat, repNow, repPrev, nrr, nrrPrev, top1, top1Prev, cash, cashNum, cashBal, cashFund, burn, proForma, runway } = I;
@@ -954,8 +974,9 @@ function renderPerformance() {
     + row('At risk · commission (3–5 quiet months)', [...mk.map(m => `<td class="muted">${S.at_risk_leg[kOf(m)].length}</td>`), '<td></td>'])
     + row('At risk · ROAS (3–5 months unpaid)', [...mk.map(m => `<td class="muted">${S.at_risk_roas[kOf(m)].length}</td>`), '<td></td>']));
   // ---- ARPA
-  const arpaT = tbl(R('Blended', p => p.arpa.blended, money, 'tot', false) + R('Blended excl. Enterprise', p => p.arpa.blended_ex_ent, money, 'sub', false)
-    + (co ? '' : ['Enterprise', 'Growth', 'SME', 'ROAS'].map(g => R(g, p => p.arpa[g], money, 'sub', false)).join('') + TIERS.map(g => R('ROAS ' + g, p => p.arpa[g], money, 'sub2', false)).join(''))
+  const Ic = computeInvestor(); const kEnd = p => S.months.indexOf(p.end); const AP = p => arpaAt(kEnd(p), Ic.cacSL) || {};   // ARPA at the period end (one definition: see arpaAt)
+  const arpaT = tbl(R('Blended', p => AP(p).blended, money, 'tot', false) + R('Blended excl. Enterprise', p => AP(p).blended_ex_ent, money, 'sub', false)
+    + (co ? '' : ['Enterprise', 'Growth', 'SME', 'ROAS'].map(g => R(g, p => AP(p)[g], money, 'sub', false)).join('') + TIERS.map(g => R('ROAS ' + g, p => AP(p)[g], money, 'sub2', false)).join(''))
     + R('Enterprise share of commission revenue', p => p.rev.named ? p.rev.leg_seg.Enterprise / p.rev.named : null, pct0));
   // ---- ROAS economics
   const I = computeInvestor();
@@ -1050,8 +1071,8 @@ function renderPerformance() {
   barChart(document.getElementById('pf-act'), { labels: lab, fullLabels: full, kind: 'num', height: 200, labelEvery: 1, series: [...LEG_SEGS.map(sg => ({ name: sg, color: SEG_C[sg], values: v(S.act_leg_seg[sg]) })), ...TIERS.map(t => ({ name: 'ROAS ' + t, color: TIER_C[t], values: v(S.act_roas_tier[t]) }))] });
   lineChart(document.getElementById('pf-ret'), { labels: lab, fullLabels: full, kind: 'pct', height: 200, labelEvery: 1, series: [{ name: 'NRR', color: 'var(--teal)', values: mk.map(m => { const t = P['TTM:' + m]; return t && t.retention.legacy_12m ? t.retention.legacy_12m.nrr : null; }) }, { name: 'GRR', color: 'var(--ink-3)', values: mk.map(m => { const t = P['TTM:' + m]; return t && t.retention.legacy_12m ? t.retention.legacy_12m.grr : null; }) }] });
   barChart(document.getElementById('pf-churn'), { labels: lab, fullLabels: full, kind: 'num', height: 200, labelEvery: 1, series: [{ name: 'Commission churn', color: 'var(--c-legacy)', values: ps.map(p => p.churn.legacy ? p.churn.legacy.events : 0) }, { name: 'ROAS churn', color: 'var(--c-roas)', values: ps.map(p => p.churn.ROAS ? p.churn.ROAS.events : 0) }], lines: [{ name: 'At risk', color: '#d97706', values: ks.map(k => S.at_risk_leg[k].length + S.at_risk_roas[k].length) }] });
-  lineChart(document.getElementById('pf-arpa'), { labels: lab, fullLabels: full, kind: 'money', height: 200, labelEvery: 1, series: [{ name: 'Blended', color: 'var(--ink)', values: ps.map(p => p.arpa.blended) }, { name: 'Blended excl. Enterprise', color: '#64748b', values: ps.map(p => p.arpa.blended_ex_ent) }, { name: 'Growth', color: SEG_C.Growth, values: ps.map(p => p.arpa.Growth) }, { name: 'SME', color: SEG_C.SME, values: ps.map(p => p.arpa.SME) }, { name: 'ROAS', color: 'var(--c-roas)', values: ps.map(p => p.arpa.ROAS) }] });
-  lineChart(document.getElementById('pf-arpa-ent'), { labels: lab, fullLabels: full, kind: 'money', height: 200, labelEvery: 1, series: [{ name: 'Enterprise', color: SEG_C.Enterprise, values: ps.map(p => p.arpa.Enterprise) }] });
+  lineChart(document.getElementById('pf-arpa'), { labels: lab, fullLabels: full, kind: 'money', height: 200, labelEvery: 1, series: [{ name: 'Blended', color: 'var(--ink)', values: ps.map(p => AP(p).blended) }, { name: 'Blended excl. Enterprise', color: '#64748b', values: ps.map(p => AP(p).blended_ex_ent) }, { name: 'Growth', color: SEG_C.Growth, values: ps.map(p => AP(p).Growth) }, { name: 'SME', color: SEG_C.SME, values: ps.map(p => AP(p).SME) }, { name: 'ROAS', color: 'var(--c-roas)', values: ps.map(p => p.arpa.ROAS) }] });
+  lineChart(document.getElementById('pf-arpa-ent'), { labels: lab, fullLabels: full, kind: 'money', height: 200, labelEvery: 1, series: [{ name: 'Enterprise', color: SEG_C.Enterprise, values: ps.map(p => AP(p).Enterprise) }] });
   dual('pf-cac', [{ name: 'Spend', color: 'var(--c-roas)', values: ps.map(p => p.cac ? p.cac.spend : null), kind: 'money' }], { name: 'Brands signed', color: 'var(--ink)', values: ps.map(p => p.events.roas_signed) }, ['money', 'num']);
   barChart(document.getElementById('pf-roas'), { labels: lab, fullLabels: full, kind: 'money', height: 200, labelEvery: 1, series: [{ name: 'ROAS revenue', color: 'var(--c-roas)', values: v(S.rev_roas) }], lines: [{ name: 'ROAS ARR', color: 'var(--ink-3)', values: v(S.arr_roas) }] });
   lineChart(document.getElementById('pf-cre'), { labels: lab, fullLabels: full, kind: 'num', height: 200, labelEvery: 1, series: [{ name: 'Active', color: '#db2777', values: v(cr.active) }, { name: 'Emerging', color: '#f59e0b', values: v(cr.emerging) }, { name: 'Major', color: 'var(--ink)', values: v(cr.major) }] });
@@ -1098,7 +1119,8 @@ function renderActuals() {
   TIERS.forEach(s => T += R('ROAS ' + s, S.rev_roas_tier[s], money, 'sub'));
   LEG_SEGS.forEach(s => T += R('Active ' + s, S.act_leg_seg[s], fmt.int, 'sub2', p => p.active_end.leg_seg[s]));
   TIERS.forEach(s => T += R('Active ROAS ' + s, S.act_roas_tier[s].slice(0, n), fmt.int, 'sub2', p => p.active_end.roas_tier[s]));
-  ['Enterprise', 'Growth', 'SME', 'ROAS', 'blended'].forEach(g => T += R('ARPA ' + (g === 'blended' ? 'blended' : g), S.arpa[g].slice(0, n), money, 'sub', false));
+  { const Ic2 = computeInvestor(); const AM = S.months.slice(0, n).map((_, k) => arpaAt(k, Ic2.cacSL) || {});
+    ['Enterprise', 'Growth', 'SME', 'ROAS', 'blended'].forEach(g => T += R('ARPA ' + (g === 'blended' ? 'blended' : g), AM.map(a => a[g] == null ? null : a[g]), money, 'sub', false)); }
   T += sec('P&amp;L', total);
   T += PR('Revenue', p => p.rev, money, 'tot'); T += PR('Creator payouts', p => -p.cp, money, 'sub'); T += PR('Materials', p => -p.materials, money, 'sub'); T += PR('Freelancers', p => -p.freelancers, money, 'sub'); T += PR('Other cost of sales', p => -p.other_cos, money, 'sub');
   T += PR('Contribution margin', p => p.cm, money, 'tot'); T += PR('Gross profit', p => p.gp, money, 'tot'); T += PR('Gross margin %', p => p.gm_pct, pct1, 'sub');
@@ -1257,11 +1279,11 @@ function renderControl() {
       <p><b>Active commission client:</b> annualised revenue ≥ $950 and fewer than 6 consecutive months below $100. <b>Churned (commission):</b> the first month either test fails (not backdated); i.e. no longer meets the threshold ($950/yr, or 6+ quiet months).</p>
       <p><b>ROAS brand:</b> active from its ladder Since month; churned at the ladder Churn month, or after 6 months without payment. No revenue threshold. The two segments use different churn triggers by design.</p>
       <p><b>Migrated clients</b> (DKNY, Izil, Metro Brazil) are one client in one view per month — commission before their Since month, ROAS after — never counted twice.</p>
-      <p><b>ARR:</b> commission = last 3 months each ÷ its seasonality weight, averaged; ROAS = last 3 months × 4. <b>ARPA</b> = ARR ÷ average active accounts over the same 3 months.</p>
+      <p><b>ARR:</b> commission = last 3 months each ÷ its seasonality weight, averaged; ROAS = last 3 months × 4. <b>ARPA</b> (one definition everywhere, from the Investor Metrics file): commission = TTM revenue ÷ active clients at the update date; ROAS / New Model = ARR ÷ active brands at the update date.</p>
       <p><b>Churn rates</b> are stored monthly (unique churned ÷ average active ÷ months) and shown as 12-month churn, 1 − (1 − m)¹², with average lifetime 1 ÷ m.</p>
       <p><b>LTV</b> = ARPA ÷ 12 × margin × lifetime (capped 60 months). ROAS uses logo churn and a 50% margin; commission uses revenue churn (1 − GRR) and the actual TTM contribution margin.</p>
-      <p><b>Size — commission:</b> Enterprise = annualised revenue ≥ AED 1M (exit below 500k); Growth / SME by the client's own company revenue (≥ / &lt; $50M). <b>Size — ROAS:</b> Small = CAC not yet paid back on profit; Medium = paid back; Large = annualised spend ≥ the ARPA of the largest commission segment by account count.</p>
-      <p><b>Creators:</b> active = averages ≥5 net orders/month and ordered in the last 6 months; Major = annualised ≥5,000 net orders (exit below 2,500). Order and GMV history before Jun-26 appears gross, so those metrics are flagged “basis under review”.</p>
+      <p><b>Size — commission:</b> Enterprise = annualised revenue ≥ AED 1M (exit below 500k); Growth / SME by the client's own company revenue (≥ / &lt; $50M). <b>Size — ROAS:</b> margin on what the brand has paid ÷ CAC — below 1× Small, 1× to 2× Medium, above 2× Large.</p>
+      <p><b>Creators:</b> active = averages ≥5 net orders/month and ordered in the last 6 months; Major = annualised ≥5,000 net orders (exit below 2,500).</p>
       <p><b>Development accounting:</b> ${Object.entries(state.cap).map(([y, v]) => y + ' ' + v).join(', ')} (set above). EBITDA before development is shown throughout so the accounting change doesn’t read as cost growth.</p>
       <p><b>Ads &amp; CAC:</b> ad counting changed in Apr-25, so 2024 ads aren’t comparable; 2024 CAC may be understated (company spun out of ITCAN in 2024). All acquisition spend is on ROAS; commission CAC is n/a.</p>
     </div></div>`;
@@ -1279,7 +1301,7 @@ function renderKpis() {
   const co = state.view === 'co';
   const arr = latest.arr;
   const I = computeInvestor();   // one definition per metric across the model: the Investor Metrics set
-  const arpaB = I.blArpa;
+  const arpaB = I.blArpa, AR = arpaAt(Lk, I.cacSL) || {};
   const cac = sl ? sl.cac : null;
   const nrr = (sel.retention && sel.retention.legacy_12m) || ttm.retention.legacy_12m;
   const ev = sel.events;
@@ -1294,7 +1316,9 @@ function renderKpis() {
         ${split2('Commission', fmt.money(sel.rev.legacy), 'ROAS', fmt.money(sel.rev.roas))}</div>
       <div class="card block"><p class="eyebrow">Blended ARR · ${fmt.month(Lm)}</p><div class="hero">${fmt.money(arr.blended)}</div>
         ${split2('Commission run-rate', fmt.money(arr.legacy), 'ROAS ARR', fmt.money(arr.roas))}</div>
-      ${card('ARPA · blended', fmt.money(arpaB), '<div class="muted small">TTM revenue ÷ active brands at ' + fmt.month(Lm) + '</div>')}
+      <div class="card block"><p class="eyebrow">ARPA · blended</p><div class="hero">${fmt.money(arpaB)}</div>
+        <div class="muted small">TTM revenue ÷ active brands at ${fmt.month(Lm)}${co ? '' : ' · ROAS on ARR basis (New Model)'}</div>
+        ${split2('Commission', fmt.money(AR.legacy), 'ROAS', fmt.money(I.nmArpa))}</div>
       ${card('Commission NRR · rolling 12m', fmt.pct(nrr && nrr.nrr, 0), '<div class="muted small">GRR ' + fmt.pct(nrr && nrr.grr, 0) + '</div>')}
     </div>
     <div class="grid g4" style="margin-top:14px">
@@ -1319,7 +1343,9 @@ function renderSegmentation() {
   const sel = P[state.period] || P['TTM:' + Lm];
   const model = state.segModel || 'all';
   const money = v => fmt.money(v);
-  const arpaOf = s => (S.arpa && S.arpa[s]) ? S.arpa[s][Lk] : null;
+  const I0 = computeInvestor(); const AR = arpaAt(Lk, I0.cacSL) || { n: {} };
+  const arpaOf = s => AR[s];
+  const ltvOf = (a, lv) => (a != null && lv && lv.margin != null && lv.lifetime != null) ? a / 12 * lv.margin * lv.lifetime : null;   // LTV = ARPA ÷ 12 × margin × lifetime (capped 60 months)
   const naCell = '<td class="na" title="not segmentable">n/a</td>';
   const dash = '<td class="na">—</td>';
   const chTd = c => `<td>${churnTxt(c)}</td>`;
@@ -1331,23 +1357,23 @@ function renderSegmentation() {
     const ch = s === 'Enterprise' ? (sel.churn && sel.churn.Enterprise) : (sel.churn && sel.churn.GrowthSME);
     return `<tr><td><span class="sw" style="background:${SEG_C[s]}"></span>${s}</td>`
       + td(sel.rev.leg_seg[s], money) + td(sel.active_end.leg_seg[s], fmt.int) + td(arpaOf(s), money)
-      + td(lv && lv.ltv, money) + chTd(ch) + naCell + naCell + naCell + '</tr>';
+      + td(ltvOf(arpaOf(s), lv), money) + chTd(ch) + naCell + naCell + naCell + '</tr>';
   }).join('');
   const commTot = `<tr class="tot"><td>All commission</td>`
-    + td(sel.rev.legacy, money) + td(sel.active_end.legacy, fmt.int) + td(computeInvestor().blArpa, money)
-    + dash + chTd(sel.churn && sel.churn.legacy) + naCell + naCell + naCell + '</tr>';
+    + td(sel.rev.legacy, money) + td(sel.active_end.legacy, fmt.int) + td(AR.legacy, money)
+    + td(ltvOf(AR.legacy, sel.ltv && sel.ltv.GrowthSME && sel.churn && sel.churn.legacy ? { margin: sel.ltv.GrowthSME.margin, lifetime: sel.churn.legacy.lifetime } : null), money) + chTd(sel.churn && sel.churn.legacy) + naCell + naCell + naCell + '</tr>';
   const commTable = `<div class="card"><p class="eyebrow">Commission · by size (Enterprise / Growth / SME)</p>
     <div class="tblwrap"><table class="t">${head('Segment')}<tbody>${commRows}${commTot}</tbody></table></div>
-    <div class="note">LTV and logo churn for Growth &amp; SME are measured together. CAC, payback and LTV:CAC don't break down by segment — there is no segment-level acquisition cost — so they show n/a.</div></div>`;
+    <div class="note">ARPA = TTM revenue ÷ active clients at ${fmt.month(Lm)} (same definition as the KPIs and the Investor Dashboard). LTV = ARPA ÷ 12 × margin × lifetime; LTV and logo churn for Growth &amp; SME are measured together. CAC, payback and LTV:CAC don't break down by segment — there is no segment-level acquisition cost — so they show n/a.</div></div>`;
 
   const I = computeInvestor();   // ROAS unit economics: same definitions as the Investor Dashboard (as at the update date)
   const nmChurnOf = pred => { const paid = D.roas_brands.filter(b => pred(b) && I.sinceK(b) >= 0 && I.sinceK(b) <= Lk); const ch = paid.filter(b => I.churnK(b) >= 0 && I.churnK(b) <= Lk); return paid.length ? { r: ch.length / paid.length * (12 / I.monthsYtd), n: ch.length, p: paid.length } : null; };
   // churned brands carry no tier in the pipeline: apply the same CAC-payback rule to what they paid (50% margin)
-  const tierOf = b => (b.tier && ['Small', 'Medium', 'Large'].includes(b.tier)) ? b.tier : (I.cacSL ? ((b.paid_to_latest || 0) * 0.5 / I.cacSL < 1 ? 'Small' : (b.paid_to_latest || 0) * 0.5 / I.cacSL < 2 ? 'Medium' : 'Large') : null);
+  const tierOf = b => mtTierOf(b, I.cacSL);
   const nmChurnTd = c => c ? `<td>${fmt.pct(c.r, 0)} <span class="muted small">${c.n}/${c.p}${c.p < 5 ? '<span class="f" title="fewer than 5 brands">n&lt;5</span>' : ''}</span></td>` : '<td class="na">—</td>';
   // ROAS block — rows S / M / L (CAC/payback/LTV:CAC available at the ROAS total only)
   const roasRows = TIERS.map(s => `<tr><td><span class="sw" style="background:${TIER_C[s]}"></span>${s}</td>`
-    + td(sel.rev.roas_tier[s], money) + td(sel.active_end.roas_tier[s], fmt.int) + dash + dash
+    + td(sel.rev.roas_tier[s], money) + td(sel.active_end.roas_tier[s], fmt.int) + td(AR[s], money) + dash
     + nmChurnTd(nmChurnOf(b => tierOf(b) === s)) + naCell + naCell + naCell + '</tr>').join('');
   const roasTot = `<tr class="tot"><td>All ROAS</td>`
     + td(sel.rev.roas, money) + td(sel.active_end.roas, fmt.int) + td(I.nmArpa, money)
@@ -1355,7 +1381,7 @@ function renderSegmentation() {
     + td(I.cacSL, money) + td(I.nmPayback, fmt.mo) + td(I.nmLtvCac, fmt.x) + '</tr>';
   const roasTable = `<div class="card" style="margin-top:16px"><p class="eyebrow">ROAS · by tier (Small / Medium / Large)</p>
     <div class="tblwrap"><table class="t">${head('Tier', 'Logo churn (annualised)')}<tbody>${roasRows}${roasTot}</tbody></table></div>
-    <div class="note">Tiers follow the agreed CAC-payback rule: margin on what the brand has paid ÷ CAC — below 1× Small, 1–2× Medium, above 2× Large. ARPA, LTV, CAC, payback and LTV:CAC are only available for ROAS as a whole (total row, Investor definitions); per tier they show —.</div></div>`;
+    <div class="note">Tiers follow the agreed CAC-payback rule: margin on what the brand has paid ÷ CAC — below 1× Small, 1–2× Medium, above 2× Large. ARPA = ARR (last 3 months × 4) ÷ active brands at ${fmt.month(Lm)} (New Model definition, as on the Investor Dashboard). LTV, CAC, payback and LTV:CAC are only available for ROAS as a whole (total row); per tier they show —.</div></div>`;
 
   // Unified size axis — ROAS brands carry E/G/SME too (pipeline/roas_segments.csv: Kareem's segmentation file + defaults)
   const kStart = S.months.indexOf(sel.start), kEnd = S.months.indexOf(sel.end);

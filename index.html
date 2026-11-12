@@ -1340,7 +1340,7 @@ function renderKpis() {
       ${card('Merchant CAC · ' + esc(sel.label) + (CAC.live ? ' (live)' : ''), fmt.money(CAC.cac), '<div class="muted small">' + (CAC.cost != null ? fmt.money(CAC.cost) + ' spend ÷ ' + fmt.int(CAC.n) + ' new brands' : 'spend not available for this period') + '</div>')}
     </div>
     <div class="grid g4" style="margin-top:14px">
-      ${card('GMV · ' + esc(sel.label), fmt.money(sel.gmv), '<div class="muted small">net sales through the platform' + (sel.rev.total && sel.gmv ? ' · take rate ' + fmt.pct(sel.rev.total / sel.gmv, 1) : '') + '</div>')}
+      ${card('GMV · ' + esc(sel.label), sel.gmv == null ? '—' : '$' + Math.round(sel.gmv / 1e6) + 'M', '<div class="muted small">net sales through the platform' + (sel.rev.total && sel.gmv ? ' · take rate ' + fmt.pct(sel.rev.total / sel.gmv, 1) : '') + '</div>')}
       ${card('Active clients · ' + esc(sel.label), fmt.int(sel.active_end.total), split2('Commission', sel.active_end.legacy, 'ROAS', sel.active_end.roas))}
       ${card('New ROAS signed · ' + esc(sel.label), ev ? fmt.int(ev.roas_signed) : '—', ev ? '<div class="muted small">churned ' + fmt.int(ev.roas_churn) + '</div>' : '')}
       ${card('ROAS share of revenue · ' + esc(sel.label), fmt.pct(sel.rev.total ? sel.rev.roas / sel.rev.total : null, 0), sel.yoy ? '<div class="muted small">revenue YoY ' + fmt.pctS(sel.yoy.total) + '</div>' : '')}

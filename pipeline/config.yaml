@@ -15,7 +15,7 @@ merchant_status:                         # [§7] legacy (Datos) merchants
   new_cohort_window_months: 12           # "New"/"Reactivated" revenue window [§7 splits]
 
 roas_status:                             # [§7] ladder brands
-  months_without_payment_to_churn: 6     # rule R2 (when ladder Churn month is blank)
+  months_without_payment_to_churn: null  # LOCKED 2026-11-13 (Haseeb): no backstop — a brand churns only when the ladder marks it churned (Churn month)
   other_pricing_levels_not_matching: "^L[0-9]+$"
   include_as_roas: ["Jetour"]              # New Model = ROAS brands incl. Jetour (cost-per-lead), per Haseeb 5-Nov; counted as ROAS everywhere   # any Level not matching this regex = Other pricing (e.g. CPL / Jetour)
   launch_month: 2025-11                  # first ROAS signing; "since launch" periods start here [§10.5]

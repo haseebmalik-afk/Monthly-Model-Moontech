@@ -251,7 +251,7 @@ def roas_status(b, cfg):
         elif churn is not None and k >= churn: act = False               # R1
         else:
             ref = last if last is not None else since
-            act = (k - ref) < NR or k == since                           # R2 backstop; always active in Since month
+            act = True if NR is None else ((k - ref) < NR or k == since)   # R2 backstop only if configured; off since 2026-11-13: churn = ladder Churn month only
         if act and not state: out[k] = 'Reactivated' if churned else 'New'
         elif act: out[k] = 'Existing'
         elif state: out[k] = 'Churned'; churned = True

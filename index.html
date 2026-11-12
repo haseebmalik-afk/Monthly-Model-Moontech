@@ -1648,6 +1648,17 @@ function renderSegmentation() {
     catch (e) { mtLiveReport('ladder', { ok: false, err: String(e && e.message || e) }); setLadderMsg('<b>Live data problem.</b> Could not load the receivables sheet (' + esc2(String(e && e.message || e)) + '). The ladder is not shown rather than shown stale. Open this page over the web (the published Google Sheets must be reachable from the browser).'); }
   }
   // kick off once the DOM is ready; independent of the main data build
+  // Pack extraction hook (used at data-pack update time to write data/pack/ladder.json + ladder_milestones.json): the full ladder, uncut.
+  window.mtLadderExport = async () => {
+    const src = await fetchLadderSources(); const B = buildLadder(src.recvRows, src.trackerRows, null);
+    const get = colGetter(src.recvRows[0]); const ms = {};
+    for (const r of src.recvRows.slice(1)) { const brand = String(get(r, 'Brand Name') || get(r, 'Client Name') || '').trim(); if (!brand) continue;
+      if (String(get(r, 'Invoice Status') || '').trim() !== 'Paid') continue; const m = lMilestone(get(r, 'ROAS- Milestone', 'ROAS Milestone')); const pdt = lDate(get(r, 'Payment recepit date', 'Payment receipt date'));
+      if (m == null || !pdt) continue; (ms[brand] = ms[brand] || []).push([m, pdt.getUTCFullYear() + '-' + String(pdt.getUTCMonth() + 1).padStart(2, '0')]); }
+    const pad = n => String(n).padStart(2, '0');
+    return { today: B.today.toISOString().slice(0, 10), months: B.months.map(m => m.y + '-' + pad(m.m)), trackerError: src.trackerError, unmatched: B.unmatchedChurn,
+      rows: B.rows.map(r => [r.brand, r.level, r.since, r.churnMonth, r.status, r.dropped ? 1 : 0, r.grid.map(v => v == null ? '' : Math.round(v))]), milestones: ms };
+  };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initLadder); else initLadder();
 })();
 

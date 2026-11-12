@@ -1770,7 +1770,7 @@ function renderSegmentation() {
       cacYear = (saved && yrs.includes(saved)) ? saved : (yrs.includes(2026) ? 2026 : yrs[yrs.length - 1]);
       renderCac();
       // publish live blended merchant CAC (current year YTD) for LTV:CAC on KPIs / Investor / Segmentation
-      try { const launch = (M && M.config && M.config.roas_status && M.config.roas_status.launch_month) || '2025-11'; const cutK = mtCutKey();
+      try { const launch = (M && M.config && M.config.roas_status && M.config.roas_status.launch_month) || '2025-11'; const cutK = (typeof MT_CUT === 'string' && MT_CUT) ? MT_CUT : (M && M.latest_month);   // 'YYYY-MM' update date
         const byMonth = {}; let cost = 0, n = 0;
         PARSED.months.forEach((mm, i) => { const key = mm.y + '-' + String(mm.m).padStart(2, '0'); const c = PARSED.merchant.costUSD[i], k = PARSED.merchant.count[i];
           byMonth[key] = { cost: c, n: k };
